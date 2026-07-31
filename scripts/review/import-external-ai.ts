@@ -15,6 +15,7 @@ import {
   type ReviewEvent,
   type ReviewsFile,
 } from "./reviews-store";
+import { persistReportHistory } from "./report-history";
 
 /**
  * Import external AI visual-review decisions (offline review export feedback).
@@ -39,7 +40,6 @@ import {
 const ROOT = process.cwd();
 const CATALOG_ID = "ab-2025-04-23";
 const DEFAULT_FILE = join(ROOT, "data", "exports", `external-ai-review-decisions-${CATALOG_ID}.json`);
-const REPORT_PATH = join(ROOT, "data", "reports", `external-ai-review-import-${CATALOG_ID}.json`);
 const P_DIR = join(ROOT, "data", "processed", CATALOG_ID);
 
 // ---------------------------------------------------------------------------
@@ -538,7 +538,7 @@ async function main() {
     ok: true,
   };
   await mkdir(join(ROOT, "data", "reports"), { recursive: true });
-  await writeFile(REPORT_PATH, JSON.stringify(report, null, 2), "utf-8");
+  const { latest, dated, migratedLegacy } = await persistReportHistory(plan.catalogId, report);
 
   console.log("\n=== IMPORT ESEGUITO ===");
   console.log(`inseriti: ${plan.toInsert.length} asset + ${plan.figureToInsert.length} casi figura`);
@@ -546,7 +546,9 @@ async function main() {
   console.log(`conflitti: ${plan.conflicts.length}`);
   console.log(`DB: ${dbResult.updatedToAiVerified} asset -> ai_visually_verified (già AI: ${dbResult.alreadyAiVerified}, protetti umani: ${dbResult.humanVerifiedProtected}, non trovati: ${dbResult.missingRows})`);
   console.log(`idempotenza: seconda esecuzione -> ${replan.toInsert.length + replan.figureToInsert.length} da inserire, ${replan.unchanged + replan.unchangedFigure} unchanged`);
-  console.log(`Report: ${REPORT_PATH}`);
+  console.log(`Report latest: ${latest}`);
+  console.log(`Report dated: ${dated}`);
+  if (migratedLegacy) console.log(`Cronologia preservata: report precedente migrato in ${migratedLegacy}`);
 }
 
 const isMain =
