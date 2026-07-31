@@ -1,36 +1,51 @@
-import { db, sql } from "../../src/lib/db";
-import { questionCatalogVersions, topics } from "../../src/lib/db/schema";
+import { eq } from "drizzle-orm";
+import { db } from "../../src/lib/db";
+import { questionCatalogVersions, questions, topics } from "../../src/lib/db/schema";
 
 /**
- * Minimal seed: patente B catalog placeholder + clearly fake test topics.
- * NO official questions are inserted until the import pipeline is verified.
+ * Minimal, idempotent seed.
+ * - NO fake topics are created anymore (TEST-1/TEST-2 were phase-1 placeholders
+ *   and are removed here if present and unreferenced).
+ * - A placeholder catalog row (B/unknown) is created ONLY when no catalog
+ *   exists at all; the real importer replaces this state.
+ * - NO official questions are inserted (the importer does that).
  */
 async function main() {
   console.log("Seeding minimal reference data...");
 
-  await db
-    .insert(questionCatalogVersions)
-    .values({
-      licenseCategory: "B",
-      officialName: "Catalogo quiz patente B (segnalibro, da popolare via pipeline)",
-      versionCode: "unknown",
-      status: "discovered",
-      metadata: { note: "Seed iniziale; versione ufficiale da determinare con l'audit delle fonti." },
-    })
-    .onConflictDoNothing({
-      target: [questionCatalogVersions.licenseCategory, questionCatalogVersions.versionCode],
-    });
+  // remove phase-1 fake topics if unreferenced
+  for (const code of ["TEST-1", "TEST-2"]) {
+    const fake = (await db.select({ id: topics.id }).from(topics).where(eq(topics.code, code)).limit(1))[0];
+    if (fake) {
+      const qref = (await db.select({ id: questions.id }).from(questions).where(eq(questions.topicId, fake.id)).limit(1))[0];
+      if (!qref) {
+        await db.delete(topics).where(eq(topics.id, fake.id));
+        console.log(`[seed] rimosso topic fittizio ${code} (non referenziato)`);
+      } else {
+        console.log(`[seed] topic fittizio ${code} ancora referenziato: non rimosso`);
+      }
+    }
+  }
 
-  const fakeTopics = [
-    { code: "TEST-1", name: "Argomento di prova 1 (SEED-FITTIZIO - dati non ufficiali)" },
-    { code: "TEST-2", name: "Argomento di prova 2 (SEED-FITTIZIO - dati non ufficiali)" },
-  ];
-  for (const t of fakeTopics) {
-    await db.insert(topics).values(t).onConflictDoNothing({ target: [topics.code] });
+  // placeholder catalog only if none exists
+  const anyCatalog = await db.select({ id: questionCatalogVersions.id }).from(questionCatalogVersions).limit(1);
+  if (anyCatalog.length === 0) {
+    await db
+      .insert(questionCatalogVersions)
+      .values({
+        licenseCategory: "B",
+        officialName: "Catalogo quiz patente B (segnaposto: verrà sostituito dall'import ufficiale)",
+        versionCode: "unknown",
+        status: "discovered",
+        metadata: { note: "Segnaposto iniziale; l'importatore crea il catalogo ufficiale." },
+      })
+      .onConflictDoNothing({
+        target: [questionCatalogVersions.licenseCategory, questionCatalogVersions.versionCode],
+      });
   }
 
   console.log("Seed done.");
-  await sql.end();
+  await (db.$client as { end: () => Promise<void> }).end();
 }
 
 main().catch((err) => {
