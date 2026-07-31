@@ -91,6 +91,9 @@ test("generator: seed invalido -> errore", () => {
   assert.ok(!isValidSeed("x"));
 });
 
-test("generator: ALLOWED_MEDIA_STATUSES contiene i due stati utilizzabili", () => {
-  assert.deepEqual([...ALLOWED_MEDIA_STATUSES].sort(), ["ai_visually_verified", "structurally_verified"]);
+test("generator: policy media (dev) permette gli stati verificati", () => {
+  assert.deepEqual(
+    [...ALLOWED_MEDIA_STATUSES].sort(),
+    ["ai_visually_verified", "structurally_verified", "visually_verified"],
+  );
 });

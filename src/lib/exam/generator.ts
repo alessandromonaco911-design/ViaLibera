@@ -4,6 +4,7 @@ import { db } from "../db";
 import { questions, mediaAssets, topics } from "../db/schema";
 import { siteConfig } from "../../config/site";
 import { questionCatalogVersions } from "../db/schema";
+import { isMediaUsable, allowedMediaStatuses, type AppEnvironment } from "../media/policy";
 
 /**
  * Deterministic exam question generator.
@@ -35,9 +36,16 @@ export interface QuestionCandidate {
 /** Pure, DB-agnostic deterministic selection. */
 export function selectQuestions<T extends QuestionCandidate>(
   candidates: T[],
-  opts: { seed: number; total: number; maxPerGroup: number },
+  opts: {
+    seed: number;
+    total: number;
+    maxPerGroup: number;
+    /** media usability predicate (see src/lib/media/policy.ts); defaults to the current environment policy */
+    isUsable?: (status: string | null | undefined, environment?: AppEnvironment) => boolean;
+  },
 ): { selected: T[]; rejected: { id: string; reason: string }[] } {
   const { seed, total, maxPerGroup } = opts;
+  const usableFn = opts.isUsable ?? isMediaUsable;
   if (!Number.isInteger(seed) || seed < 1 || seed > siteConfig.selection.seedMax) {
     throw new Error(`seed non valido: ${seed}`);
   }
@@ -62,7 +70,7 @@ export function selectQuestions<T extends QuestionCandidate>(
         pushRejected(c.id, "asset di riferimento mancante nel catalogo");
         continue;
       }
-      if (!ALLOWED_MEDIA_STATUSES.has(c.mediaStatus)) {
+      if (!usableFn(c.mediaStatus)) {
         pushRejected(c.id, `stato media non utilizzabile: ${c.mediaStatus}`);
         continue;
       }
@@ -103,7 +111,8 @@ export function selectQuestions<T extends QuestionCandidate>(
   return { selected, rejected };
 }
 
-export const ALLOWED_MEDIA_STATUSES = new Set(["structurally_verified", "ai_visually_verified"]);
+/** Legacy alias (development policy). Prefer isMediaUsable/allowedMediaStatuses. */
+export const ALLOWED_MEDIA_STATUSES: ReadonlySet<string> = allowedMediaStatuses();
 
 export interface DbCandidate extends QuestionCandidate {
   statement: string;

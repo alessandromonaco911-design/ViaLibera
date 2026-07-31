@@ -205,6 +205,8 @@ export const examSessions = pgTable(
       .references(() => questionCatalogVersions.id, { onDelete: "restrict" }),
     mode: text("mode").notNull().default("simulation"),
     status: text("status").notNull().default("in_progress"),
+    /** development | test | production — safe identification of dev/test sessions */
+    environment: text("environment").notNull().default("production"),
     totalQuestions: integer("total_questions").notNull(),
     allowedErrors: integer("allowed_errors").notNull(),
     durationSeconds: integer("duration_seconds").notNull(),

@@ -11,6 +11,8 @@ export const dynamic = "force-dynamic";
 
 const createSchema = z.object({
   seed: z.number().int().min(siteConfig.selection.seedMin).max(siteConfig.selection.seedMax).optional(),
+  /** only honored outside production; production always tags 'production' */
+  environment: z.enum(["development", "test"]).optional(),
 });
 
 export async function POST(request: Request): Promise<NextResponse<PublicExamPayload | { error: { code: string; message: string } }>> {
@@ -32,6 +34,12 @@ export async function POST(request: Request): Promise<NextResponse<PublicExamPay
     if (!isValidSeed(seed)) {
       return NextResponse.json({ error: { code: "INVALID_SEED", message: "seed fuori intervallo" } }, { status: 400 });
     }
+    const environment =
+      process.env.NODE_ENV === "production"
+        ? "production"
+        : parsed.data.environment === "test"
+          ? "test"
+          : "development";
 
     const catalogId = await getImportedCatalogId();
     if (!catalogId) {
@@ -39,7 +47,7 @@ export async function POST(request: Request): Promise<NextResponse<PublicExamPay
     }
 
     const { questions } = await generateExamQuestions(catalogId, seed, siteConfig.exam.totalQuestions);
-    const { session } = await createExamSession({ catalogVersionId: catalogId, seed, questions });
+    const { session } = await createExamSession({ catalogVersionId: catalogId, seed, questions, environment });
 
     const payload = buildPublicPayload({
       sessionId: session.id,

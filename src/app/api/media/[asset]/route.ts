@@ -4,7 +4,7 @@ import { join, normalize, relative } from "node:path";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { mediaAssets } from "@/lib/db/schema";
-import { ALLOWED_MEDIA_STATUSES } from "@/lib/exam/generator";
+import { isMediaUsable } from "@/lib/media/policy";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -34,7 +34,7 @@ export async function GET(_request: Request, ctx: Ctx): Promise<NextResponse> {
       console.error(`[media:404] asset non trovato nel catalogo: ${asset}`);
       return NextResponse.json({ error: { code: "MEDIA_NOT_FOUND", message: "immagine non trovata" } }, { status: 404 });
     }
-    if (!media.status || !ALLOWED_MEDIA_STATUSES.has(media.status)) {
+    if (!media.status || !isMediaUsable(media.status)) {
       console.error(`[media:rejected] asset ${asset} con stato non utilizzabile: ${media.status}`);
       return NextResponse.json({ error: { code: "MEDIA_REJECTED", message: "immagine non disponibile" } }, { status: 404 });
     }

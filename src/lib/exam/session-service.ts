@@ -21,6 +21,7 @@ export interface ExamSessionData {
   catalogVersionId: string;
   mode: string;
   status: string;
+  environment: string;
   totalQuestions: number;
   allowedErrors: number;
   durationSeconds: number;
@@ -40,6 +41,7 @@ export async function createExamSession(input: {
   catalogVersionId: string;
   seed: number;
   questions: DbCandidate[];
+  environment?: string;
 }): Promise<{ session: ExamSessionData; rows: { position: number; questionId: string }[] }> {
   const startedAt = new Date();
   const expiresAt = new Date(startedAt.getTime() + siteConfig.exam.durationSeconds * 1000);
@@ -52,6 +54,7 @@ export async function createExamSession(input: {
         catalogVersionId: input.catalogVersionId,
         mode: siteConfig.exam.mode,
         status: "in_progress",
+        environment: input.environment ?? (process.env.NODE_ENV === "production" ? "production" : "development"),
         totalQuestions: total,
         allowedErrors: siteConfig.exam.allowedErrors,
         durationSeconds: siteConfig.exam.durationSeconds,
@@ -302,6 +305,7 @@ function mapSessionRow(row: {
   catalogVersionId: string;
   mode: string;
   status: string;
+  environment: string;
   totalQuestions: number;
   allowedErrors: number;
   durationSeconds: number;

@@ -1,0 +1,1 @@
+ALTER TABLE "exam_sessions" ADD COLUMN "environment" text DEFAULT 'production' NOT NULL;

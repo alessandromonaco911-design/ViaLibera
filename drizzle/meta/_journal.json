@@ -36,6 +36,13 @@
       "when": 1785513281237,
       "tag": "0004_perfect_inertia",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1785515518951,
+      "tag": "0005_petite_vulcan",
+      "breakpoints": true
     }
   ]
 }
