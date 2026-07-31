@@ -277,6 +277,8 @@ async function main() {
   const report = {
     source: { id: src.id, filename: src.localFilename, sha256: undefined as string | undefined },
     catalogId,
+    encoding: "PDF text layer estratta come Unicode (UTF-8); file PDF 1.4 con stream compressi FlateDecode",
+    totalLines: Math.max(...questions.map((q) => q.sourceLineEnd), 0),
     pages: pdf.numPages,
     groups: uniqueGroups.size,
     questions: questions.length,
