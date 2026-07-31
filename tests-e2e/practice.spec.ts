@@ -77,7 +77,7 @@ test.beforeEach(async () => {
 test.describe("Allenamento (practice) — flussi reali", () => {
   test("1+2+3. homepage -> Allenati per argomento -> lista topic", async ({ page }) => {
     await page.goto("/");
-    await page.getByRole("button", { name: "Allenati per argomento" }).click();
+    await page.getByRole("link", { name: "Allenati per argomento" }).click();
     await page.waitForURL(/\/allenamento/);
     await expect(page.getByRole("heading", { name: /Allenati per argomento/ })).toBeVisible();
     // lista topic reale (25 dal DB)

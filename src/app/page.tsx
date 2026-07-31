@@ -3,7 +3,6 @@ import { siteConfig } from "@/config/site";
 import { StartExamButton } from "@/components/home/start-exam-button";
 import { ResumeCard } from "@/components/home/resume-card";
 import { PracticeResumeCard } from "@/components/home/practice-resume-card";
-import { Button } from "@/components/ui/button";
 
 export default function Home() {
   return (
@@ -29,10 +28,11 @@ export default function Home() {
           <PracticeResumeCard />
           <StartExamButton />
           <div className="mt-3">
-            <Link href="/allenamento" passHref legacyBehavior>
-              <Button variant="secondary" size="lg" fullWidth>
-                Allenati per argomento
-              </Button>
+            <Link
+              href="/allenamento"
+              className="inline-flex h-12 w-full select-none items-center justify-center gap-2 rounded-lg bg-primary-soft px-6 text-base font-medium text-primary transition-colors hover:bg-[#e0e8ff]"
+            >
+              Allenati per argomento
             </Link>
           </div>
           <p className="mt-3 text-center text-xs text-muted">Nessuna registrazione richiesta.</p>
