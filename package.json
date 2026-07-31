@@ -23,6 +23,7 @@
     "review:sample": "tsx scripts/review/sample.ts",
     "review:gallery": "tsx scripts/review/gallery.ts",
     "review:export": "tsx scripts/review/export.ts",
+    "review:import": "tsx --env-file=.env scripts/review/import-external-ai.ts",
     "data:figure-audit": "tsx scripts/data/figure-audit.ts"
   },
   "dependencies": {

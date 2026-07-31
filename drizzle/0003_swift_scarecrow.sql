@@ -1,0 +1,1 @@
+ALTER TYPE "public"."media_verification_status" ADD VALUE 'ai_visually_verified' BEFORE 'visually_verified';

@@ -26,10 +26,14 @@
   .tag { display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: 11px; margin-right: 4px; }
   .tag.extracted { background: #e5e5ea; }
   .tag.structurally_verified { background: #d2f0dc; color: #0a5a2a; }
+  .tag.ai_visually_verified { background: #d6e4ff; color: #123a8a; }
   .tag.visually_verified { background: #cfe4ff; color: #063a75; }
   .tag.ambiguous { background: #ffe9c2; color: #7a4d00; }
   .tag.rejected { background: #ffd9d9; color: #7a1111; }
   .tag.missing { background: #eee; color: #666; }
+  .tag.review-ai { background: #d6e4ff; color: #123a8a; }
+  .tag.review-human { background: #cfe4ff; color: #063a75; }
+  .tag.conflict { background: #ffd9a0; color: #7a3d00; }
   .q { border-top: 1px dashed #ddd; padding: 6px 0; font-size: 13px; }
   .q .code { font-weight: 600; }
   .q .ans { font-weight: 600; }
@@ -52,6 +56,7 @@
   .hl-row { stroke: #ff3b30; stroke-width: 2; fill: rgba(255,59,48,.08); }
   .hl-img { stroke: #0a84ff; stroke-width: 2; fill: rgba(10,132,255,.10); }
   details { margin-top: 8px; }
+  .review-note { color: #555; font-size: 12px; margin-top: 2px; }
 </style>
 </head>
 <body>
@@ -71,12 +76,19 @@
   <label>Gruppo
     <select id="fGroup"><option value="">tutti</option></select>
   </label>
+  <label>Revisione
+    <select id="fReviewType">
+      <option value="">tutte</option>
+      <option value="external_ai_visual_review">AI esterna</option>
+      <option value="human">umana</option>
+      <option value="unreviewed">non revisionati</option>
+      <option value="conflict">conflitti</option>
+    </select>
+  </label>
   <label>Cerca
     <input id="fSearch" type="search" placeholder="codice o testo…" style="width:220px">
   </label>
   <label><input type="checkbox" id="fOnlySample"> solo campione consigliato</label>
-  <label><input type="checkbox" id="fOnlyAmbiguous"> solo ambigui</label>
-  <label><input type="checkbox" id="fOnlyUnreviewed"> solo non revisionati</label>
   <button id="btnFig">Casi “in figura” senza asset (V)</button>
   <button id="btnReset">Reset</button>
 </div>
@@ -84,7 +96,7 @@
 <main id="main"></main>
 
 <script>
-const state = { assets: [], pageDims: {}, groupNames: {}, reviews: [], noImage: [], view: "assets" };
+const state = { assets: [], pageDims: {}, groupNames: {}, reviews: [], noImage: [], figureReviews: [], view: "assets" };
 const $ = (id) => document.getElementById(id);
 
 function qs(params) { return new URLSearchParams(params).toString(); }
@@ -95,9 +107,10 @@ async function load() {
   state.pageDims = Object.fromEntries(data.pageDims.map(d => [d.page, d]));
   state.groupNames = data.groupNames;
   state.noImage = data.noImage;
+  state.figureReviews = data.figureReviews || [];
   state.reviews = await (await fetch("/api/reviews")).json();
   // filters
-  const statuses = [...new Set(data.assets.map(a => a.status))];
+  const statuses = [...new Set(data.assets.map(a => a.displayStatus || a.status))];
   $("fStatus").innerHTML = '<option value="">tutti</option>' + statuses.map(s => `<option>${s}</option>`).join("");
   const groups = [...new Set(data.assets.flatMap(a => a.associations.map(x => x.groupCode)))].sort();
   $("fGroup").innerHTML = '<option value="">tutti</option>' + groups.map(g => `<option value="${g}">${g} — ${(data.groupNames[g]||"").slice(0,40)}</option>`).join("");
@@ -109,17 +122,26 @@ function currentFilter() {
   const status = $("fStatus").value;
   const page = parseInt($("fPage").value, 10) || 0;
   const group = $("fGroup").value;
+  const reviewType = $("fReviewType").value;
   const search = $("fSearch").value.toLowerCase();
-  return { status, page, group, search };
+  return { status, page, group, reviewType, search };
+}
+
+function reviewTypeOf(a) {
+  if (a.hasHumanReview && a.hasAiReview && a.conflict) return "conflict";
+  if (a.hasHumanReview) return "human";
+  if (a.hasAiReview) return "external_ai_visual_review";
+  return "unreviewed";
 }
 
 function passesFilter(a, f) {
   if (f.onlySample && !sampleHashes.has(a.hash)) return false;
-  if (f.onlyAmbiguous && a.status !== "ambiguous" && !a.associations.some(x => (x.confidence ?? 0) < 0.5)) return false;
-  if (f.onlyUnreviewed && a.review) return false;
-  if (f.status && a.status !== f.status) return false;
+  if (f.status && (a.displayStatus || a.status) !== f.status) return false;
   if (f.page && !a.associations.some(x => x.page === f.page) && a.pageFirstSeen !== f.page) return false;
   if (f.group && !a.associations.some(x => x.groupCode === f.group)) return false;
+  if (f.reviewType === "unreviewed" && (a.hasHumanReview || a.hasAiReview)) return false;
+  if (f.reviewType === "conflict" && !a.conflict) return false;
+  if ((f.reviewType === "human" || f.reviewType === "external_ai_visual_review") && reviewTypeOf(a) !== f.reviewType) return false;
   if (f.search) {
     const hay = a.associations.map(x => x.questionNumber + " " + x.statement).join(" ").toLowerCase();
     if (!hay.includes(f.search)) return false;
@@ -136,8 +158,11 @@ async function loadSample() {
 }
 
 function updateStats() {
+  const ai = state.assets.filter(a => a.hasAiReview).length;
+  const human = state.assets.filter(a => a.hasHumanReview).length;
+  const conflicts = state.assets.filter(a => a.conflict).length;
   $("statCount").textContent = `${state.assets.length} asset · ${state.assets.reduce((a,b)=>a+b.questionCount,0)} associazioni`;
-  $("statReviews").textContent = `${state.reviews.length} recensioni umane`;
+  $("statReviews").textContent = `AI esterna: ${ai} · umane: ${human} · conflitti: ${conflicts}`;
 }
 
 function reviewButton(asset, decision, label, cls) {
@@ -155,9 +180,29 @@ async function review(hash, decision, el) {
   });
   if (res.ok) {
     state.reviews = await (await fetch("/api/reviews")).json();
-    asset.review = { decision, note };
-    render();
+    location.reload();
   }
+}
+
+function reviewBadge(a) {
+  const out = [];
+  for (const r of a.reviews || []) {
+    if (r.reviewerType === "external_ai_visual_review") {
+      const label = r.decision === "confirmed"
+        ? "Confermata tramite revisione visiva AI esterna"
+        : r.decision === "ambiguous" ? "Segnata ambigua dalla revisione AI esterna"
+        : "Segnata errata dalla revisione AI esterna";
+      out.push(`<span class="tag review-ai">AI: ${label}</span>`);
+    } else if (r.reviewerType === "human") {
+      const label = r.decision === "confirmed"
+        ? "Confermata da revisore umano"
+        : r.decision === "ambiguous" ? "Segnata ambigua da revisore umano"
+        : "Segnata errata da revisore umano";
+      out.push(`<span class="tag review-human">Umano: ${label}</span>`);
+    }
+  }
+  if (a.conflict) out.push('<span class="tag conflict">conflitto tra decisioni</span>');
+  return out.join("");
 }
 
 function pageOverlay(asset) {
@@ -166,8 +211,6 @@ function pageOverlay(asset) {
   const dim = state.pageDims[assoc.page];
   if (!dim) return "";
   const href = `/api/page/${assoc.page}`;
-  const scaleX = 320 / dim.width; // render width is 320 css px (1.5x pdf pts * approx)
-  // compute overlay coordinates in render space (render = 1.5x pts, but we display 320px wide)
   const renderW = dim.width * 1.5, renderH = dim.height * 1.5;
   const cssW = 320, cssH = (renderH / renderW) * 320;
   const toCssX = (x) => (x / renderW) * cssW;
@@ -191,12 +234,12 @@ function pageOverlay(asset) {
 function assetCard(a) {
   const first = a.associations[0] || {};
   const others = a.otherQuestionCodes.slice(1);
+  const st = a.displayStatus || a.status;
   return `<div class="asset" data-hash="${a.hash}">
     <div class="asset-head">
       <img class="asset-img" src="/media/${a.hash}.${a.ext}" alt="asset ${a.hash.slice(0,8)}">
       <div class="asset-meta">
-        <div class="row"><span class="tag ${a.status}">${a.status}</span> <b>${a.hash.slice(0,12)}…</b>
-          ${a.review ? `<span class="reviewed">revisionato: ${a.review.decision}</span>` : ""}</div>
+        <div class="row"><span class="tag ${st}">${st}</span> <b>${a.hash.slice(0,12)}…</b> ${reviewBadge(a)}</div>
         <div class="row">${a.width}×${a.height}px · ${a.questionCount} domande · confidence min ${a.minConfidence}</div>
         ${a.associations.map(x => `<div class="q">
           <span class="code">${x.questionNumber}</span> · <span class="ans ${x.correctAnswer}">${x.correctAnswer ? "VERO" : "FALSO"}</span>
@@ -217,20 +260,30 @@ function assetCard(a) {
 
 function figureView() {
   if (!state.noImage.length) return "<p>Nessun caso.</p>";
-  return state.noImage.map(q => `<div class="asset">
-    <div class="asset-meta">
-      <div class="row"><b>${q.questionNumber}</b> · gruppo ${q.groupCode} — ${q.topic.slice(0, 60)} · pag. ${q.page} · <span class="ans ${q.correctAnswer}">${q.correctAnswer ? "VERO" : "FALSO"}</span></div>
-      <div class="q">${q.statement}</div>
-      <div class="coords">nessuna immagine associata (riferimento testuale)</div>
-    </div></div>`).join("");
+  return state.noImage.map(q => {
+    const f = q.figReview;
+    const badge = f
+      ? (f.reviewerType === "external_ai_visual_review"
+          ? `<span class="tag review-ai">AI: ${f.decision === "no_image_expected" ? "nessuna immagine attesa (revisione AI esterna)" : "revisione AI esterna: " + f.decision}</span>`
+          : `<span class="tag review-human">umano: ${f.decision}</span>`)
+      : "";
+    const note = f && f.note ? `<div class="review-note">nota: ${f.note}</div>` : "";
+    return `<div class="asset">
+      <div class="asset-meta">
+        <div class="row"><b>${q.questionNumber}</b> · gruppo ${q.groupCode} — ${q.topic.slice(0, 60)} · pag. ${q.page} · <span class="ans ${q.correctAnswer}">${q.correctAnswer ? "VERO" : "FALSO"}</span> ${badge}</div>
+        <div class="q">${q.statement}</div>
+        <div class="coords">nessuna immagine associata (riferimento testuale)</div>
+        ${note}
+      </div></div>`;
+  }).join("");
 }
 
 function render() {
   const f = {
     status: $("fStatus").value, page: parseInt($("fPage").value, 10) || 0,
     group: $("fGroup").value, search: $("fSearch").value.toLowerCase(),
-    onlySample: $("fOnlySample").checked, onlyAmbiguous: $("fOnlyAmbiguous").checked,
-    onlyUnreviewed: $("fOnlyUnreviewed").checked,
+    reviewType: $("fReviewType").value,
+    onlySample: $("fOnlySample").checked,
   };
   if (state.view === "figures") {
     $("main").innerHTML = figureView();
@@ -238,7 +291,7 @@ function render() {
     return;
   }
   const filtered = state.assets.filter(a => passesFilter(a, f));
-  const reviewed = filtered.filter(a => a.review).length;
+  const reviewed = filtered.filter(a => a.hasHumanReview || a.hasAiReview).length;
   $("main").innerHTML = filtered.map(assetCard).join("");
   $("summary").textContent = `${filtered.length} asset mostrati (${reviewed} revisionati) · ordinati per confidence crescente`;
   updateStats();
@@ -255,11 +308,11 @@ async function ensureSample() {
 
 $("btnFig").addEventListener("click", () => { state.view = state.view === "figures" ? "assets" : "figures"; render(); });
 $("btnReset").addEventListener("click", () => {
-  ["fStatus","fGroup","fSearch"].forEach(id => { const el = $(id); if (el.tagName === "SELECT") el.value = ""; else el.value = ""; });
-  $("fPage").value = ""; $("fOnlySample").checked = false; $("fOnlyAmbiguous").checked = false; $("fOnlyUnreviewed").checked = false;
+  ["fStatus","fGroup","fSearch","fReviewType"].forEach(id => { const el = $(id); if (el.tagName === "SELECT") el.value = ""; else el.value = ""; });
+  $("fPage").value = ""; $("fOnlySample").checked = false;
   state.view = "assets"; render();
 });
-["fStatus","fPage","fGroup","fSearch","fOnlySample","fOnlyAmbiguous","fOnlyUnreviewed"].forEach(id => $(id).addEventListener("input", render));
+["fStatus","fPage","fGroup","fSearch","fReviewType","fOnlySample"].forEach(id => $(id).addEventListener("input", render));
 $("fOnlySample").addEventListener("change", ensureSample);
 
 load();

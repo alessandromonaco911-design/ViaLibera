@@ -3,6 +3,7 @@ import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import type { ImageLike, ParsedQuestion } from "./lib/types";
+import { loadReviewsFile } from "../review/reviews-store";
 
 /**
  * Figure-reference audit (FASE 5).
@@ -39,6 +40,14 @@ export interface FigureCase {
   classification: FigureClassification;
   evidence: string[];
   requiresHumanReview: boolean;
+  /** set by the application audit when a recorded decision resolves this case (never fakes human review) */
+  resolvedBy?: {
+    decision: string;
+    reviewerType: "human" | "external_ai_visual_review";
+    reviewerLabel: string | null;
+    reviewedAt: string;
+    note: string | null;
+  };
 }
 
 /** Pure classification used by the audit report and by tests. */
@@ -159,6 +168,25 @@ async function main() {
   }
 
   const cases = await buildFigureAudit(catalogId, cache);
+
+  // resolve cases that already have a recorded review decision (e.g. external AI
+  // no_image_expected): requiresHumanReview=false ONLY for the application audit —
+  // the decision origin stays external_ai_visual_review and no human review is faked.
+  const reviewsFile = await loadReviewsFile();
+  const figDecisions = new Map(reviewsFile.figureReferenceCaseReviews.map((r) => [r.officialQuestionCode, r]));
+  for (const c of cases) {
+    const d = figDecisions.get(c.officialQuestionCode);
+    if (!d) continue;
+    c.requiresHumanReview = false;
+    c.resolvedBy = {
+      decision: d.decision,
+      reviewerType: d.reviewerType,
+      reviewerLabel: d.reviewerLabel ?? null,
+      reviewedAt: d.reviewedAt,
+      note: d.note ?? null,
+    };
+  }
+
   const byClass = new Map<string, number>();
   for (const c of cases) byClass.set(c.classification, (byClass.get(c.classification) ?? 0) + 1);
 

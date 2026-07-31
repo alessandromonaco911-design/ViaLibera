@@ -5,6 +5,7 @@ import { deflateRawSync } from "node:zlib";
 import { renderPageAsImage, getDocumentProxy } from "unpdf";
 import { OFFICIAL_SOURCES } from "../data/sources";
 import type { ImageLike, ParsedQuestion } from "../data/lib/types";
+import { loadReviewsFile, type ReviewEvent } from "./reviews-store";
 
 /**
  * Offline review export (FASE 7b).
@@ -35,7 +36,6 @@ const CACHE_POS_DIR = join(ROOT, "data", "processed", ".cache", CATALOG_ID);
 const MEDIA_DIR = join(ROOT, "data", "media", CATALOG_ID);
 const REPORTS_DIR = join(ROOT, "data", "reports");
 const PAGE_CACHE_DIR = join(REPORTS_DIR, ".gallery-pages", CATALOG_ID);
-const REVIEWS_PATH = join(ROOT, "data", "reviews", "reviews.json");
 const PDF_PATH = join(
   ROOT,
   "data",
@@ -177,10 +177,19 @@ interface PositionsData {
   numberCells: { page: number; str: string; x: number; y: number }[];
 }
 
-interface ReviewRecord {
-  assetHash: string;
-  decision: string;
-  note?: string;
+/** Latest review event per asset (any reviewer type) + latest figure-case resolution. */
+async function loadLatestReviews() {
+  const file = await loadReviewsFile();
+  const byHash = new Map<string, ReviewEvent>();
+  const sorted = [...file.reviews].sort((a, b) => (a.reviewedAt < b.reviewedAt ? -1 : 1));
+  for (const r of sorted) {
+    if (r.assetHash) byHash.set(r.assetHash, r); // last write wins -> latest event
+  }
+  const figByCode = new Map<string, ReviewEvent>();
+  for (const r of [...file.figureReferenceCaseReviews].sort((a, b) => (a.reviewedAt < b.reviewedAt ? -1 : 1))) {
+    if (r.officialQuestionCode) figByCode.set(r.officialQuestionCode, r);
+  }
+  return { byHash, figByCode };
 }
 
 // ---------------------------------------------------------------------------
@@ -215,17 +224,15 @@ async function main() {
     }>(join(REPORTS_DIR, `figure-reference-audit-${CATALOG_ID}.json`)),
   ]);
   const questions = questionsRaw.split("\n").filter(Boolean).map((l) => JSON.parse(l) as ParsedQuestion);
-  const reviews: ReviewRecord[] = existsSync(REVIEWS_PATH)
-    ? await readJson<ReviewRecord[]>(REVIEWS_PATH)
-    : [];
-  const reviewByHash = new Map(reviews.map((r) => [r.assetHash, r]));
+  const { byHash: reviewByHash, figByCode: figReviewByCode } = await loadLatestReviews();
   const groupNameByCode = new Map(groups.map((g) => [g.code, g.topic]));
   const pageDimsByPage = new Map(positions.pageDims.map((d) => [d.page, d]));
 
   const sampleHashes = new Set(sampleReport.sample.map((s) => s.hash));
   const sampleByHash = new Map(sampleReport.sample.map((s) => [s.hash, s]));
 
-  const hrCases = figureAudit.cases.filter((c) => c.requiresHumanReview);
+  // figure cases: still open (requiresHumanReview) OR already resolved by a recorded review
+  const hrCases = figureAudit.cases.filter((c) => c.requiresHumanReview || (c as { resolvedBy?: unknown }).resolvedBy);
 
   // --- 2. selection ---
   // assets: the recommended sample (74); the 2 HR cases have no asset (mediaRelation null)
@@ -359,6 +366,7 @@ async function main() {
 
   const figureReferenceCases = hrCases.map((c) => {
     const q = questions.find((x) => x.questionNumber === c.officialQuestionCode);
+    const figReview = figReviewByCode.get(c.officialQuestionCode);
     return {
       officialQuestionCode: c.officialQuestionCode,
       officialGroupCode: c.officialGroupCode,
@@ -373,6 +381,9 @@ async function main() {
       evidence: c.evidence,
       requiresHumanReview: c.requiresHumanReview,
       nearbyImages: c.nearbyImages,
+      resolvedBy: (c as { resolvedBy?: unknown }).resolvedBy ?? null,
+      currentReviewStatus: figReview?.decision ?? null,
+      currentReviewNote: figReview?.note ?? null,
     };
   });
 
@@ -670,9 +681,16 @@ function hrCard(c){
     extra += '<rect class="hl-near" x="' + ptX(n.x, String(c.sourcePage)) + '" y="' + ptY(n.y + n.h, String(c.sourcePage)) + '" width="' + (n.w * PAGE[String(c.sourcePage)].pngW / PAGE[String(c.sourcePage)].pdfW) + '" height="' + (n.h * PAGE[String(c.sourcePage)].pngH / PAGE[String(c.sourcePage)].pdfH) + '"/>';
   });
   var ev = c.evidence.map(function(e){ return '<li>' + esc(e) + '</li>'; }).join("");
+  var reviewBadge = "";
+  if (c.currentReviewStatus) {
+    reviewBadge = c.currentReviewStatus === "no_image_expected"
+      ? '<span class="tag" style="background:#d6e4ff;color:#123a8a">AI esterna: nessuna immagine attesa</span>'
+      : '<span class="tag" style="background:#d6e4ff;color:#123a8a">AI esterna: ' + esc(c.currentReviewStatus) + '</span>';
+  }
+  var hTag = c.requiresHumanReview ? '<span class="tag hr">requiresHumanReview</span>' : '<span class="tag" style="background:#d2f0dc;color:#0a5a2a">risolto (revisione esterna)</span>';
   return '<div class="asset asset-hr" data-code="' + esc(c.officialQuestionCode) + '">'
     + '<div class="asset-head"><div class="asset-meta">'
-    + '<div class="row"><span class="tag hr">requiresHumanReview</span> <b>' + esc(c.officialQuestionCode) + '</b></div>'
+    + '<div class="row">' + hTag + ' <b>' + esc(c.officialQuestionCode) + '</b> ' + reviewBadge + '</div>'
     + '<div class="row"><span class="ans ' + (c.correctAnswer ? "true" : "false") + '">' + (c.correctAnswer === true ? "VERO" : c.correctAnswer === false ? "FALSO" : "n/d") + '</span> · gruppo ' + esc(c.officialGroupCode) + ' — ' + esc(c.groupName) + ' · pag. ' + c.sourcePage + '</div>'
     + '<div class="row">classificazione: ' + esc(c.classification) + '</div>'
     + '<div class="q"><b>Testo:</b> ' + esc(c.statement) + '</div>'

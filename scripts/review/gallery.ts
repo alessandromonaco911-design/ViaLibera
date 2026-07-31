@@ -6,6 +6,7 @@ import { renderPageAsImage, getDocumentProxy } from "unpdf";
 import { OFFICIAL_SOURCES } from "../data/sources";
 import { STRICT_FIGURE_RE, LOOSE_SIGN_RE } from "../data/figure-audit";
 import type { ImageLike } from "../data/lib/types";
+import { loadReviewsFile, saveReviewsFile, REVIEWS_PATH, type ReviewEvent } from "./reviews-store";
 
 /**
  * Local visual review gallery (dev-only, localhost).
@@ -20,7 +21,6 @@ const ROOT = process.cwd();
 const CATALOG_ID = "ab-2025-04-23";
 const PORT = parseInt(process.argv[2] ?? "8787", 10);
 const PDF_PATH = join(ROOT, "data", "official", OFFICIAL_SOURCES.find((s) => s.id === "pda-2025-ab-it")!.localFilename);
-const REVIEWS_PATH = join(ROOT, "data", "reviews", "reviews.json");
 const PAGE_CACHE_DIR = join(ROOT, "data", "reports", ".gallery-pages", CATALOG_ID);
 
 interface Review {
@@ -34,20 +34,29 @@ interface Review {
   catalogId: string;
 }
 
-async function loadReviews(): Promise<Review[]> {
-  if (!existsSync(REVIEWS_PATH)) return [];
-  try {
-    return JSON.parse(await readFile(REVIEWS_PATH, "utf-8")) as Review[];
-  } catch {
-    return [];
-  }
+async function loadReviews(): Promise<ReviewEvent[]> {
+  const file = await loadReviewsFile();
+  return file.reviews;
 }
 
 async function saveReview(review: Review): Promise<void> {
-  const reviews = await loadReviews();
-  reviews.push(review);
-  await mkdir(join(ROOT, "data", "reviews"), { recursive: true });
-  await writeFile(REVIEWS_PATH, JSON.stringify(reviews, null, 2), "utf-8");
+  const file = await loadReviewsFile();
+  const event: ReviewEvent = {
+    id: `gallery:${review.assetHash}:${Date.now().toString(36)}`,
+    catalogId: review.catalogId,
+    assetHash: review.assetHash,
+    questionIds: review.questionIds,
+    decision: review.decision,
+    reviewerType: "human",
+    reviewerLabel: "revisore umano (galleria locale)",
+    reviewedAt: new Date().toISOString(),
+    method: "gallery",
+    note: review.note,
+    sourceBatch: undefined,
+  };
+  file.reviews.push(event);
+  await saveReviewsFile(file);
+  console.log(`[review] ${event.decision} ${(event.assetHash ?? "").slice(0, 12)}… (${event.questionIds.length} q) [human]`);
 }
 
 const pageCache = new Map<number, Buffer>();
@@ -94,7 +103,15 @@ async function loadData() {
     images: ImageLike[];
   };
   const reviews = await loadReviews();
+  const figureReviews = (await loadReviewsFile()).figureReferenceCaseReviews;
   const groupByCode = new Map(groups.map((g) => [g.code, g]));
+  const reviewByHash = new Map<string, ReviewEvent[]>();
+  for (const r of reviews) {
+    if (!r.assetHash) continue;
+    const arr = reviewByHash.get(r.assetHash) ?? [];
+    arr.push(r);
+    reviewByHash.set(r.assetHash, arr);
+  }
 
   const assets = media
     .map((m) => {
@@ -111,19 +128,37 @@ async function loadData() {
           imageBBox: q.imageBBox,
           confidence: q.structuralConfidence,
         }));
-      const review = reviews.find((r) => r.assetHash === m.hash);
+      const revs = (reviewByHash.get(m.hash) ?? []).sort((a, b) => (a.reviewedAt < b.reviewedAt ? -1 : 1));
+      const latestHuman = [...revs].reverse().find((r) => r.reviewerType === "human");
+      const latestAi = [...revs].reverse().find((r) => r.reviewerType === "external_ai_visual_review");
+      const humanDecisions = new Set(revs.filter((r) => r.reviewerType === "human").map((r) => r.decision));
+      const aiDecisions = new Set(revs.filter((r) => r.reviewerType === "external_ai_visual_review").map((r) => r.decision));
+      const conflict = humanDecisions.size > 0 && aiDecisions.size > 0 && [...humanDecisions].some((d) => !aiDecisions.has(d));
+      // display status = review-derived when a recorded decision exists, else technical pipeline state
+      const displayStatus = conflict
+        ? "conflict"
+        : latestHuman
+          ? latestHuman.decision === "confirmed" ? "visually_verified" : latestHuman.decision
+          : latestAi
+            ? latestAi.decision === "confirmed" ? "ai_visually_verified" : latestAi.decision
+            : m.verificationStatus;
       return {
         hash: m.hash,
         ext: m.ext,
         width: m.width,
         height: m.height,
         status: m.verificationStatus,
+        displayStatus,
         minConfidence: m.minConfidence,
         pageFirstSeen: m.pageFirstSeen,
         questionCount: m.questions.length,
         otherQuestionCodes: m.questions,
         associations: assoc,
-        review: review ?? null,
+        review: latestHuman ?? null, // legacy field kept for the human action buttons
+        reviews: revs,
+        hasAiReview: revs.some((r) => r.reviewerType === "external_ai_visual_review"),
+        hasHumanReview: revs.some((r) => r.reviewerType === "human"),
+        conflict,
       };
     })
     .sort((a, b) => a.minConfidence - b.minConfidence);
@@ -131,14 +166,18 @@ async function loadData() {
   // questions without image that reference figures (loose pattern) -> "in figura" view
   const noImage = questions
     .filter((q) => !q.imageRef && (STRICT_FIGURE_RE.test(q.statement) || LOOSE_SIGN_RE.test(q.statement)))
-    .map((q) => ({
-      questionNumber: q.questionNumber,
-      groupCode: q.groupCode,
-      topic: q.topic,
-      page: q.page,
-      statement: q.statement,
-      correctAnswer: q.correctAnswer,
-    }));
+    .map((q) => {
+      const figReview = figureReviews.find((r) => r.officialQuestionCode === q.questionNumber) ?? null;
+      return {
+        questionNumber: q.questionNumber,
+        groupCode: q.groupCode,
+        topic: q.topic,
+        page: q.page,
+        statement: q.statement,
+        correctAnswer: q.correctAnswer,
+        figReview: figReview ?? null,
+      };
+    });
 
   const mediaFiles = await readdir(join(ROOT, "data", "media", CATALOG_ID));
 
@@ -147,6 +186,7 @@ async function loadData() {
     pageDims: positions.pageDims,
     assets,
     noImage,
+    figureReviews,
     groups: groups.map((g) => ({ code: g.code, topic: g.topic })),
     groupNames: Object.fromEntries([...groupByCode].map(([k, v]) => [k, v.topic])),
     mediaFiles,

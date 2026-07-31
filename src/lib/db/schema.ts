@@ -24,15 +24,19 @@ import {
  * - extracted:            image successfully extracted from the official source (raw bytes valid)
  * - structurally_verified: passed ALL automated checks (valid file, official provenance,
  *                         positional mapping, coordinates within page, confidence >= threshold)
+ * - ai_visually_verified:  content confirmed by an EXTERNAL AI visual review (recorded event,
+ *                         distinct from human review; never set without a recorded AI review event)
  * - visually_verified:    content confirmed by an explicit human action in the review gallery
  * - ambiguous:            association not sufficiently certain (automated)
  * - missing:              expected image not available
  * - rejected:             invalid file or invalid association
- * An asset must NOT be visually_verified without a recorded human review.
+ * An asset must NOT be visually_verified without a recorded human review, and must NOT be
+ * ai_visually_verified without a recorded external-AI review event.
  */
 export const mediaVerificationStatus = pgEnum("media_verification_status", [
   "extracted",
   "structurally_verified",
+  "ai_visually_verified",
   "visually_verified",
   "ambiguous",
   "missing",

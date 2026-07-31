@@ -48,6 +48,7 @@ export const mediaSchema = z.object({
   verificationStatus: z.enum([
     "extracted",
     "structurally_verified",
+    "ai_visually_verified",
     "visually_verified",
     "ambiguous",
     "missing",
