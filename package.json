@@ -15,7 +15,12 @@
     "db:seed": "tsx --env-file=.env scripts/db/seed.ts",
     "db:import-catalog": "tsx --env-file=.env scripts/db/import-catalog.ts",
     "db:verify-import": "tsx --env-file=.env scripts/db/verify-import.ts",
+    "db:cleanup-dev-sessions": "tsx --env-file=.env scripts/db/cleanup-dev-sessions.ts",
+    "db:cleanup-expired-exams": "tsx --env-file=.env scripts/db/cleanup-expired-exams.ts",
+    "exam:audit-distribution": "tsx --env-file=.env scripts/data/exam-distribution-audit.ts",
     "test": "node --import tsx --env-file=.env --test tests/*.test.ts",
+    "test:e2e": "playwright test",
+    "test:e2e:desktop": "playwright test --project=desktop",
     "data:audit": "tsx --env-file=.env scripts/data/audit.ts",
     "data:download": "tsx --env-file=.env scripts/data/download.ts",
     "data:parse": "tsx --env-file=.env scripts/data/parse.ts",
@@ -35,7 +40,9 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.12.1",
     "@napi-rs/canvas": "^1.0.3",
+    "@playwright/test": "^1.62.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
