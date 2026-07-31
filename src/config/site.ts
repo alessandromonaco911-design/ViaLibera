@@ -28,16 +28,30 @@ export const siteConfig = {
     mode: "simulation",
   },
 
+  practice: {
+    /** allowed session sizes for practice/mistakes */
+    questionCounts: [10, 20, 30] as const,
+    defaultQuestionCount: 10,
+    mode: "practice",
+    mistakesMode: "mistakes",
+    /** no timer: sessions never expire */
+    durationSeconds: 0,
+  },
+
   /** internal selection policy (NOT the ministerial algorithm) */
   selection: {
     /** hard cap of questions per official group in one simulation */
     maxPerGroup: 4,
+    /** practice: relaxed per-group cap, lifted only when needed */
+    practiceMaxPerGroup: 6,
     seedMin: 1,
     seedMax: 2147483647,
   },
 
   /** local storage key prefix for exam sessions */
   storageKeyPrefix: "vialibera:exam:v1",
+  /** local storage key prefix for practice sessions */
+  practiceStorageKeyPrefix: "vialibera:practice:v1",
 } as const;
 
 export type SiteConfig = typeof siteConfig;
