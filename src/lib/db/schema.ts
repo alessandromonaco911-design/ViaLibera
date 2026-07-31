@@ -1,4 +1,5 @@
 import {
+  AnyPgColumn,
   boolean,
   index,
   integer,
@@ -65,7 +66,7 @@ export const topics = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     code: text("code").notNull(),
     name: text("name").notNull(),
-    parentId: uuid("parent_id").references(() => topics.id, { onDelete: "set null" }),
+    parentId: uuid("parent_id").references((): AnyPgColumn => topics.id, { onDelete: "set null" }),
     sortOrder: integer("sort_order").notNull().default(0),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
@@ -96,7 +97,7 @@ export const questions = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
-    uniqueIndex("questions_catalog_hash_unique").on(t.catalogVersionId, t.contentHash),
+    uniqueIndex("questions_catalog_code_unique").on(t.catalogVersionId, t.officialQuestionCode),
     index("questions_catalog_idx").on(t.catalogVersionId),
     index("questions_topic_idx").on(t.topicId),
   ],

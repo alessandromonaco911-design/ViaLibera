@@ -46,16 +46,7 @@ yarn-error.log*
 /data/rejected/
 /data/reports/
 
-# keep dirs present but empty
-!data/
-!data/official/
-!data/raw/
-!data/manifests/
-!data/processed/
-!data/questions/
-!data/media/
-!data/reports/
-!data/rejected/
+# keep empty dirs present via .gitkeep
 !**/.gitkeep
 
 # vercel

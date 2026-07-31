@@ -1,19 +1,16 @@
 import { db, sql } from "../src/lib/db";
-import { questionCatalogVersions, topics } from "../src/lib/db/schema";
 
 async function main() {
-  const cats = await db.select().from(questionCatalogVersions);
-  const tps = await db.select().from(topics);
-  console.log(
-    "catalogs:",
-    JSON.stringify(cats.map((c) => ({ cat: c.licenseCategory, ver: c.versionCode, status: c.status }))),
-  );
-  console.log("topics:", tps.map((t) => t.code).join(","));
-  console.log("simple query 1+1 =", await sql`select 1 + 1 as sum`.then((r) => r[0].sum));
+  const idx = await sql`select indexname from pg_indexes where tablename = 'questions'` as { indexname: string }[];
+  console.log("questions indexes:", idx.map((r) => r.indexname).join(", "));
+  const ver = await sql`select id from drizzle.__drizzle_migrations order by created_at desc limit 4` as { id: string }[];
+  console.log("applied migrations:", ver.map((v) => v.id).join(", "));
+  const sf = await db.query.sourceFiles.findMany();
+  console.log("source_files rows:", sf.map((s) => `${s.originalFilename} ${s.sha256.slice(0, 8)}`).join(" | "));
   await sql.end();
 }
 
-main().catch((err) => {
-  console.error(err);
+main().catch((e) => {
+  console.error(e);
   process.exit(1);
 });
