@@ -76,3 +76,34 @@ npm run db:cleanup-expired-exams -- --older-than-days 30 --dry-run
 
 PostgreSQL gira in Docker (`docker compose up -d`, porta 5433). Le migration si applicano con
 `npm run db:migrate` o `npx drizzle-kit push`.
+
+### Avvio rapido
+
+Il file `avvia-app.bat` nella root del progetto verifica/avvia Docker e il database, controlla la
+porta 3000 e avvia `npm run dev` aprendo il browser:
+
+```
+avvia-app.bat           avvia o riavvia il frontend
+avvia-app.bat --clean   cancella la cache .next prima di avviare
+```
+
+### Warning su filesystem lento e hydration mismatch (solo dev)
+
+Se in modalità sviluppo (`npm run dev`) compaiono nel browser errori di hydration del tipo
+"A tree hydrated but some attributes of the server rendered HTML didn't match" sull'attributo
+`className` dell'elemento `<html>` (classi `geist_..._variable` dei font), la causa è la cache
+`.next` generata in modo incoerente su filesystem lenti/condivisi (E: in questo ambiente).
+Non è un problema del codice: la build di produzione non lo manifesta.
+
+Soluzione: cancellare la cache e riavviare.
+
+```
+rmdir /s /q .next
+npm run dev
+```
+
+oppure, con lo script:
+
+```
+avvia-app.bat --clean
+```
