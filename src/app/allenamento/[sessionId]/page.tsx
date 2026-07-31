@@ -1,0 +1,73 @@
+import { notFound, redirect } from "next/navigation";
+import { getPracticeSession, getPracticeSessionQuestions } from "@/lib/practice/service";
+import { getTopic } from "@/lib/practice/generator";
+import { toPublicPracticeQuestion } from "@/lib/practice/payload";
+import { PracticeRunner } from "@/components/practice/practice-runner";
+
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
+export default async function PracticeSessionPage({ params }: { params: Promise<{ sessionId: string }> }) {
+  const { sessionId } = await params;
+
+  let session;
+  try {
+    session = await getPracticeSession(sessionId);
+  } catch (e) {
+    console.error("[allenamento] db error", e);
+    throw e; // handled by error.tsx
+  }
+  if (!session) notFound();
+  if (!["practice", "mistakes"].includes(session.mode)) {
+    // a simulation session reached via the practice URL is not valid here
+    redirect("/simulazione/" + sessionId);
+  }
+  if (session.status === "completed" || session.practiceStatus === "completed") {
+    redirect(`/allenamento/${sessionId}/risultato`);
+  }
+
+  const rows = await getPracticeSessionQuestions(sessionId);
+  const questions = rows.map((r) =>
+    toPublicPracticeQuestion(
+      {
+        id: r.questionId,
+        groupCode: r.groupCode,
+        imageRef: r.imageRef,
+        mediaStatus: r.imageRef ? "structurally_verified" : null,
+        statement: r.statement,
+        correctAnswer: r.correctAnswer,
+        officialQuestionCode: r.officialQuestionCode,
+        topicId: session.topicId,
+        topicName: r.topic,
+        mediaLocalPath: r.mediaLocalPath,
+        mediaMime: r.mediaMime,
+        mediaWidth: r.mediaWidth,
+        mediaHeight: r.mediaHeight,
+      },
+      r.position,
+    ),
+  );
+
+  const topic = session.topicId ? await getTopic(session.topicId) : { id: "", code: "", name: "" };
+
+  return (
+    <PracticeRunner
+      sessionId={session.id}
+      version={1}
+      mode={session.mode as "practice" | "mistakes"}
+      topicName={topic.name}
+      totalQuestions={session.totalQuestions}
+      startedAt={session.startedAt.toISOString()}
+      seed={session.selectionSeed}
+      sourceSessionId={session.sourceSessionId}
+      questions={questions}
+      initialStates={rows.map((r) => ({
+        questionId: r.questionId,
+        position: r.position,
+        selectedAnswer: r.selectedAnswer,
+        verified: r.answerVerified === true,
+        isCorrect: r.answerVerified === true ? r.selectedAnswer !== null && r.selectedAnswer === r.correctAnswer : null,
+      }))}
+    />
+  );
+}

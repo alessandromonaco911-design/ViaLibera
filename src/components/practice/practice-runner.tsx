@@ -1,0 +1,555 @@
+"use client";
+
+import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { siteConfig } from "@/config/site";
+import type { PublicPracticeQuestion } from "@/lib/practice/types";
+import {
+  loadPersistedPracticeState,
+  savePersistedPracticeState,
+  clearPersistedPracticeState,
+  registerPracticeSession,
+  unregisterPracticeSession,
+  type PersistedPracticeState,
+  type VerifiedPracticeResult,
+} from "@/lib/practice/local-state";
+import { Button } from "@/components/ui/button";
+import { Dialog } from "@/components/ui/dialog";
+import { Drawer } from "@/components/ui/drawer";
+import { cn } from "@/lib/utils/cn";
+import { QuestionImage } from "@/components/exam/question-image";
+
+export interface PracticeInitialState {
+  questionId: string;
+  position: number;
+  selectedAnswer: boolean | null;
+  verified: boolean;
+  isCorrect: boolean | null;
+}
+
+interface PracticeRunnerProps {
+  sessionId: string;
+  version: number;
+  mode: "practice" | "mistakes";
+  topicName: string;
+  totalQuestions: number;
+  startedAt: string;
+  seed: number;
+  sourceSessionId: string | null;
+  questions: PublicPracticeQuestion[];
+  initialStates: PracticeInitialState[];
+}
+
+type CheckPhase = "idle" | "checking" | "error";
+
+export function PracticeRunner({
+  sessionId,
+  version,
+  mode,
+  topicName,
+  totalQuestions,
+  startedAt,
+  questions,
+  initialStates,
+}: PracticeRunnerProps) {
+  const router = useRouter();
+  const [position, setPosition] = useState(1);
+  /** selected answers (not yet verified) */
+  const [selected, setSelected] = useState<Record<string, boolean>>({});
+  /** verified answers: questionId -> result */
+  const [verified, setVerified] = useState<Record<string, VerifiedPracticeResult>>({});
+  const [navigatorOpen, setNavigatorOpen] = useState(false);
+  const [zoomImage, setZoomImage] = useState<string | null>(null);
+  const [completeOpen, setCompleteOpen] = useState(false);
+  const [phase, setPhase] = useState<CheckPhase>("idle");
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  const mountedRef = useRef(false);
+  const checkingRef = useRef(false);
+  const completingRef = useRef(false);
+  /** set once the client state has been restored (keyboard active); used as a hydration signal */
+  const [hydrated, setHydrated] = useState(false);
+
+  const byPosition = useMemo(() => new Map(questions.map((q) => [q.position, q])), [questions]);
+  const current = byPosition.get(position);
+  const answeredCount = questions.filter((q) => verified[q.id] !== undefined).length;
+  const uncheckedCount = totalQuestions - answeredCount;
+
+  // ---- restore from localStorage + server state (deferred one macrotask) ----
+  useEffect(() => {
+    const t = setTimeout(() => {
+      const stored = loadPersistedPracticeState(localStorage, sessionId);
+      if (stored && stored.payloadVersion === version) {
+        if (stored.currentPosition >= 1 && stored.currentPosition <= totalQuestions) {
+          setPosition(stored.currentPosition);
+        }
+        // selected answers only for questions that are NOT verified (server state is authoritative)
+        const serverVerified = new Map(initialStates.filter((s) => s.verified).map((s) => [s.questionId, s]));
+        const sel: Record<string, boolean> = {};
+        for (const [qid, val] of Object.entries(stored.selected ?? {})) {
+          if (!serverVerified.has(qid)) sel[qid] = val;
+        }
+        setSelected(sel);
+        // merge verified: prefer server truth; fall back to local only when server lacks it
+        const ver: Record<string, VerifiedPracticeResult> = {};
+        for (const s of initialStates) {
+          if (s.verified && s.selectedAnswer !== null && s.isCorrect !== null) {
+            ver[s.questionId] = { selectedAnswer: s.selectedAnswer, isCorrect: s.isCorrect };
+          }
+        }
+        for (const [qid, v] of Object.entries(stored.verified ?? {})) {
+          if (!ver[qid] && v && typeof v.selectedAnswer === "boolean" && typeof v.isCorrect === "boolean") {
+            ver[qid] = v;
+          }
+        }
+        setVerified(ver);
+      } else {
+        // no usable local state: restore whatever the server knows
+        const ver: Record<string, VerifiedPracticeResult> = {};
+        for (const s of initialStates) {
+          if (s.verified && s.selectedAnswer !== null && s.isCorrect !== null) {
+            ver[s.questionId] = { selectedAnswer: s.selectedAnswer, isCorrect: s.isCorrect };
+          }
+        }
+        setVerified(ver);
+      }
+      mountedRef.current = true;
+      setHydrated(true);
+      registerPracticeSession(localStorage, sessionId);
+    }, 0);
+    return () => clearTimeout(t);
+  }, [sessionId, version, totalQuestions, initialStates]);
+
+  // ---- persist (only after mount) ----
+  useEffect(() => {
+    if (!mountedRef.current) return;
+    const state: PersistedPracticeState = {
+      sessionId,
+      mode,
+      topicId: "",
+      topicName,
+      currentPosition: position,
+      selected,
+      verified,
+      requestedQuestionCount: totalQuestions,
+      totalQuestions,
+      startedAt,
+      lastSavedAt: new Date().toISOString(),
+      payloadVersion: version,
+    };
+    savePersistedPracticeState(localStorage, state);
+  }, [position, selected, verified, sessionId, mode, topicName, totalQuestions, startedAt, version]);
+
+  // ---- interactions ----
+  const selectAnswer = (qid: string, value: boolean) => {
+    if (phase === "checking" || verified[qid] !== undefined) return; // locked after verify
+    setSelected((prev) => ({ ...prev, [qid]: value }));
+    setErrorMsg(null);
+  };
+
+  const verifyCurrent = async () => {
+    if (!current) return;
+    const value = selected[current.id];
+    if (value === undefined || verified[current.id] !== undefined) return; // nothing selected or already verified
+    if (checkingRef.current) return;
+    checkingRef.current = true;
+    setPhase("checking");
+    setErrorMsg(null);
+    try {
+      const res = await fetch(`/api/practice/${sessionId}/answer`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ questionId: current.id, selectedAnswer: value }),
+      });
+      const data = (await res.json().catch(() => null)) as {
+        isCorrect?: boolean;
+        selectedAnswer?: boolean;
+        error?: { message?: string; code?: string };
+      } | null;
+      if (res.ok && data && typeof data.isCorrect === "boolean") {
+        const result: VerifiedPracticeResult = {
+          selectedAnswer: typeof data.selectedAnswer === "boolean" ? data.selectedAnswer : value,
+          isCorrect: data.isCorrect,
+        };
+        setVerified((prev) => ({ ...prev, [current.id]: result }));
+        setSelected((prev) => {
+          const next = { ...prev };
+          delete next[current.id];
+          return next;
+        });
+        setPhase("idle");
+        return;
+      }
+      setErrorMsg(data?.error?.message ?? "Verifica non riuscita. Riprova.");
+      setPhase("error");
+    } catch {
+      // network failure: keep the selection, allow retry
+      setErrorMsg("Errore di rete durante la verifica. La risposta è conservata: riprova.");
+      setPhase("error");
+    } finally {
+      checkingRef.current = false;
+    }
+  };
+
+  const goTo = (pos: number) => {
+    if (pos >= 1 && pos <= totalQuestions) {
+      setPosition(pos);
+      setNavigatorOpen(false);
+      setErrorMsg(null);
+    }
+  };
+
+  const navNext = () => {
+    if (!current) return;
+    if (verified[current.id] === undefined) return; // must verify before advancing
+    if (position < totalQuestions) {
+      setPosition(position + 1);
+      setErrorMsg(null);
+    }
+  };
+
+  const navPrev = () => {
+    if (position > 1) {
+      setPosition(position - 1);
+      setErrorMsg(null);
+    }
+  };
+
+  const complete = async () => {
+    if (completingRef.current) return;
+    completingRef.current = true;
+    setErrorMsg(null);
+    try {
+      const res = await fetch(`/api/practice/${sessionId}/complete`, { method: "POST" });
+      const data = (await res.json().catch(() => null)) as { error?: { message?: string } } | null;
+      if (!res.ok) {
+        setErrorMsg(data?.error?.message ?? "Impossibile completare l'allenamento. Riprova.");
+        completingRef.current = false;
+        return;
+      }
+      clearPersistedPracticeState(localStorage, sessionId);
+      unregisterPracticeSession(localStorage, sessionId);
+      router.push(`/allenamento/${sessionId}/risultato`);
+    } catch {
+      setErrorMsg("Errore di rete. Riprova.");
+      completingRef.current = false;
+    }
+  };
+
+  // ---- keyboard shortcuts (V/F/Enter/arrows/G/Esc) ----
+  const modalOpen = navigatorOpen || completeOpen || zoomImage !== null;
+  const keyHandlerRef = useRef<(e: KeyboardEvent) => void>(() => {});
+  useEffect(() => {
+    keyHandlerRef.current = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.tagName === "SELECT" || target.isContentEditable)
+      ) {
+        return;
+      }
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (modalOpen) {
+        if (e.key === "Escape") {
+          e.preventDefault();
+          if (navigatorOpen) setNavigatorOpen(false);
+          else if (zoomImage) setZoomImage(null);
+          else if (completeOpen) setCompleteOpen(false);
+        }
+        return;
+      }
+      if (!current) return;
+      switch (e.key) {
+        case "v":
+        case "V":
+          e.preventDefault();
+          selectAnswer(current.id, true);
+          break;
+        case "f":
+        case "F":
+          e.preventDefault();
+          selectAnswer(current.id, false);
+          break;
+        case "Enter":
+          // verify only when a NEW answer is selected (Enter never advances)
+          if (selected[current.id] !== undefined && verified[current.id] === undefined) {
+            e.preventDefault();
+            void verifyCurrent();
+          }
+          break;
+        case "ArrowRight":
+          if (verified[current.id] !== undefined && position < totalQuestions) {
+            e.preventDefault();
+            navNext();
+          }
+          break;
+        case "ArrowLeft":
+          e.preventDefault();
+          navPrev();
+          break;
+        case "g":
+        case "G":
+          e.preventDefault();
+          setNavigatorOpen(true);
+          break;
+        default:
+          break;
+      }
+    };
+  });
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => keyHandlerRef.current(e);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  if (!current) {
+    return (
+      <div className="mx-auto max-w-xl px-4 py-16 text-center text-muted">
+        Posizione domanda non valida.
+      </div>
+    );
+  }
+
+  const currentVerified = verified[current.id];
+  const isLast = position >= totalQuestions;
+  const canAdvance = currentVerified !== undefined && !isLast;
+  const checkReady = selected[current.id] !== undefined && currentVerified === undefined;
+
+  return (
+    <div className="mx-auto flex min-h-dvh w-full max-w-3xl flex-col" data-hydrated={hydrated ? "true" : "false"}>
+      {/* header */}
+      <header className="sticky top-0 z-20 border-b border-border bg-background/95">
+        <div className="flex items-center gap-3 px-4 py-3">
+          <Link href="/" className="text-sm font-semibold tracking-tight text-foreground">
+            {siteConfig.name}
+          </Link>
+          <span className="truncate text-sm text-muted">
+            {mode === "mistakes" ? "Ripasso errori" : "Allenamento"} · {position} di {totalQuestions}
+          </span>
+          <div className="ml-auto flex items-center gap-2">
+            <Button variant="secondary" size="sm" onClick={() => setNavigatorOpen(true)} aria-label="Apri navigatore domande">
+              ☰
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setCompleteOpen(true)}>
+              Completa
+            </Button>
+          </div>
+        </div>
+      </header>
+
+      {/* question body */}
+      <main className="flex-1 px-4 pb-44 pt-5 sm:pb-28">
+        <div className="mx-auto max-w-2xl">
+          <span className="mb-3 inline-flex max-w-full items-center gap-1 rounded-full bg-primary-soft px-3 py-1 text-xs font-medium text-primary">
+            {mode === "mistakes" ? "Ripasso degli errori" : topicName}
+          </span>
+
+          <h1 className="text-lg font-medium leading-relaxed sm:text-xl">{current.statement}</h1>
+
+          {current.image && (
+            <div className="mt-4">
+              <button
+                type="button"
+                onClick={() => setZoomImage(current.image!.url)}
+                className="block w-full overflow-hidden rounded-xl border border-border bg-surface"
+                aria-label="Ingrandisci immagine"
+              >
+                <QuestionImage
+                  src={current.image.url}
+                  width={current.image.width}
+                  height={current.image.height}
+                  className="mx-auto max-h-72 w-auto object-contain"
+                />
+              </button>
+              <p className="mt-1 text-center text-xs text-muted">Tocca l’immagine per ingrandirla</p>
+            </div>
+          )}
+
+          {/* answers — green/red ONLY after verification */}
+          <div className="mt-6 grid grid-cols-2 gap-3" role="group" aria-label="Risposta">
+            {[true, false].map((val) => {
+              const label = val ? "VERO" : "FALSO";
+              const isSelected = currentVerified !== undefined ? currentVerified.selectedAnswer === val : selected[current.id] === val;
+              const locked = currentVerified !== undefined;
+              const correct = currentVerified !== undefined && currentVerified.isCorrect;
+              const isRightAnswer = currentVerified !== undefined && currentVerified.selectedAnswer === val && correct;
+              const isWrongPick = currentVerified !== undefined && currentVerified.selectedAnswer === val && !correct;
+              return (
+                <button
+                  key={String(val)}
+                  type="button"
+                  onClick={() => !locked && selectAnswer(current.id, val)}
+                  disabled={locked}
+                  aria-pressed={isSelected}
+                  className={cn(
+                    "h-16 rounded-xl border-2 text-base font-semibold transition-colors",
+                    locked
+                      ? isRightAnswer
+                        ? "border-success bg-success-soft text-success"
+                        : isWrongPick
+                          ? "border-danger bg-danger-soft text-danger"
+                          : "border-border bg-surface text-muted"
+                      : isSelected
+                        ? "border-primary bg-primary-soft text-primary"
+                        : "border-border bg-surface text-foreground hover:border-primary/40",
+                  )}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* feedback */}
+          <div aria-live="polite" className="mt-4">
+            {currentVerified && (
+              <div
+                className={cn(
+                  "rounded-xl border p-3 text-sm",
+                  currentVerified.isCorrect
+                    ? "border-success/30 bg-success-soft text-success"
+                    : "border-danger/30 bg-danger-soft text-danger",
+                )}
+              >
+                <p className="font-semibold">
+                  {currentVerified.isCorrect ? "Risposta corretta" : "Risposta errata"}
+                </p>
+                <p className="mt-1">
+                  Risposta data: <b>{currentVerified.selectedAnswer ? "VERO" : "FALSO"}</b>
+                  {!currentVerified.isCorrect && (
+                    <>
+                      {" · "}Risposta corretta: <b>{currentVerified.selectedAnswer ? "FALSO" : "VERO"}</b>
+                    </>
+                  )}
+                </p>
+                <p className="mt-1 text-xs text-muted">
+                  {current.officialQuestionCode && <>Codice {current.officialQuestionCode}</>}
+                  {current.groupCode && <> · Gruppo {current.groupCode}</>}
+                </p>
+                <p className="mt-1 text-xs text-muted">
+                  Per questa domanda non è ancora disponibile una spiegazione revisionata.
+                </p>
+              </div>
+            )}
+            {!currentVerified && checkReady && (
+              <p className="text-sm text-muted">Seleziona Verifica risposta per controllare.</p>
+            )}
+            {!currentVerified && !checkReady && (
+              <p className="text-sm text-muted">Seleziona VERO o FALSO per rispondere.</p>
+            )}
+          </div>
+
+          {errorMsg && (
+            <div role="alert" className="mt-4 rounded-lg border border-danger/30 bg-danger-soft p-3 text-sm text-danger">
+              {errorMsg}
+            </div>
+          )}
+        </div>
+      </main>
+
+      {/* mobile bottom action bar */}
+      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-surface px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 sm:static sm:border-0 sm:bg-transparent sm:px-0 sm:pb-6">
+        <div className="mx-auto flex max-w-2xl items-center gap-2">
+          <Button variant="outline" size="md" onClick={navPrev} disabled={position <= 1} className="flex-1 sm:flex-none sm:w-28">
+            ← Indietro
+          </Button>
+          {!currentVerified && (
+            <Button
+              variant="primary"
+              size="md"
+              onClick={() => void verifyCurrent()}
+              disabled={!checkReady || phase === "checking"}
+              aria-busy={phase === "checking"}
+              className="flex-1 sm:flex-none sm:w-44"
+            >
+              {phase === "checking" ? "Verifica…" : "Verifica risposta"}
+            </Button>
+          )}
+          {currentVerified && (
+            <Button
+              variant="primary"
+              size="md"
+              onClick={isLast ? () => setCompleteOpen(true) : navNext}
+              disabled={isLast ? false : !canAdvance}
+              className="flex-1 sm:flex-none sm:w-44"
+              aria-label={isLast ? "Completa allenamento" : "Avanti"}
+            >
+              {isLast ? "Completa allenamento" : "Avanti →"}
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* navigator drawer */}
+      <Drawer open={navigatorOpen} onClose={() => setNavigatorOpen(false)} title={`Domande (${totalQuestions})`}>
+        <div className="grid grid-cols-6 gap-2" role="list" aria-label="Navigatore domande">
+          {questions.map((q) => {
+            const isCurrent = q.position === position;
+            const v = verified[q.id];
+            const hasSelection = v !== undefined ? true : selected[q.id] !== undefined;
+            const status =
+              v !== undefined ? (v.isCorrect ? "corretta" : "errata") : hasSelection ? "risposta selezionata, non verificata" : "senza risposta";
+            return (
+              <button
+                key={q.id}
+                type="button"
+                role="listitem"
+                onClick={() => goTo(q.position)}
+                aria-current={isCurrent ? "true" : undefined}
+                aria-label={`Domanda ${q.position}, ${status}`}
+                className={cn(
+                  "flex h-11 items-center justify-center rounded-lg border text-sm font-medium tabular-nums",
+                  isCurrent
+                    ? "border-primary bg-primary text-white"
+                    : v !== undefined
+                      ? v.isCorrect
+                        ? "border-success bg-success-soft text-success"
+                        : "border-danger bg-danger-soft text-danger"
+                      : hasSelection
+                        ? "border-primary/40 bg-primary-soft text-primary"
+                        : "border-border bg-surface text-foreground",
+                )}
+              >
+                {q.position}
+              </button>
+            );
+          })}
+        </div>
+        <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
+          <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded bg-primary" /> corrente</span>
+          <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded border border-border bg-surface" /> senza risposta</span>
+          <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded bg-primary-soft ring-1 ring-primary/40" /> selezionata</span>
+          <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded bg-success-soft ring-1 ring-success/40" /> corretta</span>
+          <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded bg-danger-soft ring-1 ring-danger/40" /> errata</span>
+        </div>
+      </Drawer>
+
+      {/* completion confirmation */}
+      <Dialog open={completeOpen} onClose={() => setCompleteOpen(false)} title="Completare l’allenamento?" busy={phase === "checking"}>
+        <p className="text-sm text-muted">
+          {uncheckedCount === 1
+            ? "1 domanda non verificata sarà considerata senza risposta."
+            : `${uncheckedCount} domande non verificate saranno considerate senza risposta.`}
+        </p>
+        <div className="mt-5 flex gap-3">
+          <Button variant="outline" fullWidth onClick={() => setCompleteOpen(false)}>
+            Torna alla prova
+          </Button>
+          <Button variant="danger" fullWidth onClick={() => void complete()}>
+            Completa
+          </Button>
+        </div>
+      </Dialog>
+
+      {/* image zoom */}
+      {zoomImage && (
+        <Dialog open={!!zoomImage} onClose={() => setZoomImage(null)} title="Immagine ingrandita">
+          <QuestionImage src={zoomImage} width={null} height={null} className="mx-auto max-h-[70dvh] w-auto rounded-lg object-contain" />
+        </Dialog>
+      )}
+    </div>
+  );
+}
