@@ -191,9 +191,73 @@ export const questionMedia = pgTable(
   ],
 );
 
+/**
+ * 7. Anonymous exam sessions (vertical slice).
+ * Sessions have NO user dependency in this phase: they are anonymous.
+ * status: in_progress | submitted | completed | expired | abandoned
+ */
+export const examSessions = pgTable(
+  "exam_sessions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    catalogVersionId: uuid("catalog_version_id")
+      .notNull()
+      .references(() => questionCatalogVersions.id, { onDelete: "restrict" }),
+    mode: text("mode").notNull().default("simulation"),
+    status: text("status").notNull().default("in_progress"),
+    totalQuestions: integer("total_questions").notNull(),
+    allowedErrors: integer("allowed_errors").notNull(),
+    durationSeconds: integer("duration_seconds").notNull(),
+    startedAt: timestamp("started_at", { withTimezone: true }).notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    submittedAt: timestamp("submitted_at", { withTimezone: true }),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    correctCount: integer("correct_count"),
+    errorCount: integer("error_count"),
+    unansweredCount: integer("unanswered_count"),
+    passed: boolean("passed"),
+    selectionSeed: integer("selection_seed").notNull(),
+    resultHash: text("result_hash"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("exam_sessions_status_idx").on(t.status),
+    index("exam_sessions_catalog_idx").on(t.catalogVersionId),
+    index("exam_sessions_expires_idx").on(t.expiresAt),
+  ],
+);
+
+/** 8. Questions of an exam session (position-based, anonymous). */
+export const examSessionQuestions = pgTable(
+  "exam_session_questions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    sessionId: uuid("session_id")
+      .notNull()
+      .references(() => examSessions.id, { onDelete: "cascade" }),
+    questionId: uuid("question_id")
+      .notNull()
+      .references(() => questions.id, { onDelete: "restrict" }),
+    position: integer("position").notNull(),
+    selectedAnswer: boolean("selected_answer"),
+    answeredAt: timestamp("answered_at", { withTimezone: true }),
+    flagged: boolean("flagged").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("exam_session_questions_session_position_unique").on(t.sessionId, t.position),
+    uniqueIndex("exam_session_questions_session_question_unique").on(t.sessionId, t.questionId),
+    index("exam_session_questions_session_idx").on(t.sessionId),
+  ],
+);
+
 export type SourceFile = typeof sourceFiles.$inferSelect;
 export type QuestionCatalogVersion = typeof questionCatalogVersions.$inferSelect;
 export type Topic = typeof topics.$inferSelect;
 export type Question = typeof questions.$inferSelect;
 export type MediaAsset = typeof mediaAssets.$inferSelect;
 export type QuestionMedia = typeof questionMedia.$inferSelect;
+export type ExamSession = typeof examSessions.$inferSelect;
+export type ExamSessionQuestion = typeof examSessionQuestions.$inferSelect;
