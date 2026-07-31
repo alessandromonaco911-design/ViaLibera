@@ -5,6 +5,7 @@ import {
   integer,
   jsonb,
   numeric,
+  pgEnum,
   pgTable,
   primaryKey,
   text,
@@ -17,6 +18,26 @@ import {
  * Preliminary schema scoped to data sourcing and import pipeline only.
  * No users, sessions, stats, or quiz engine tables in this phase.
  */
+
+/**
+ * Media verification states (semantically distinct):
+ * - extracted:            image successfully extracted from the official source (raw bytes valid)
+ * - structurally_verified: passed ALL automated checks (valid file, official provenance,
+ *                         positional mapping, coordinates within page, confidence >= threshold)
+ * - visually_verified:    content confirmed by an explicit human action in the review gallery
+ * - ambiguous:            association not sufficiently certain (automated)
+ * - missing:              expected image not available
+ * - rejected:             invalid file or invalid association
+ * An asset must NOT be visually_verified without a recorded human review.
+ */
+export const mediaVerificationStatus = pgEnum("media_verification_status", [
+  "extracted",
+  "structurally_verified",
+  "visually_verified",
+  "ambiguous",
+  "missing",
+  "rejected",
+]);
 
 /** 1. Files downloaded from official sources (MIT / Portale dell'Automobilista). */
 export const sourceFiles = pgTable(
@@ -119,7 +140,13 @@ export const mediaAssets = pgTable(
     height: integer("height"),
     sha256: text("sha256"),
     sourceFileId: uuid("source_file_id").references(() => sourceFiles.id, { onDelete: "set null" }),
-    verificationStatus: text("verification_status").notNull().default("unverified"), // found_verified|found_unverified|missing|ambiguous|unverified
+    verificationStatus: mediaVerificationStatus("verification_status").notNull().default("extracted"),
+    /** how the current verificationStatus was reached, e.g. 'pipeline:auto' | 'gallery:human' */
+    verificationMethod: text("verification_method"),
+    /** reviewer identity/type: 'automated' | 'human' (human only after explicit gallery action) */
+    verifiedByType: text("verified_by_type"),
+    verifiedAt: timestamp("verified_at", { withTimezone: true }),
+    reviewNote: text("review_note"),
     metadata: jsonb("metadata").$type<Record<string, unknown>>().notNull().default({}),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
@@ -130,7 +157,16 @@ export const mediaAssets = pgTable(
   ],
 );
 
-/** 6. Join table question <-> media. */
+/**
+ * 6. Join table question <-> media.
+ * confidence scale (0..1), reproducible and documented:
+ *   structuralConfidence = overlapRatio * ambiguityFactor
+ *   - overlapRatio: fraction of the image vertical range [y, y+h] that overlaps
+ *     the row band [nextBaseline+10, baseline+10] (PDF points), clamped 0..1
+ *   - ambiguityFactor: 1.0 if exactly one image overlaps the row band,
+ *     0.5 if two or more candidates overlap (ambiguous association)
+ * This is a STRUCTURAL score only; it never implies visual verification.
+ */
 export const questionMedia = pgTable(
   "question_media",
   {

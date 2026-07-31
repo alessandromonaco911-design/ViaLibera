@@ -15,6 +15,13 @@
       "when": 1785507102970,
       "tag": "0001_lumpy_chamber",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1785507968274,
+      "tag": "0002_aromatic_vision",
+      "breakpoints": true
     }
   ]
 }

@@ -1,0 +1,75 @@
+{
+  "_comment": "Small fixtures derived from the official PDF text-layer structure (Quesito n° / columns / VERO-FALSO). Not copies of the PDF.",
+  "pages": {
+    "vero": [
+      {
+        "page": 1,
+        "text": "Quesito n° 1001 - Argomento di prova\nNumero\ndomanda Testo domanda Risposta Corretta Immagine\n21810 Il segnale raffigurato preavvisa confine di Stato VERO\n"
+      }
+    ],
+    "falso": [
+      {
+        "page": 1,
+        "text": "Quesito n° 1002 - Argomento di prova\n21811 Il segnale raffigurato è posto dietro al veicolo FALSO\n"
+      }
+    ],
+    "multiline": [
+      {
+        "page": 1,
+        "text": "Quesito n° 1003 - Argomento di prova\n21812 Il segnale raffigurato preavvisa la distanza dal confine con uno\nStato che fa parte dell'Unione Europea VERO\n"
+      }
+    ],
+    "groupContinuation": [
+      {
+        "page": 1,
+        "text": "Quesito n° 1004 - Argomento continuato\n21813 Prima domanda del gruppo VERO\n"
+      },
+      {
+        "page": 2,
+        "text": "21814 Seconda domanda dello stesso gruppo FALSO\n21815 Terza domanda dello stesso gruppo VERO\n"
+      }
+    ],
+    "repeatedHeader": [
+      {
+        "page": 1,
+        "text": "Quesito n° 1005 - Argomento ripetuto\nNumero\ndomanda Testo domanda Risposta Corretta Immagine\n21816 Prima domanda VERO\nNumero\ndomanda Testo domanda Risposta Corretta Immagine\n21817 Seconda domanda FALSO\n"
+      }
+    ],
+    "multiGroup": [
+      {
+        "page": 1,
+        "text": "Quesito n° 1006 - Primo argomento\n21818 Domanda del primo argomento VERO\nQuesito n° 1007 - Secondo argomento\n21819 Domanda del secondo argomento FALSO\n"
+      }
+    ],
+    "duplicateContent": [
+      {
+        "page": 1,
+        "text": "Quesito n° 1008 - Argomento duplicati\n21820 Il segnale raffigurato è un segnale di divieto FALSO\n21821 Il segnale raffigurato è un segnale di divieto FALSO\n"
+      }
+    ],
+    "duplicateCode": [
+      {
+        "page": 1,
+        "text": "Quesito n° 1009 - Argomento codice duplicato\n21822 Il segnale raffigurato è un segnale di obbligo VERO\n21822 Il segnale raffigurato è un segnale di indicazione FALSO\n"
+      }
+    ],
+    "malformed": [
+      {
+        "page": 1,
+        "text": "Quesito n° 1010 - Argomento malformato\n21823 Domanda valida VERO\nriga completamente malformata senza struttura\n"
+      }
+    ],
+    "officialText": [
+      {
+        "page": 1,
+        "text": "Quesito n° 1011 - Argomento testo ufficiale\n21824 L'attenzione alla guida è importante solo quando si compiono\nmanovre pericolose quali, ad esempio, un sorpasso FALSO\n"
+      }
+    ],
+    "crlfEncoded": [
+      {
+        "page": 1,
+        "text": "Quesito n° 1012 - Argomento crlf\r\n21825 Il segnale raffigurato preavvisa una curva pericolosa VERO\r\n"
+      }
+    ]
+  }
+}

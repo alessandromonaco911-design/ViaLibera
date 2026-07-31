@@ -13,10 +13,16 @@
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "db:seed": "tsx --env-file=.env scripts/db/seed.ts",
+    "db:import-catalog": "tsx --env-file=.env scripts/db/import-catalog.ts",
+    "db:verify-import": "tsx --env-file=.env scripts/db/verify-import.ts",
+    "test": "node --import tsx --env-file=.env --test tests/*.test.ts",
     "data:audit": "tsx --env-file=.env scripts/data/audit.ts",
     "data:download": "tsx --env-file=.env scripts/data/download.ts",
     "data:parse": "tsx --env-file=.env scripts/data/parse.ts",
-    "data:validate": "tsx --env-file=.env scripts/data/validate.ts"
+    "data:validate": "tsx --env-file=.env scripts/data/validate.ts",
+    "review:sample": "tsx scripts/review/sample.ts",
+    "review:gallery": "tsx scripts/review/gallery.ts",
+    "data:figure-audit": "tsx scripts/data/figure-audit.ts"
   },
   "dependencies": {
     "drizzle-orm": "^0.45.2",
@@ -27,6 +33,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@napi-rs/canvas": "^1.0.3",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

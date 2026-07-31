@@ -3,132 +3,23 @@ import { mkdir, writeFile, appendFile, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { extractPdfData } from "./lib/pdf";
 import { contentHash } from "./lib/hashes";
+import { parsePositional } from "./lib/position-parser";
+import { mapImagesToQuestions, bboxWithinPage } from "./lib/mapping";
+import { verifyAsset, pngIsValid } from "./lib/verification";
 import { OFFICIAL_SOURCES } from "./sources";
+import type { VerificationStatus } from "./lib/types";
 
-interface GroupHeader {
-  code: string;
-  topic: string;
-  page: number;
-  line: number;
-}
-
-interface ParsedQuestion {
-  page: number;
-  questionNumber: string;
-  groupCode: string;
-  topic: string;
-  statement: string;
-  correctAnswer: boolean;
-  imageRef: string | null; // media asset hash, null if no image
-  sourceLineStart: number;
-  sourceLineEnd: number;
-  contentHash: string;
-}
-
-const SKIP_LINES = new Set([
-  "Numero",
-  "domanda",
-  "Testo domanda",
-  "Risposta",
-  "Corretta",
-  "Risposta Corretta",
-  "Immagine",
-  "Ministero delle Infrastrutture e dei Trasporti",
-]);
-
-const GROUP_RE = /^Quesito\s+n[°o]\s+(\d+)\s*[-–]\s*(.+)$/;
-const QUESTION_RE = /^(\d{4,7})\s+(.*)$/;
-
-function normalizeLine(s: string): string {
-  return s.replace(/\s+/g, " ").trim();
-}
-
-/** Parse a page of extracted text into raw rows (keeps original strings). */
-function parsePageText(
-  page: number,
-  text: string,
-  state: {
-    out: { questions: ParsedQuestion[]; groups: GroupHeader[]; unrecognized: { page: number; line: number; text: string }[] };
-    group: GroupHeader | null;
-    globalLineOffset: number;
-  },
-) {
-  const { out, globalLineOffset } = state;
-  let group = state.group;
-  const lines = text.split("\n");
-  let current: {
-    number: string;
-    lines: string[];
-    lineStart: number;
-  } | null = null;
-
-  const finish = () => {
-    if (current) {
-      const answerTok = current.lines[current.lines.length - 1].match(/\s*(VERO|FALSO)\s*$/);
-      if (!answerTok) {
-        out.unrecognized.push({ page, line: globalLineOffset + current.lineStart, text: current.lines.join(" ").slice(0, 120) });
-      } else {
-        const last = current.lines[current.lines.length - 1];
-        const trimmedLast = last.replace(/\s*(VERO|FALSO)\s*$/, "").trim();
-        const all = [...current.lines.slice(0, -1), trimmedLast];
-        const statementFull = normalizeLine(all.join(" "));
-        if (group) {
-          out.questions.push({
-            page,
-            questionNumber: current.number,
-            groupCode: group.code,
-            topic: group.topic,
-            statement: statementFull,
-            correctAnswer: answerTok[1] === "VERO",
-            imageRef: null, // filled later
-            sourceLineStart: globalLineOffset + current.lineStart,
-            sourceLineEnd: globalLineOffset + current.lineStart + current.lines.length - 1,
-            contentHash: "", // filled later
-          });
-        } else {
-          out.unrecognized.push({ page, line: globalLineOffset + current.lineStart, text: statementFull.slice(0, 120) });
-        }
-      }
-      current = null;
-    }
-  };
-
-  for (let i = 0; i < lines.length; i++) {
-    const raw = lines[i];
-    const t = normalizeLine(raw);
-    if (!t) continue;
-
-    const gm = t.match(GROUP_RE);
-    if (gm) {
-      finish();
-      group = { code: gm[1], topic: gm[2], page, line: globalLineOffset + i + 1 };
-      out.groups.push(group);
-      continue;
-    }
-    if (SKIP_LINES.has(t)) continue;
-
-    const qm = t.match(QUESTION_RE);
-    if (qm) {
-      finish();
-      current = { number: qm[1], lines: [qm[2]], lineStart: i + 1 };
-      // single-line question (number + statement + answer on one line)
-      if (/VERO|FALSO$/.test(qm[2])) finish();
-      continue;
-    }
-
-    // continuation line
-    if (current) {
-      current.lines.push(t);
-      if (/VERO|FALSO$/.test(t)) finish();
-    } else if (group) {
-      // topic continuation (long group names wrap)
-      group.topic = normalizeLine(group.topic + " " + t);
-    } else {
-      out.unrecognized.push({ page, line: globalLineOffset + i + 1, text: t.slice(0, 120) });
-    }
-  }
-  finish();
-  state.group = group;
+interface MediaEntry {
+  hash: string;
+  mime: string;
+  ext: string;
+  width: number;
+  height: number;
+  questions: string[];
+  verificationStatus: VerificationStatus;
+  verificationMethod: string;
+  minConfidence: number;
+  pageFirstSeen: number;
 }
 
 async function main() {
@@ -148,73 +39,27 @@ async function main() {
   const pdf = await extractPdfData(pdfPath, cacheDir);
   console.log(`Extracted ${pdf.numPages} pages in ${((Date.now() - started) / 1000).toFixed(1)}s`);
 
-  const questions: ParsedQuestion[] = [];
-  const groups: GroupHeader[] = [];
-  const unrecognized: { page: number; line: number; text: string }[] = [];
-  const state = {
-    out: { questions, groups, unrecognized },
-    group: null as GroupHeader | null,
-    globalLineOffset: 0,
-  };
-  for (const p of pdf.pagesText) {
-    parsePageText(p.page, p.text, state);
-    state.globalLineOffset += p.text.split("\n").length;
-  }
+  // --- text + image parsing (position-based, pure) ---
+  const parsed = parsePositional(pdf.textItems, pdf.numberCells);
+  const { questions, groups, unrecognized } = parsed;
+  questions.sort((a, b) => a.page - b.page || a.sourceLineStart - b.sourceLineStart);
 
-  // --- map images to questions (nearest image center by y, x in image column) ---
-  const cellsByPage = new Map<number, Map<string, number>>();
-  for (const c of pdf.numberCells) {
-    if (!cellsByPage.has(c.page)) cellsByPage.set(c.page, new Map());
-    cellsByPage.get(c.page)!.set(c.str, c.y);
-  }
+  // --- image mapping (pure geometry) ---
+  const mapping = mapImagesToQuestions(questions, pdf.images, pdf.numberCells);
 
-  const questionsByPage = new Map<number, ParsedQuestion[]>();
-  for (const q of questions) {
-    if (!questionsByPage.has(q.page)) questionsByPage.set(q.page, []);
-    questionsByPage.get(q.page)!.push(q);
-  }
-
-  let matched = 0;
-  const unmatchedRowsWithImage = 0;
-  const ambiguous: { page: number; questionNumber: string; candidates: string[] }[] = [];
-
-  // Row band = [nextRowBaseline + 10, thisBaseline + 10] (PDF y grows upward).
-  // An image [y, y+h] belongs to a row iff it overlaps the row band.
-  for (const [page, pageQuestions] of questionsByPage) {
-    // question images live in the right-hand column; the only non-question image
-    // is the MIT logo at x≈275
-    const pageImages = pdf.images.filter((im) => im.page === page && im.x > 350);
-    const cells = cellsByPage.get(page) ?? new Map();
-    const rows = pageQuestions
-      .map((q) => ({ q, baselineY: cells.get(q.questionNumber) }))
-      .filter((r): r is { q: ParsedQuestion; baselineY: number } => r.baselineY !== undefined)
-      .sort((a, b) => b.baselineY - a.baselineY);
-    for (let i = 0; i < rows.length; i++) {
-      const { q, baselineY } = rows[i];
-      const bandBottom = i < rows.length - 1 ? rows[i + 1].baselineY + 10 : baselineY - 76;
-      const bandTop = baselineY + 10;
-      const candidates = pageImages.filter((im) => im.y <= bandTop && im.y + im.h >= bandBottom);
-      if (candidates.length === 1) {
-        q.imageRef = candidates[0].hash;
-        matched++;
-      } else if (candidates.length > 1) {
-        ambiguous.push({ page, questionNumber: q.questionNumber, candidates: candidates.map((c) => c.name) });
-      }
-    }
-  }
-
-  // --- finalize content hashes, dedupe groups/topics ---
+  // --- content hashes ---
   for (const q of questions) {
     q.contentHash = contentHash(q.statement, q.correctAnswer, q.imageRef);
   }
 
-  const uniqueGroups = new Map<string, GroupHeader>();
+  const uniqueGroups = new Map<string, (typeof groups)[number]>();
   for (const g of groups) uniqueGroups.set(g.code, g);
   const topics = new Map<string, string>();
   for (const g of uniqueGroups.values()) topics.set(g.topic, g.code);
 
-  // --- media registry (unique images, dedup by hash) ---
-  const media = new Map<string, { hash: string; mime: string; ext: string; width: number; height: number; questions: string[] }>();
+  // --- media registry with verification statuses ---
+  const pageDims = new Map(pdf.pageDims.map((d) => [d.page, d]));
+  const media = new Map<string, MediaEntry>();
   for (const q of questions) {
     if (!q.imageRef) continue;
     const im = pdf.images.find((i) => i.hash === q.imageRef && i.page === q.page);
@@ -228,10 +73,43 @@ async function main() {
         width: im.width,
         height: im.height,
         questions: [],
+        verificationStatus: "extracted",
+        verificationMethod: "pipeline:auto",
+        minConfidence: 1,
+        pageFirstSeen: q.page,
       };
       media.set(q.imageRef, m);
     }
     if (!m.questions.includes(q.questionNumber)) m.questions.push(q.questionNumber);
+    if (q.structuralConfidence !== null && q.structuralConfidence < m.minConfidence) {
+      m.minConfidence = q.structuralConfidence;
+    }
+  }
+
+  // per-asset automated verification
+  const dimsOf = (hash: string, page: number) => pageDims.get(page);
+  for (const m of media.values()) {
+    const im = pdf.images.find((i) => i.hash === m.hash && i.page === m.pageFirstSeen);
+    const assocQuestions = questions.filter((q) => q.imageRef === m.hash);
+    const allInPage = assocQuestions.every((q) => {
+      if (!q.imageBBox) return false;
+      return bboxWithinPage(q.imageBBox, dimsOf(m.hash, q.imageBBox.page));
+    });
+    const decision = verifyAsset({
+      hash: m.hash,
+      pngValid: im ? pngIsValid(im.data).valid : false,
+      officialSource: true,
+      mapped: m.questions.length > 0,
+      noAmbiguous: mapping.ambiguous.filter((a) => {
+        const q = questions.find((x) => x.questionNumber === a.questionNumber);
+        return q?.imageRef === m.hash;
+      }).length === 0,
+      minConfidence: m.minConfidence,
+      bboxWithinPage: allInPage,
+      filePresent: im !== undefined,
+    });
+    m.verificationStatus = decision.status;
+    m.verificationMethod = decision.method;
   }
 
   // --- write outputs ---
@@ -257,7 +135,6 @@ async function main() {
   );
   await writeFile(join(outDir, "media.json"), JSON.stringify([...media.values()], null, 2), "utf-8");
 
-  // write unique image files
   let written = 0;
   for (const m of media.values()) {
     const im = pdf.images.find((i) => i.hash === m.hash);
@@ -273,27 +150,30 @@ async function main() {
   const duplicateCodes = [...questions.reduce((m, q) => m.set(q.questionNumber, (m.get(q.questionNumber) ?? 0) + 1), new Map<string, number>())].filter(([, c]) => c > 1);
   const duplicateHashes = [...questions.reduce((m, q) => m.set(q.contentHash, (m.get(q.contentHash) ?? 0) + 1), new Map<string, number>())].filter(([, c]) => c > 1);
   const malformedGroups = [...groups.reduce((m, g) => m.set(g.code, (m.get(g.code) ?? 0) + 1), new Map<string, number>())].filter(([, c]) => c > 1);
+  const statusCounts = new Map<VerificationStatus, number>();
+  for (const m of media.values()) statusCounts.set(m.verificationStatus, (statusCounts.get(m.verificationStatus) ?? 0) + 1);
 
   const report = {
-    source: { id: src.id, filename: src.localFilename, sha256: undefined as string | undefined },
+    source: { id: src.id, filename: src.localFilename },
     catalogId,
     encoding: "PDF text layer estratta come Unicode (UTF-8); file PDF 1.4 con stream compressi FlateDecode",
     totalLines: Math.max(...questions.map((q) => q.sourceLineEnd), 0),
     pages: pdf.numPages,
     groups: uniqueGroups.size,
+    topics: topics.size,
     questions: questions.length,
     vero,
     falso,
     questionsWithImage: imageQuestions,
     questionsWithoutImage: questions.length - imageQuestions,
     uniqueImages: media.size,
-    matchedRows: matched,
-    unmatchedRowsWithImage,
-    ambiguousRows: ambiguous,
+    matchedRows: mapping.matched,
+    ambiguousRows: mapping.ambiguous,
     unrecognizedLines: unrecognized.length,
     duplicateQuestionCodes: duplicateCodes,
     duplicateContentHashes: duplicateHashes,
     repeatedGroupHeaders: malformedGroups,
+    mediaVerification: Object.fromEntries(statusCounts),
     parseSuccessRate: questions.length / (questions.length + unrecognized.length),
     examples: questions.slice(0, 3).map((q) => ({
       n: q.questionNumber,
@@ -302,6 +182,7 @@ async function main() {
       text: q.statement.slice(0, 80),
       answer: q.correctAnswer ? "VERO" : "FALSO",
       image: q.imageRef?.slice(0, 12) ?? null,
+      confidence: q.structuralConfidence,
     })),
     errors: [] as string[],
     warnings: [] as string[],
@@ -310,22 +191,25 @@ async function main() {
   if (unrecognized.length) report.warnings.push(`${unrecognized.length} righe non riconosciute (vedi data/rejected/)`);
   if (duplicateCodes.length) report.errors.push(`${duplicateCodes.length} codici domanda duplicati`);
   if (duplicateHashes.length) report.warnings.push(`${duplicateHashes.length} contenuti duplicati (stesso testo+risposta+immagine)`);
-  if (ambiguous.length) report.warnings.push(`${ambiguous.length} righe con candidati immagine ambigui`);
+  if (mapping.ambiguous.length) report.warnings.push(`${mapping.ambiguous.length} righe con candidati immagine ambigui`);
 
   await writeFile(join(reportDir, `parse-${catalogId}.json`), JSON.stringify(report, null, 2), "utf-8");
 
-  // --- FASE 8: per-image-reference verification report ---
+  // --- per-image verification report (corrected model) ---
   const imageReport = {
     catalogId,
     source: { id: src.id, filename: src.localFilename, url: src.downloadUrl },
     methodology:
-      "Le immagini sono incorporate nel PDF ufficiale, una per riga-domanda (stesso contenuto ripetuto per le domande che usano lo stesso segnale). " +
-      "Ogni riferimento immagine è stato mappato alla domanda tramite overlap spaziale (banda di riga vs range immagine). " +
-      "Non esistono codici immagine separati nel listato ufficiale: l'identificativo di riferimento è il numero della prima domanda che usa l'immagine.",
+      "Immagini incorporate nel PDF ufficiale, una per riga-domanda. Ogni riferimento è mappato alla domanda tramite " +
+      "overlap spaziale (banda di riga vs range immagine) con confidence strutturale riproducibile. " +
+      "Nessuna immagine è marked visually_verified senza un'azione umana esplicita nella galleria di revisione. " +
+      "Stati: extracted | structurally_verified | visually_verified | ambiguous | missing | rejected.",
+    confidenceScale:
+      "0..1 = overlapRatio * ambiguityFactor (vedi scripts/data/lib/mapping.ts). Soglia structurally_verified: 0.5.",
     images: [...media.values()]
       .map((m) => ({
         code: m.questions[0],
-        officialImageCode: null, // no separate image codes exist in the official listing
+        officialImageCode: null,
         questionCount: m.questions.length,
         source: src.downloadUrl,
         filename: `${m.hash}.${m.ext}`,
@@ -333,25 +217,27 @@ async function main() {
         sha256: m.hash,
         width: m.width,
         height: m.height,
-        status: "found_verified",
-        reason: "Estratta e mappata 1:1 alla domanda nel PDF ufficiale; contenuto verificato via posizione e ripetizione nello stesso gruppo",
-        notes: "Verifica visiva manuale ancora da eseguire su campione",
+        status: m.verificationStatus,
+        verificationMethod: m.verificationMethod,
+        minConfidence: m.minConfidence,
+        notes: "Verifica visiva manuale non ancora eseguita (visual verification richiede azione umana in galleria)",
       }))
       .sort((a, b) => a.code.localeCompare(b.code)),
     summary: {
       totalQuestions: questions.length,
-      questionsWithImage: questions.filter((q) => q.imageRef).length,
-      questionsWithoutImage: questions.filter((q) => !q.imageRef).length,
+      questionsWithImage: imageQuestions,
+      questionsWithoutImage: questions.length - imageQuestions,
       uniqueImages: media.size,
-      foundVerified: media.size,
-      foundUnverified: 0,
-      missing: 0,
-      ambiguous: 0,
+      extracted: statusCounts.get("extracted") ?? 0,
+      structurallyVerified: statusCounts.get("structurally_verified") ?? 0,
+      visuallyVerified: statusCounts.get("visually_verified") ?? 0,
+      ambiguous: statusCounts.get("ambiguous") ?? 0,
+      missing: statusCounts.get("missing") ?? 0,
+      rejected: statusCounts.get("rejected") ?? 0,
     },
   };
   await writeFile(join(reportDir, `images-${catalogId}.json`), JSON.stringify(imageReport, null, 2), "utf-8");
 
-  // rejected lines
   if (unrecognized.length) {
     const rejectedDir = join(process.cwd(), "data", "rejected");
     await mkdir(rejectedDir, { recursive: true });
@@ -359,16 +245,14 @@ async function main() {
   }
 
   console.log("\n=== PARSE REPORT ===");
-  console.log(`groups: ${uniqueGroups.size}`);
+  console.log(`groups: ${uniqueGroups.size} | topics: ${topics.size}`);
   console.log(`questions: ${questions.length} (VERO=${vero}, FALSO=${falso})`);
   console.log(`questions with image: ${imageQuestions} | without: ${questions.length - imageQuestions}`);
   console.log(`unique images: ${media.size} (written ${written} files)`);
-  console.log(`image rows matched: ${matched} | unmatched: ${unmatchedRowsWithImage} | ambiguous: ${ambiguous.length}`);
+  console.log(`image rows matched: ${mapping.matched} | ambiguous: ${mapping.ambiguous.length}`);
+  console.log(`media verification: ${Object.entries(Object.fromEntries(statusCounts)).map(([k, v]) => `${k}=${v}`).join(", ")}`);
   console.log(`unrecognized lines: ${unrecognized.length} | parse success: ${(report.parseSuccessRate * 100).toFixed(2)}%`);
-  console.log(`duplicate codes: ${duplicateCodes.length} | duplicate content hashes: ${duplicateHashes.length}`);
-  console.log(`repeated group headers: ${malformedGroups.length}`);
   console.log(`elapsed: ${((Date.now() - started) / 1000).toFixed(1)}s`);
-  console.log("Output:", outDir, "| media:", mediaDir, "| report:", join(reportDir, `parse-${catalogId}.json`));
 }
 
 function mimeToExt(mime: string): string | null {

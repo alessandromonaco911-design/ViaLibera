@@ -27,6 +27,9 @@ async function main() {
   const numPages = doc.numPages;
 
   const numberCells: { page: number; str: string; x: number; y: number }[] = [];
+  const pageDims: { page: number; width: number; height: number }[] = [];
+  const pagesText: { page: number; text: string }[] = [];
+  const textItems: { page: number; s: string; x: number; y: number }[] = [];
   const images: {
     page: number;
     name: string;
@@ -43,8 +46,34 @@ async function main() {
 
   for (let p = 1; p <= numPages; p++) {
     const page = await doc.getPage(p);
+    const vp = page.getViewport({ scale: 1 });
+    pageDims.push({ page: p, width: vp.width, height: vp.height });
 
+    // --- visual-order text reconstruction (unpdf extracts multi-section pages
+    // in the wrong reading order: all group headers before the questions) ---
     const tc = await page.getTextContent();
+    const rawItems: { s: string; x: number; y: number }[] = [];
+    for (const it of tc.items as { str?: string; transform?: number[] }[]) {
+      const s = (it.str ?? "").trim();
+      if (!s || typeof it.transform?.[4] !== "number") continue;
+      rawItems.push({ s, x: it.transform[4], y: it.transform[5] });
+      textItems.push({ page: p, s, x: it.transform[4], y: it.transform[5] });
+    }
+    rawItems.sort((a, b) => b.y - a.y || a.x - b.x);
+    const lines: string[] = [];
+    let curY: number | null = null;
+    let cur: string[] = [];
+    for (const it of rawItems) {
+      if (curY === null || Math.abs(it.y - curY) > 2) {
+        if (cur.length) lines.push(cur.join(" "));
+        cur = [it.s];
+        curY = it.y;
+      } else {
+        cur.push(it.s);
+      }
+    }
+    if (cur.length) lines.push(cur.join(" "));
+    pagesText.push({ page: p, text: lines.join("\n") });
     for (const it of tc.items as { str?: string; transform?: number[] }[]) {
       const s = (it.str ?? "").trim();
       if (/^\d{4,7}$/.test(s) && typeof it.transform?.[4] === "number") {
@@ -108,9 +137,12 @@ async function main() {
     if (p % 50 === 0) console.error(`[pdf-positions] page ${p}/${numPages}`);
   }
 
-  await writeFile(join(outDir, "positions.json"), JSON.stringify({ numPages, numberCells, images }));
+  await writeFile(
+    join(outDir, "positions.json"),
+    JSON.stringify({ numPages, numberCells, pageDims, pagesText, textItems, images }),
+  );
   console.error(
-    `[pdf-positions] done: ${numberCells.length} cells, ${images.length} images (${numPages} pages) -> ${outDir}`,
+    `[pdf-positions] done: ${numberCells.length} cells, ${textItems.length} text items, ${images.length} images (${numPages} pages) -> ${outDir}`,
   );
 }
 

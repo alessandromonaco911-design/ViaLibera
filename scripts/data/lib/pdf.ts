@@ -2,7 +2,6 @@ import { readFile, mkdir, rm, mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execFileSync } from "node:child_process";
-import { extractText, getDocumentProxy } from "unpdf";
 import { sha256 } from "./hashes";
 
 export interface PdfTextPage {
@@ -34,13 +33,18 @@ export interface NumberCell {
 export interface PdfDocumentData {
   numPages: number;
   pagesText: PdfTextPage[];
+  textItems: { page: number; s: string; x: number; y: number }[];
   images: PageImage[];
   numberCells: NumberCell[];
+  pageDims: { page: number; width: number; height: number }[];
 }
 
 interface PositionsResult {
   numPages: number;
   numberCells: NumberCell[];
+  pageDims: { page: number; width: number; height: number }[];
+  pagesText: PdfTextPage[];
+  textItems: { page: number; s: string; x: number; y: number }[];
   images: {
     page: number;
     name: string;
@@ -56,22 +60,15 @@ interface PositionsResult {
 }
 
 /**
- * Extract per-page text (unpdf) and image bytes + positions (pdf.js in a child
- * process: mixing unpdf and a second pdf.js document in the same process
- * corrupts the shared fake worker and throws DataCloneError).
- * `cacheDir` (optional) makes the extraction idempotent: positions/images are
+ * Extract per-page text (visual order, reconstructed from pdf.js text items),
+ * image bytes + positions, and number cells — all via a pdf.js CHILD process.
+ * (Mixing unpdf and a second pdf.js document in the same process corrupts the
+ * shared fake worker; unpdf text extraction also misorders multi-section pages.)
+ * `cacheDir` (optional) makes the extraction idempotent: the child output is
  * kept there and reused on subsequent calls.
  */
 export async function extractPdfData(path: string, cacheDir?: string): Promise<PdfDocumentData> {
-  const buf = await readFile(path);
-  const bytes = new Uint8Array(buf);
-
-  // --- text via unpdf (main process) ---
-  const proxy = await getDocumentProxy(bytes);
-  const { text } = await extractText(proxy, { mergePages: false });
-  const pagesText: PdfTextPage[] = text.map((t, i) => ({ page: i + 1, text: t }));
-
-  // --- positions + images via child (pdf.js only) ---
+  // --- positions + images + visual text via child (pdf.js only) ---
   let workDir: string;
   let isCache = false;
   if (cacheDir && (await fileExists(join(cacheDir, "positions.json")))) {
@@ -97,7 +94,6 @@ export async function extractPdfData(path: string, cacheDir?: string): Promise<P
 
   const positions = JSON.parse(await readFile(join(workDir, "positions.json"), "utf-8")) as PositionsResult;
 
-  // load PNG files
   const images: PageImage[] = [];
   for (const im of positions.images) {
     const data = new Uint8Array(await readFile(join(workDir, "images", im.file)));
@@ -118,7 +114,14 @@ export async function extractPdfData(path: string, cacheDir?: string): Promise<P
 
   if (!cacheDir) await rm(workDir, { recursive: true, force: true });
 
-  return { numPages: positions.numPages, pagesText, images, numberCells: positions.numberCells };
+  return {
+    numPages: positions.numPages,
+    pagesText: positions.pagesText,
+    textItems: positions.textItems,
+    images,
+    numberCells: positions.numberCells,
+    pageDims: positions.pageDims,
+  };
 }
 
 async function fileExists(p: string): Promise<boolean> {
