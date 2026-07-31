@@ -16,6 +16,9 @@ export async function GET(_request: Request, ctx: Ctx): Promise<NextResponse> {
     if (!session) {
       return NextResponse.json({ error: { code: "SESSION_NOT_FOUND", message: "sessione inesistente" } }, { status: 404 });
     }
+    if (session.mode !== "simulation") {
+      return NextResponse.json({ error: { code: "NOT_EXAM_SESSION", message: "sessione non valida per la simulazione d'esame" } }, { status: 400 });
+    }
     const rows = await getSessionQuestions(sessionId);
 
     const questions = rows.map((r) => {

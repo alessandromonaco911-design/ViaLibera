@@ -43,6 +43,13 @@
       "when": 1785515518951,
       "tag": "0005_petite_vulcan",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1785532016811,
+      "tag": "0006_modern_bloodstorm",
+      "breakpoints": true
     }
   ]
 }

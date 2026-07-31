@@ -111,7 +111,7 @@ export async function getSessionQuestions(sessionId: string): Promise<
 }
 
 export class ExamSubmissionError extends Error {
-  code: "SESSION_NOT_FOUND" | "ALREADY_SUBMITTED" | "INVALID_PAYLOAD" | "QUESTION_MISMATCH" | "EXPIRED";
+  code: "SESSION_NOT_FOUND" | "ALREADY_SUBMITTED" | "INVALID_PAYLOAD" | "QUESTION_MISMATCH" | "EXPIRED" | "NOT_EXAM_SESSION";
   constructor(code: ExamSubmissionError["code"], message: string) {
     super(message);
     this.name = "ExamSubmissionError";
@@ -149,6 +149,10 @@ export async function submitExamSession(
 
   const session = await getExamSession(sessionId);
   if (!session) throw new ExamSubmissionError("SESSION_NOT_FOUND", "sessione inesistente");
+  // practice/mistakes sessions are NOT exam sessions: they use /api/practice
+  if (session.mode !== "simulation") {
+    throw new ExamSubmissionError("NOT_EXAM_SESSION", "sessione non valida per la simulazione d'esame");
+  }
 
   const rows = await getSessionQuestions(sessionId);
   const byId = new Map(rows.map((r) => [r.questionId, r]));

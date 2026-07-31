@@ -203,10 +203,20 @@ export const examSessions = pgTable(
     catalogVersionId: uuid("catalog_version_id")
       .notNull()
       .references(() => questionCatalogVersions.id, { onDelete: "restrict" }),
-    mode: text("mode").notNull().default("simulation"),
+    mode: text("mode").notNull().default("simulation"), // simulation | practice | mistakes
     status: text("status").notNull().default("in_progress"),
     /** development | test | production — safe identification of dev/test sessions */
     environment: text("environment").notNull().default("production"),
+    /** practice/mistakes only: topic the session is training on */
+    topicId: uuid("topic_id").references(() => topics.id, { onDelete: "set null" }),
+    /** mistakes only: the completed session this review session derives from */
+    sourceSessionId: uuid("source_session_id").references((): AnyPgColumn => examSessions.id, { onDelete: "set null" }),
+    /** immediate (practice/mistakes) | deferred (simulation) */
+    feedbackMode: text("feedback_mode"),
+    /** practice/mistakes: number of questions the user asked for */
+    requestedQuestionCount: integer("requested_question_count"),
+    /** practice/mistakes: in_progress | completed | abandoned */
+    practiceStatus: text("practice_status"),
     totalQuestions: integer("total_questions").notNull(),
     allowedErrors: integer("allowed_errors").notNull(),
     durationSeconds: integer("duration_seconds").notNull(),
@@ -227,6 +237,8 @@ export const examSessions = pgTable(
     index("exam_sessions_status_idx").on(t.status),
     index("exam_sessions_catalog_idx").on(t.catalogVersionId),
     index("exam_sessions_expires_idx").on(t.expiresAt),
+    index("exam_sessions_topic_idx").on(t.topicId),
+    index("exam_sessions_mode_idx").on(t.mode),
   ],
 );
 
@@ -244,6 +256,9 @@ export const examSessionQuestions = pgTable(
     position: integer("position").notNull(),
     selectedAnswer: boolean("selected_answer"),
     answeredAt: timestamp("answered_at", { withTimezone: true }),
+    /** practice/mistakes: true once the answer has been verified (locked) */
+    answerVerified: boolean("answer_verified"),
+    verifiedAt: timestamp("verified_at", { withTimezone: true }),
     flagged: boolean("flagged").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
