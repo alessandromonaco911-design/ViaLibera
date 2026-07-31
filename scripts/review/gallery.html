@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Galleria di revisione visiva — catalogo AB 2025-04-23</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body { font-family: system-ui, sans-serif; margin: 0; background: #f5f5f7; color: #1c1c1e; }
+  header { background: #1c1c1e; color: #fff; padding: 10px 16px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  header h1 { font-size: 16px; margin: 0; }
+  header .badge { background: #3a3a3c; padding: 2px 8px; border-radius: 10px; font-size: 12px; }
+  header button, .btn { background: #0a84ff; color: #fff; border: 0; border-radius: 6px; padding: 6px 12px; cursor: pointer; font-size: 13px; }
+  header button:hover { background: #0a64d0; }
+  .toolbar { display: flex; gap: 8px; flex-wrap: wrap; padding: 10px 16px; background: #fff; border-bottom: 1px solid #ddd; align-items: center; }
+  .toolbar input, .toolbar select { padding: 5px 8px; border: 1px solid #ccc; border-radius: 6px; font-size: 13px; }
+  .toolbar label { font-size: 12px; color: #555; }
+  .summary { font-size: 12px; color: #555; padding: 6px 16px; }
+  main { padding: 16px; }
+  .asset { background: #fff; border: 1px solid #e0e0e2; border-radius: 10px; margin-bottom: 14px; padding: 12px; }
+  .asset-head { display: flex; gap: 14px; flex-wrap: wrap; align-items: flex-start; }
+  .asset-img { width: 160px; height: 160px; object-fit: contain; border: 1px solid #ddd; background: #fff; border-radius: 6px; }
+  .asset-meta { flex: 1; min-width: 280px; font-size: 13px; }
+  .asset-meta .row { margin: 3px 0; }
+  .tag { display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: 11px; margin-right: 4px; }
+  .tag.extracted { background: #e5e5ea; }
+  .tag.structurally_verified { background: #d2f0dc; color: #0a5a2a; }
+  .tag.visually_verified { background: #cfe4ff; color: #063a75; }
+  .tag.ambiguous { background: #ffe9c2; color: #7a4d00; }
+  .tag.rejected { background: #ffd9d9; color: #7a1111; }
+  .tag.missing { background: #eee; color: #666; }
+  .q { border-top: 1px dashed #ddd; padding: 6px 0; font-size: 13px; }
+  .q .code { font-weight: 600; }
+  .q .ans { font-weight: 600; }
+  .ans.true { color: #0a5a2a; }
+  .ans.false { color: #7a1111; }
+  .q .coords { color: #888; font-size: 11px; }
+  .actions { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+  .actions button { border: 0; border-radius: 6px; padding: 5px 10px; cursor: pointer; font-size: 12px; }
+  .act-confirm { background: #30d158; color: #063; }
+  .act-ambiguous { background: #ffd60a; color: #553800; }
+  .act-reject { background: #ff453a; color: #fff; }
+  .note-input { border: 1px solid #ccc; border-radius: 6px; padding: 4px 8px; font-size: 12px; min-width: 200px; }
+  .reviewed { font-size: 11px; color: #0a64d0; }
+  .pageview { margin-top: 10px; }
+  .pageview .page-wrap { position: relative; display: inline-block; border: 1px solid #ccc; border-radius: 4px; overflow: hidden; }
+  .pageview img { display: block; max-width: 320px; height: auto; }
+  .pageview canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .pageview summary { cursor: pointer; font-size: 12px; color: #0a64d0; padding: 4px 0; }
+  .stats { font-size: 12px; color: #444; }
+  .hl-row { stroke: #ff3b30; stroke-width: 2; fill: rgba(255,59,48,.08); }
+  .hl-img { stroke: #0a84ff; stroke-width: 2; fill: rgba(10,132,255,.10); }
+  details { margin-top: 8px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Galleria di revisione visiva — AB 2025-04-23</h1>
+  <span class="badge" id="statCount"></span>
+  <span class="badge" id="statReviews"></span>
+  <span class="badge">local only</span>
+</header>
+<div class="toolbar">
+  <label>Stato
+    <select id="fStatus"><option value="">tutti</option></select>
+  </label>
+  <label>Pagina
+    <input id="fPage" type="number" min="1" max="590" placeholder="1-590" style="width:80px">
+  </label>
+  <label>Gruppo
+    <select id="fGroup"><option value="">tutti</option></select>
+  </label>
+  <label>Cerca
+    <input id="fSearch" type="search" placeholder="codice o testo…" style="width:220px">
+  </label>
+  <label><input type="checkbox" id="fOnlySample"> solo campione consigliato</label>
+  <label><input type="checkbox" id="fOnlyAmbiguous"> solo ambigui</label>
+  <label><input type="checkbox" id="fOnlyUnreviewed"> solo non revisionati</label>
+  <button id="btnFig">Casi “in figura” senza asset (V)</button>
+  <button id="btnReset">Reset</button>
+</div>
+<div class="summary" id="summary"></div>
+<main id="main"></main>
+
+<script>
+const state = { assets: [], pageDims: {}, groupNames: {}, reviews: [], noImage: [], view: "assets" };
+const $ = (id) => document.getElementById(id);
+
+function qs(params) { return new URLSearchParams(params).toString(); }
+
+async function load() {
+  const data = await (await fetch("/api/data")).json();
+  state.assets = data.assets;
+  state.pageDims = Object.fromEntries(data.pageDims.map(d => [d.page, d]));
+  state.groupNames = data.groupNames;
+  state.noImage = data.noImage;
+  state.reviews = await (await fetch("/api/reviews")).json();
+  // filters
+  const statuses = [...new Set(data.assets.map(a => a.status))];
+  $("fStatus").innerHTML = '<option value="">tutti</option>' + statuses.map(s => `<option>${s}</option>`).join("");
+  const groups = [...new Set(data.assets.flatMap(a => a.associations.map(x => x.groupCode)))].sort();
+  $("fGroup").innerHTML = '<option value="">tutti</option>' + groups.map(g => `<option value="${g}">${g} — ${(data.groupNames[g]||"").slice(0,40)}</option>`).join("");
+  updateStats();
+  render();
+}
+
+function currentFilter() {
+  const status = $("fStatus").value;
+  const page = parseInt($("fPage").value, 10) || 0;
+  const group = $("fGroup").value;
+  const search = $("fSearch").value.toLowerCase();
+  return { status, page, group, search };
+}
+
+function passesFilter(a, f) {
+  if (f.onlySample && !sampleHashes.has(a.hash)) return false;
+  if (f.onlyAmbiguous && a.status !== "ambiguous" && !a.associations.some(x => (x.confidence ?? 0) < 0.5)) return false;
+  if (f.onlyUnreviewed && a.review) return false;
+  if (f.status && a.status !== f.status) return false;
+  if (f.page && !a.associations.some(x => x.page === f.page) && a.pageFirstSeen !== f.page) return false;
+  if (f.group && !a.associations.some(x => x.groupCode === f.group)) return false;
+  if (f.search) {
+    const hay = a.associations.map(x => x.questionNumber + " " + x.statement).join(" ").toLowerCase();
+    if (!hay.includes(f.search)) return false;
+  }
+  return true;
+}
+
+let sampleHashes = new Set();
+async function loadSample() {
+  try {
+    const s = await (await fetch("/api/sample")).json();
+    sampleHashes = new Set(s.sample.map(x => x.hash));
+  } catch { sampleHashes = new Set(); }
+}
+
+function updateStats() {
+  $("statCount").textContent = `${state.assets.length} asset · ${state.assets.reduce((a,b)=>a+b.questionCount,0)} associazioni`;
+  $("statReviews").textContent = `${state.reviews.length} recensioni umane`;
+}
+
+function reviewButton(asset, decision, label, cls) {
+  return `<button class="${cls}" onclick="review('${asset.hash}','${decision}',this)">${label}</button>`;
+}
+
+async function review(hash, decision, el) {
+  const asset = state.assets.find(a => a.hash === hash);
+  const noteInput = el.closest(".asset").querySelector(".note-input");
+  const note = noteInput ? noteInput.value : "";
+  const res = await fetch("/api/reviews", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ assetHash: hash, questionIds: asset.associations.map(x => x.questionNumber), decision, note }),
+  });
+  if (res.ok) {
+    state.reviews = await (await fetch("/api/reviews")).json();
+    asset.review = { decision, note };
+    render();
+  }
+}
+
+function pageOverlay(asset) {
+  const assoc = asset.associations[0];
+  if (!assoc || !assoc.page) return "";
+  const dim = state.pageDims[assoc.page];
+  if (!dim) return "";
+  const href = `/api/page/${assoc.page}`;
+  const scaleX = 320 / dim.width; // render width is 320 css px (1.5x pdf pts * approx)
+  // compute overlay coordinates in render space (render = 1.5x pts, but we display 320px wide)
+  const renderW = dim.width * 1.5, renderH = dim.height * 1.5;
+  const cssW = 320, cssH = (renderH / renderW) * 320;
+  const toCssX = (x) => (x / renderW) * cssW;
+  const toCssY = (yPdfBottomUp) => ((dim.height - yPdfBottomUp) / renderH) * cssH;
+  let boxes = "";
+  if (assoc.imageBBox) {
+    const b = assoc.imageBBox;
+    boxes += `<rect class="hl-img" x="${toCssX(b.x)}" y="${toCssY(b.y + b.h)}" width="${toCssX(b.w)}" height="${(b.h / renderH) * cssH}"/>`;
+  }
+  if (assoc.rowBand) {
+    const r = assoc.rowBand;
+    boxes += `<rect class="hl-row" x="0" y="${toCssY(r.top)}" width="${cssW}" height="${((r.top - r.bottom) / renderH) * cssH}"/>`;
+  }
+  return `<details class="pageview"><summary>Pagina ${assoc.page} — confronto con l'originale</summary>
+    <div class="page-wrap" style="width:${cssW}px">
+      <img src="${href}" alt="pagina ${assoc.page}">
+      <svg width="${cssW}" height="${cssH}" viewBox="0 0 ${cssW} ${cssH}">${boxes}</svg>
+    </div></details>`;
+}
+
+function assetCard(a) {
+  const first = a.associations[0] || {};
+  const others = a.otherQuestionCodes.slice(1);
+  return `<div class="asset" data-hash="${a.hash}">
+    <div class="asset-head">
+      <img class="asset-img" src="/media/${a.hash}.${a.ext}" alt="asset ${a.hash.slice(0,8)}">
+      <div class="asset-meta">
+        <div class="row"><span class="tag ${a.status}">${a.status}</span> <b>${a.hash.slice(0,12)}…</b>
+          ${a.review ? `<span class="reviewed">revisionato: ${a.review.decision}</span>` : ""}</div>
+        <div class="row">${a.width}×${a.height}px · ${a.questionCount} domande · confidence min ${a.minConfidence}</div>
+        ${a.associations.map(x => `<div class="q">
+          <span class="code">${x.questionNumber}</span> · <span class="ans ${x.correctAnswer}">${x.correctAnswer ? "VERO" : "FALSO"}</span>
+          · <span class="coords">pag. ${x.page}, banda [${x.rowBand ? x.rowBand.bottom.toFixed(0) + ".." + x.rowBand.top.toFixed(0) : "-"}], img ${x.imageBBox ? "(" + x.imageBBox.x.toFixed(0) + "," + x.imageBBox.y.toFixed(0) + ")" : "-"}, conf ${x.confidence}</span>
+          <br>${x.statement}</div>`).join("")}
+        ${others.length ? `<div class="row coords">altre domande che usano lo stesso asset: ${others.join(", ")}</div>` : ""}
+        <div class="actions">
+          ${reviewButton(a, "confirmed", "✓ Conferma associazione", "act-confirm")}
+          ${reviewButton(a, "ambiguous", "? Segna ambigua", "act-ambiguous")}
+          ${reviewButton(a, "rejected", "✗ Segna errata", "act-reject")}
+          <input class="note-input" placeholder="nota (opzionale)" onkeydown="if(event.key==='Enter'){this.closest('.asset').querySelector('button').click()}">
+        </div>
+      </div>
+    </div>
+    ${pageOverlay(a)}
+  </div>`;
+}
+
+function figureView() {
+  if (!state.noImage.length) return "<p>Nessun caso.</p>";
+  return state.noImage.map(q => `<div class="asset">
+    <div class="asset-meta">
+      <div class="row"><b>${q.questionNumber}</b> · gruppo ${q.groupCode} — ${q.topic.slice(0, 60)} · pag. ${q.page} · <span class="ans ${q.correctAnswer}">${q.correctAnswer ? "VERO" : "FALSO"}</span></div>
+      <div class="q">${q.statement}</div>
+      <div class="coords">nessuna immagine associata (riferimento testuale)</div>
+    </div></div>`).join("");
+}
+
+function render() {
+  const f = {
+    status: $("fStatus").value, page: parseInt($("fPage").value, 10) || 0,
+    group: $("fGroup").value, search: $("fSearch").value.toLowerCase(),
+    onlySample: $("fOnlySample").checked, onlyAmbiguous: $("fOnlyAmbiguous").checked,
+    onlyUnreviewed: $("fOnlyUnreviewed").checked,
+  };
+  if (state.view === "figures") {
+    $("main").innerHTML = figureView();
+    $("summary").textContent = `${state.noImage.length} quesiti con riferimento testuale a figure/segnali senza immagine associata`;
+    return;
+  }
+  const filtered = state.assets.filter(a => passesFilter(a, f));
+  const reviewed = filtered.filter(a => a.review).length;
+  $("main").innerHTML = filtered.map(assetCard).join("");
+  $("summary").textContent = `${filtered.length} asset mostrati (${reviewed} revisionati) · ordinati per confidence crescente`;
+  updateStats();
+}
+
+// sample mode -> load sample list from report
+async function ensureSample() {
+  if (sampleHashes.size) return;
+  try {
+    const s = await (await fetch("/api/sample")).json();
+    sampleHashes = new Set(s.sample.map(x => x.hash));
+  } catch {}
+}
+
+$("btnFig").addEventListener("click", () => { state.view = state.view === "figures" ? "assets" : "figures"; render(); });
+$("btnReset").addEventListener("click", () => {
+  ["fStatus","fGroup","fSearch"].forEach(id => { const el = $(id); if (el.tagName === "SELECT") el.value = ""; else el.value = ""; });
+  $("fPage").value = ""; $("fOnlySample").checked = false; $("fOnlyAmbiguous").checked = false; $("fOnlyUnreviewed").checked = false;
+  state.view = "assets"; render();
+});
+["fStatus","fPage","fGroup","fSearch","fOnlySample","fOnlyAmbiguous","fOnlyUnreviewed"].forEach(id => $(id).addEventListener("input", render));
+$("fOnlySample").addEventListener("change", ensureSample);
+
+load();
+</script>
+</body>
+</html>
