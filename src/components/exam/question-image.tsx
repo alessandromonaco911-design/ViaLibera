@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils/cn";
 
 /**
@@ -21,6 +21,26 @@ export function QuestionImage({
   alt?: string;
 }) {
   const [failed, setFailed] = useState(false);
+  const imgRef = useRef<HTMLImageElement | null>(null);
+
+  // Robust failure detection: some aborted/failed loads (e.g. network drop or
+  // request aborted by the browser) never fire the `error` event on the <img>;
+  // `loadend` always fires once loading ends, so we fall back when the image
+  // ended without a usable size (naturalWidth 0).
+  useEffect(() => {
+    const el = imgRef.current;
+    if (!el) return;
+    if (el.complete && el.naturalWidth === 0) {
+      setFailed(true);
+      return;
+    }
+    const onLoadEnd = () => {
+      if (el.naturalWidth === 0) setFailed(true);
+    };
+    el.addEventListener("loadend", onLoadEnd);
+    return () => el.removeEventListener("loadend", onLoadEnd);
+  }, [src]);
+
   if (failed) {
     return (
       <div
@@ -39,6 +59,7 @@ export function QuestionImage({
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
+      ref={imgRef}
       src={src}
       alt={alt}
       width={width ?? undefined}

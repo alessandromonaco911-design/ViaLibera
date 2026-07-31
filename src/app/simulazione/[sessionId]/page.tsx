@@ -1,9 +1,8 @@
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { getExamSession, getSessionQuestions } from "@/lib/exam/session-service";
 import { siteConfig } from "@/config/site";
 import { mediaUrlFor } from "@/lib/exam/payload";
 import { ExamRunner } from "@/components/exam/exam-runner";
-import { StateCardLink } from "@/components/ui/state-card";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -16,11 +15,11 @@ export default async function SimulationPage({ params }: { params: Promise<{ ses
     session = await getExamSession(sessionId);
   } catch (e) {
     console.error("[simulazione] db error", e);
-    return <StateCardLink title="Database non disponibile" message="Il servizio non è raggiungibile in questo momento. Riprova tra poco." action={{ label: "Torna alla home", href: "/" }} />;
+    throw e; // handled by error.tsx
   }
 
   if (!session) {
-    return <StateCardLink title="Sessione inesistente" message="Questa simulazione non esiste o il link non è più valido." action={{ label: "Inizia una nuova simulazione", href: "/" }} />;
+    notFound();
   }
 
   if (session.status !== "in_progress") {

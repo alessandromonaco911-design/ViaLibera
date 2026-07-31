@@ -42,10 +42,12 @@ export function ExamRunner({ sessionId, version, startedAt, expiresAt, totalQues
   const [zoomImage, setZoomImage] = useState<string | null>(null);
   const [phase, setPhase] = useState<SubmitPhase>("idle");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  /** aria-live feedback tick ("Risposta registrata") */
+  const [feedbackTick, setFeedbackTick] = useState(0);
 
   const submittedRef = useRef(false);
   const submittingRef = useRef(false);
-  const advanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const feedbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const byPosition = useMemo(() => new Map(questions.map((q) => [q.position, q])), [questions]);
 
@@ -162,12 +164,10 @@ export function ExamRunner({ sessionId, version, startedAt, expiresAt, totalQues
     if (phase === "submitting" || submittedRef.current) return;
     if (remaining !== null && remaining <= 0) return; // expired: locked
     setAnswers((prev) => ({ ...prev, [qid]: value }));
-    // brief feedback + auto-advance (cancel if the user navigates manually)
-    if (advanceTimer.current) clearTimeout(advanceTimer.current);
-    advanceTimer.current = setTimeout(() => {
-      const next = position + 1;
-      if (next <= totalQuestions) setPosition(next);
-    }, 150);
+    // feedback only — NO auto-advance, NO navigation
+    if (feedbackTimer.current) clearTimeout(feedbackTimer.current);
+    setFeedbackTick((t) => t + 1);
+    feedbackTimer.current = setTimeout(() => setFeedbackTick((t) => (t === 0 ? 0 : t - 1)), 1600);
   };
 
   const toggleFlag = (qid: string) => {
@@ -176,7 +176,6 @@ export function ExamRunner({ sessionId, version, startedAt, expiresAt, totalQues
   };
 
   const goTo = (pos: number) => {
-    if (advanceTimer.current) clearTimeout(advanceTimer.current);
     if (pos >= 1 && pos <= totalQuestions) {
       setPosition(pos);
       setNavigatorOpen(false);
@@ -185,6 +184,75 @@ export function ExamRunner({ sessionId, version, startedAt, expiresAt, totalQues
 
   const navNext = () => goTo(position + 1);
   const navPrev = () => goTo(position - 1);
+
+  // ---- keyboard shortcuts (V/F/arrows/M/G/Esc) ----
+  const modalOpen = navigatorOpen || submitOpen || zoomImage !== null;
+  const keyHandlerRef = useRef<(e: KeyboardEvent) => void>(() => {});
+  useEffect(() => {
+    keyHandlerRef.current = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.tagName === "SELECT" || target.isContentEditable)
+      ) {
+        return;
+      }
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (modalOpen) {
+        if (e.key === "Escape") {
+          e.preventDefault();
+          if (navigatorOpen) setNavigatorOpen(false);
+          else if (zoomImage) setZoomImage(null);
+          else if (submitOpen) setSubmitOpen(false);
+        }
+        return;
+      }
+      if (!current) return;
+      switch (e.key) {
+        case "v":
+        case "V":
+          e.preventDefault();
+          selectAnswer(current.id, true);
+          break;
+        case "f":
+        case "F":
+          e.preventDefault();
+          selectAnswer(current.id, false);
+          break;
+        case "ArrowRight":
+          e.preventDefault();
+          navNext();
+          break;
+        case "ArrowLeft":
+          e.preventDefault();
+          navPrev();
+          break;
+        case "m":
+        case "M":
+          e.preventDefault();
+          toggleFlag(current.id);
+          break;
+        case "g":
+        case "G":
+          e.preventDefault();
+          setNavigatorOpen(true);
+          break;
+        default:
+          break;
+      }
+    };
+  });
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => keyHandlerRef.current(e);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  // clean feedback timer on unmount
+  useEffect(() => () => {
+    if (feedbackTimer.current) clearTimeout(feedbackTimer.current);
+  }, []);
 
   const tone = remaining === null ? "normal" : timerTone(remaining);
   const timerClass =
@@ -285,6 +353,16 @@ export function ExamRunner({ sessionId, version, startedAt, expiresAt, totalQues
             })}
           </div>
 
+          {/* fixed-height aria-live feedback (no layout shift, no correct/incorrect colors) */}
+          <div aria-live="polite" className="mt-2 flex h-5 items-center justify-center">
+            {feedbackTick > 0 && <span className="text-sm font-medium text-primary">Risposta registrata</span>}
+          </div>
+
+          {/* desktop-only shortcut hint */}
+          <p className="mt-2 hidden text-center text-xs text-muted sm:block">
+            Scorciatoie: V / F · ← → · M contrassegna · G navigatore
+          </p>
+
           {errorMsg && (
             <div role="alert" className="mt-4 rounded-lg border border-danger/30 bg-danger-soft p-3 text-sm text-danger">
               {errorMsg}
@@ -308,7 +386,7 @@ export function ExamRunner({ sessionId, version, startedAt, expiresAt, totalQues
           >
             {isFlagged ? "★ Contrassegnata" : "☆ Contrassegna"}
           </Button>
-          <Button variant="primary" size="md" onClick={navNext} disabled={position >= totalQuestions} className="flex-1 sm:flex-none sm:w-28">
+          <Button variant="primary" size="md" onClick={navNext} disabled={position >= totalQuestions} className="flex-1 sm:flex-none sm:w-28" aria-label={position >= totalQuestions ? "Ultima domanda" : "Avanti"}>
             Avanti →
           </Button>
         </div>
