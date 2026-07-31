@@ -22,6 +22,7 @@
     "data:validate": "tsx --env-file=.env scripts/data/validate.ts",
     "review:sample": "tsx scripts/review/sample.ts",
     "review:gallery": "tsx scripts/review/gallery.ts",
+    "review:export": "tsx scripts/review/export.ts",
     "data:figure-audit": "tsx scripts/data/figure-audit.ts"
   },
   "dependencies": {
