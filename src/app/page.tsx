@@ -13,12 +13,12 @@ export default function Home() {
 
       <main className="flex-1">
         {/* ============ HERO ============ */}
-        <section className="mx-auto w-full max-w-5xl px-4 pt-10 sm:pt-14">
-          <div className="grid border-2 border-foreground bg-surface shadow-pop md:grid-cols-2 md:divide-x-2 md:divide-foreground">
+        <section className="mx-auto w-full max-w-6xl px-4 pt-10 sm:px-6 sm:pt-14">
+          <div className="grid border-2 border-foreground bg-surface shadow-pop lg:grid-cols-[minmax(0,1.15fr)_minmax(340px,0.85fr)] lg:divide-x-2 lg:divide-foreground">
             {/* left: title + CTAs */}
-            <div className="motion-enter p-6 sm:p-10">
+            <div className="motion-enter min-w-0 p-6 sm:p-10">
               <SectionLabel>Esame patente {siteConfig.licenseCategory} · teorico</SectionLabel>
-              <h1 className="mt-4 font-mono text-[clamp(2.8rem,7vw,6.5rem)] font-semibold leading-[0.95] tracking-tight">
+              <h1 className="mt-4 max-w-full font-mono text-[clamp(2.2rem,5vw,4.5rem)] font-semibold leading-[0.95] tracking-tight">
                 Preparati
                 <br />
                 all&apos;esame.
@@ -72,7 +72,7 @@ export default function Home() {
         </div>
 
         {/* ============ RESUME CARDS ============ */}
-        <section className="mx-auto mt-10 w-full max-w-5xl px-4">
+        <section className="mx-auto mt-10 w-full max-w-6xl px-4 sm:px-6">
           <div className="grid gap-4 md:grid-cols-2">
             <ResumeCard />
             <PracticeResumeCard />
@@ -80,7 +80,7 @@ export default function Home() {
         </section>
 
         {/* ============ MODE CARDS ============ */}
-        <section className="mx-auto grid w-full max-w-5xl gap-4 px-4 py-12 md:grid-cols-2">
+        <section className="mx-auto grid w-full max-w-6xl gap-4 px-4 py-12 sm:px-6 md:grid-cols-2">
           {/* SIMULAZIONE */}
           <div className="group editorial-hover motion-enter editorial-delay-1 flex flex-col justify-between border-2 border-foreground bg-accent-blue p-8">
             <div>
