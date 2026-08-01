@@ -10,7 +10,7 @@ import {
 } from "@/lib/practice/local-state";
 import { Button } from "@/components/ui/button";
 
-/** Homepage card: resume an in-progress practice/mistakes session (separate from exam). */
+/** Homepage card: resume an in-progress practice session (separate from exam). */
 export function PracticeResumeCard() {
   const router = useRouter();
   const [sessions, setSessions] = useState<PersistedPracticeState[] | null>(null);
@@ -35,28 +35,30 @@ export function PracticeResumeCard() {
         const correct = verifiedEntries.filter((v) => v.isCorrect).length;
         const errors = verifiedEntries.filter((v) => !v.isCorrect).length;
         return (
-          <div key={s.sessionId} className="mb-4 rounded-2xl border border-border bg-surface p-5 shadow-card">
-            <div className="flex items-center justify-between gap-2">
-              <h2 className="text-sm font-semibold">
+          <div key={s.sessionId} className="mb-4 border-2 border-foreground bg-accent-yellow p-5 shadow-pop">
+            <div className="flex items-center justify-between gap-2 border-b-2 border-foreground pb-2">
+              <h2 className="font-mono text-sm font-semibold uppercase tracking-wide">
                 {s.mode === "mistakes" ? "Ripasso errori in corso" : "Allenamento in corso"}
               </h2>
-              <span className="text-xs text-muted">senza tempo</span>
+              <span className="font-mono text-xs uppercase text-muted">senza tempo</span>
             </div>
-            <p className="mt-1 truncate text-xs text-muted">{s.topicName || (s.mode === "mistakes" ? "Ripasso errori" : "Allenamento")}</p>
+            <p className="mt-1 truncate font-mono text-xs text-muted">
+              {s.topicName || (s.mode === "mistakes" ? "Ripasso errori" : "Allenamento")}
+            </p>
             <div className="mt-3 flex gap-6 text-sm">
               <span>
-                <span className="block text-xs text-muted">Verificate</span>
-                <b>
+                <span className="block font-mono text-xs uppercase text-muted">Verificate</span>
+                <b className="font-mono tabular-nums">
                   {verifiedEntries.length} / {s.totalQuestions}
                 </b>
               </span>
               <span>
-                <span className="block text-xs text-muted">Corrette</span>
-                <b className="text-success">{correct}</b>
+                <span className="block font-mono text-xs uppercase text-muted">Corrette</span>
+                <b className="font-mono tabular-nums text-success">{correct}</b>
               </span>
               <span>
-                <span className="block text-xs text-muted">Errate</span>
-                <b className="text-danger">{errors}</b>
+                <span className="block font-mono text-xs uppercase text-muted">Errate</span>
+                <b className="font-mono tabular-nums text-danger">{errors}</b>
               </span>
             </div>
             <div className="mt-4 flex gap-3">

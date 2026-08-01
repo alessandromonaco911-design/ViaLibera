@@ -3,68 +3,132 @@ import { siteConfig } from "@/config/site";
 import { StartExamButton } from "@/components/home/start-exam-button";
 import { ResumeCard } from "@/components/home/resume-card";
 import { PracticeResumeCard } from "@/components/home/practice-resume-card";
+import { SiteHeader } from "@/components/ui/site-header";
+import { MarqueeStrip, SectionLabel, StatBlock } from "@/components/ui/editorial";
 
 export default function Home() {
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-lg flex-col px-4">
-      <header className="flex items-center justify-between py-6">
-        <span className="text-lg font-semibold tracking-tight">{siteConfig.name}</span>
-        <span className="rounded-full border border-border bg-surface px-3 py-1 text-xs font-medium text-muted">
-          Patente {siteConfig.licenseCategory}
-        </span>
-      </header>
+    <div className="flex min-h-dvh w-full flex-col">
+      <SiteHeader />
 
-      <main className="flex flex-1 flex-col justify-center py-10">
-        <h1 className="max-w-md text-3xl font-semibold leading-tight tracking-tight sm:text-4xl">
-          {siteConfig.tagline}
-        </h1>
-        <p className="mt-4 max-w-md text-base leading-relaxed text-muted">
-          Simulazioni compatibili con il formato d’esame e allenamenti per argomento, basati sul
-          catalogo ufficiale importato. Prova le tue conoscenze prima dell’appuntamento vero.
-        </p>
+      <main className="flex-1">
+        {/* ============ HERO ============ */}
+        <section className="mx-auto w-full max-w-5xl px-4 pt-10 sm:pt-14">
+          <div className="grid border-2 border-foreground bg-surface shadow-pop md:grid-cols-2 md:divide-x-2 md:divide-foreground">
+            {/* left: title + CTAs */}
+            <div className="motion-enter p-6 sm:p-10">
+              <SectionLabel>Esame patente {siteConfig.licenseCategory} · teorico</SectionLabel>
+              <h1 className="mt-4 font-mono text-[clamp(2.8rem,7vw,6.5rem)] font-semibold leading-[0.95] tracking-tight">
+                Preparati
+                <br />
+                all&apos;esame.
+                <br />
+                Senza perdere
+                <br />
+                tempo.
+              </h1>
+              <p className="mt-6 max-w-md text-base leading-relaxed text-muted">
+                Simulazioni compatibili con il formato d&apos;esame e allenamenti per argomento,
+                basati sul catalogo ufficiale importato.
+              </p>
+              <div id="inizia" className="mt-8 w-full max-w-md space-y-3">
+                <StartExamButton />
+                <Link
+                  href="/allenamento"
+                  className="editorial-press flex h-12 w-full select-none items-center justify-center gap-2 rounded-md border-2 border-foreground bg-accent-yellow px-6 font-mono text-base font-medium uppercase tracking-wide text-foreground hover:bg-accent-pink"
+                >
+                  Allenati per argomento
+                  <span aria-hidden className="arrow-nudge">→</span>
+                </Link>
+                <p className="pt-1 text-center font-mono text-xs uppercase tracking-wide text-muted">
+                  Nessuna registrazione richiesta
+                </p>
+              </div>
+            </div>
 
-        <div className="mt-8 w-full max-w-md">
-          <ResumeCard />
-          <PracticeResumeCard />
-          <StartExamButton />
-          <div className="mt-3">
+            {/* right: abstract info panel */}
+            <div className="motion-enter editorial-delay-1 grid grid-cols-2 gap-4 bg-accent-blue p-6 sm:p-10">
+              <StatBlock label="Domande" value="30" tone="white" className="col-span-2" />
+              <StatBlock label="Minuti" value="20" tone="yellow" />
+              <StatBlock label="Errori max" value="3" tone="pink" />
+              <StatBlock label="Patente" value="B" tone="white" />
+              <StatBlock label="Feedback allenamento" value="OK" tone="green" />
+            </div>
+          </div>
+        </section>
+
+        {/* ============ MARQUEE ============ */}
+        <div className="mt-12">
+          <MarqueeStrip
+            items={[
+              `PATENTE ${siteConfig.licenseCategory}`,
+              "30 DOMANDE",
+              "20 MINUTI",
+              "ALLENAMENTO PER ARGOMENTO",
+              "FEEDBACK IMMEDIATO",
+              "NESSUNA REGISTRAZIONE",
+            ]}
+          />
+        </div>
+
+        {/* ============ RESUME CARDS ============ */}
+        <section className="mx-auto mt-10 w-full max-w-5xl px-4">
+          <div className="grid gap-4 md:grid-cols-2">
+            <ResumeCard />
+            <PracticeResumeCard />
+          </div>
+        </section>
+
+        {/* ============ MODE CARDS ============ */}
+        <section className="mx-auto grid w-full max-w-5xl gap-4 px-4 py-12 md:grid-cols-2">
+          {/* SIMULAZIONE */}
+          <div className="group editorial-hover motion-enter editorial-delay-1 flex flex-col justify-between border-2 border-foreground bg-accent-blue p-8">
+            <div>
+              <SectionLabel>Modalità</SectionLabel>
+              <h2 className="mt-2 font-mono text-4xl font-semibold uppercase tracking-tight sm:text-5xl">
+                Simulazione
+              </h2>
+              <dl className="mt-6 space-y-2 font-mono text-sm uppercase tracking-wide">
+                <div className="flex justify-between border-b border-foreground/40 pb-1"><dt>Domande</dt><dd>30</dd></div>
+                <div className="flex justify-between border-b border-foreground/40 pb-1"><dt>Durata</dt><dd>20 minuti</dd></div>
+                <div className="flex justify-between border-b border-foreground/40 pb-1"><dt>Esito</dt><dd>alla fine</dd></div>
+              </dl>
+            </div>
             <Link
-              href="/allenamento"
-              className="inline-flex h-12 w-full select-none items-center justify-center gap-2 rounded-lg bg-primary-soft px-6 text-base font-medium text-primary transition-colors hover:bg-[#e0e8ff]"
+              href="/#inizia"
+              className="editorial-press mt-8 inline-flex h-12 items-center justify-center gap-2 border-2 border-foreground bg-foreground px-6 font-mono text-base font-medium uppercase tracking-wide text-white hover:bg-black"
             >
-              Allenati per argomento
+              Vai alla simulazione
+              <span aria-hidden className="arrow-nudge">→</span>
             </Link>
           </div>
-          <p className="mt-3 text-center text-xs text-muted">Nessuna registrazione richiesta.</p>
-        </div>
 
-        <div className="mt-8 grid w-full max-w-md grid-cols-1 gap-3 sm:grid-cols-2">
-          <div className="rounded-xl border border-border bg-surface px-4 py-3 shadow-card">
-            <h2 className="text-sm font-semibold">Simulazione</h2>
-            <p className="mt-1 text-xs text-muted">30 domande · 20 minuti · risultato alla fine</p>
-          </div>
-          <div className="rounded-xl border border-border bg-surface px-4 py-3 shadow-card">
-            <h2 className="text-sm font-semibold">Allenamento</h2>
-            <p className="mt-1 text-xs text-muted">scegli argomento · feedback immediato · nessun limite di tempo</p>
-          </div>
-        </div>
-
-        <dl className="mt-8 grid w-full max-w-md grid-cols-3 gap-3">
-          {[
-            { dt: "Domande", dd: `${siteConfig.exam.totalQuestions}` },
-            { dt: "Durata", dd: `${Math.round(siteConfig.exam.durationSeconds / 60)} minuti` },
-            { dt: "Errori max", dd: `${siteConfig.exam.allowedErrors}` },
-          ].map((x) => (
-            <div key={x.dt} className="rounded-xl border border-border bg-surface px-3 py-3 text-center shadow-card">
-              <dt className="text-xs text-muted">{x.dt}</dt>
-              <dd className="mt-1 text-lg font-semibold tabular-nums">{x.dd}</dd>
+          {/* ALLENAMENTO */}
+          <div className="group editorial-hover motion-enter editorial-delay-2 flex flex-col justify-between border-2 border-foreground bg-accent-yellow p-8">
+            <div>
+              <SectionLabel>Modalità</SectionLabel>
+              <h2 className="mt-2 font-mono text-4xl font-semibold uppercase tracking-tight sm:text-5xl">
+                Allenamento
+              </h2>
+              <dl className="mt-6 space-y-2 font-mono text-sm uppercase tracking-wide">
+                <div className="flex justify-between border-b border-foreground/40 pb-1"><dt>Argomento</dt><dd>a scelta</dd></div>
+                <div className="flex justify-between border-b border-foreground/40 pb-1"><dt>Feedback</dt><dd>immediato</dd></div>
+                <div className="flex justify-between border-b border-foreground/40 pb-1"><dt>Tempo</dt><dd>nessun limite</dd></div>
+              </dl>
             </div>
-          ))}
-        </dl>
+            <Link
+              href="/allenamento"
+              className="editorial-press mt-8 inline-flex h-12 items-center justify-center gap-2 border-2 border-foreground bg-foreground px-6 font-mono text-base font-medium uppercase tracking-wide text-white hover:bg-black"
+            >
+              Allenati per argomento
+              <span aria-hidden className="arrow-nudge">→</span>
+            </Link>
+          </div>
+        </section>
       </main>
 
-      <footer className="border-t border-border py-6 text-center text-xs text-muted">
-        {siteConfig.name} · quesiti dal catalogo ufficiale importato · simulazione compatibile con il formato d’esame
+      <footer className="border-t-2 border-foreground bg-surface py-6 text-center font-mono text-xs uppercase tracking-wide text-muted">
+        {siteConfig.name} · quesiti dal catalogo ufficiale importato · simulazione compatibile con il formato d&apos;esame
       </footer>
     </div>
   );

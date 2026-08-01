@@ -38,7 +38,7 @@ export function StartExamButton() {
         {busy ? "Preparazione…" : "Inizia simulazione"}
       </Button>
       {error && (
-        <p role="alert" className="mt-3 rounded-lg border border-danger/30 bg-danger-soft p-3 text-sm text-danger">
+        <p role="alert" className="mt-3 border-2 border-foreground bg-danger-soft p-3 font-mono text-sm text-danger">
           {error}
         </p>
       )}
