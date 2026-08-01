@@ -167,7 +167,7 @@ test.describe("quiz geometric layout", () => {
           const wrap = indietro?.parentElement;
           const vpW = innerWidth;
           const rootW = root?.getBoundingClientRect().width ?? 0;
-          const gap = answers && indietro ? indietro.getBoundingClientRect().top - answers.getBoundingClientRect().bottom : null;
+          const barRect = indietro?.getBoundingClientRect();
           const groupCenter = wrap ? wrap.getBoundingClientRect().x + wrap.getBoundingClientRect().width / 2 : null;
           const ab = answers?.getBoundingClientRect();
           const btnRects = [...document.querySelectorAll("main [role='group'][aria-label='Risposta'] button")].map((b) => {
@@ -176,9 +176,11 @@ test.describe("quiz geometric layout", () => {
           });
           return {
             viewport: vpW,
+            viewportH: innerHeight,
             ratio: rootW / vpW,
             panelW: panel?.getBoundingClientRect().width ?? 0,
-            gapAnswersToBar: gap,
+            barTop: barRect ? barRect.top : null,
+            barH: barRect ? barRect.height : null,
             barCenterDelta: groupCenter ? Math.abs(groupCenter - vpW / 2) : null,
             overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
             answersAligned: ab ? btnRects.length === 2 && Math.abs(btnRects[0].y - btnRects[1].y) < 2 && Math.abs(btnRects[0].h - btnRects[1].h) < 2 : null,
@@ -190,13 +192,15 @@ test.describe("quiz geometric layout", () => {
         expect(m.overflow, "nessun overflow orizzontale").toBe(false);
         expect(m.answersAligned, "VERO e FALSO allineati").toBe(true);
         if (vp.width >= 1280) {
-          expect(m.ratio, `shell ampia (ratio ${m.ratio.toFixed(2)} >= 0.70)`).toBeGreaterThanOrEqual(0.7);
+          expect(m.ratio, `shell ampia (ratio ${m.ratio.toFixed(2)} >= 0.95)`).toBeGreaterThanOrEqual(0.95);
           expect(m.panelW, "pannello domanda piu' largo (>= 1000px)").toBeGreaterThanOrEqual(1000);
           expect(m.answersH!, "VERO/FALSO alti (>= 72px)").toBeGreaterThanOrEqual(72);
         }
         if (vp.width >= 1024) {
           expect(m.barCenterDelta!, "action bar centrata (delta < 40px)").toBeLessThan(40);
-          expect(m.gapAnswersToBar!, "action bar vicina (gap < 260px)").toBeLessThan(260);
+          // sticky bottom row: the bar must sit at the bottom of the viewport, visible
+          expect(m.barTop!, "action bar visibile (top < viewport)").toBeLessThan(m.viewportH!);
+          expect(m.barTop!, "action bar non sopra la piega (top >= 0)").toBeGreaterThanOrEqual(0);
         }
         if (vp.width < 1024) {
           // mobile: buttons stacked full-width, still usable
@@ -253,6 +257,58 @@ test.describe("quiz geometric layout", () => {
       // no horizontal overflow on an image question
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
       expect(overflow).toBe(false);
+    } finally {
+      await page.request.post(`${BASE}/api/practice/${sessionId}/complete`, {}).catch(() => {});
+    }
+  });
+
+  test("action bar stable across different questions (no vertical jump)", async ({ page }) => {
+    await page.setViewportSize({ width: 1920, height: 1080 });
+    const sessionId = await createPractice(page, 10);
+    try {
+      await page.goto(`${BASE}/allenamento/${sessionId}`, { waitUntil: "domcontentloaded" });
+      await page.waitForSelector('[data-hydrated="true"]', { timeout: 20000 });
+      await page.waitForTimeout(600);
+
+      const measureBar = () =>
+        page.evaluate(() => {
+          const btn = [...document.querySelectorAll("button")].find((b) => b.textContent.trim() === "← Indietro");
+          const r = btn?.getBoundingClientRect();
+          return r ? { top: r.top, left: r.left, width: r.width, height: r.height } : null;
+        });
+
+      // target positions: with image, long statement, last question
+      const rows = await db()`
+        select esq.position, q.image_reference as "img", length(q.statement) as "len"
+        from exam_session_questions esq
+        join questions q on q.id = esq.question_id
+        where esq.session_id = ${sessionId}
+        order by esq.position`;
+      const withImg = rows.find((r) => r.img)?.position ?? 1;
+      const longest = [...rows].sort((a, b) => Number(b.len) - Number(a.len))[0].position;
+      const last = Number(rows.length);
+
+      const samples: number[] = [];
+      const navTo = async (pos: number) => {
+        if (pos > 1) {
+          await page.getByRole("button", { name: "Apri navigatore domande" }).click();
+          await page.getByRole("listitem", { name: new RegExp(`^Domanda ${pos},`) }).first().click();
+          await page.waitForTimeout(350);
+        }
+        const m = await measureBar();
+        expect(m).not.toBeNull();
+        samples.push(m!.top);
+      };
+
+      await navTo(1);
+      await navTo(withImg);
+      await navTo(longest);
+      await navTo(last);
+
+      const max = Math.max(...samples);
+      const min = Math.min(...samples);
+      // sticky bottom row: the action bar must NOT jump between questions
+      expect(max - min, `action bar stable (top delta ${Math.round(max - min)}px <= 4)`).toBeLessThanOrEqual(4);
     } finally {
       await page.request.post(`${BASE}/api/practice/${sessionId}/complete`, {}).catch(() => {});
     }

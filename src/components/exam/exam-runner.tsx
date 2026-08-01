@@ -269,10 +269,10 @@ export function ExamRunner({ sessionId, version, startedAt, expiresAt, totalQues
   const selected = answers[current.id];
 
   return (
-    <div className="shell-wide flex min-h-dvh flex-col px-4 sm:px-6">
-      {/* header */}
-      <header className="sticky top-0 z-20 -mx-4 border-b-2 border-foreground bg-accent-blue sm:-mx-6">
-        <div className="shell-wide flex items-center gap-3 px-4 py-2.5">
+    <div className="shell-wide grid h-dvh grid-rows-[auto_minmax(0,1fr)_auto] px-4 sm:px-6">
+      {/* header — stable row 1 */}
+      <header className="sticky top-0 z-20 border-b-2 border-foreground bg-accent-blue">
+        <div className="flex w-full items-center gap-3 px-4 py-2.5 sm:px-6">
           <Link href="/" className="flex shrink-0 items-baseline gap-0.5 font-mono text-sm font-semibold tracking-tight">
             <span>VIA</span>
             <span className="bg-foreground px-0.5 text-accent-blue">LIBERA</span>
@@ -302,8 +302,8 @@ export function ExamRunner({ sessionId, version, startedAt, expiresAt, totalQues
         </div>
       </header>
 
-      {/* question body */}
-      <main className="py-6 pb-28 sm:pb-0">
+      {/* question body — scrollable stage (stable geometry, action bar row fixed) */}
+      <main className="min-h-0 overflow-y-auto py-6 pb-6 sm:pb-8">
         <div className="mx-auto w-full">
           <div key={position} className="motion-scale-in">
             {current.topic && (
@@ -389,8 +389,8 @@ export function ExamRunner({ sessionId, version, startedAt, expiresAt, totalQues
         </div>
       </main>
 
-      {/* action bar — in normal flow on desktop, sticky bottom on mobile */}
-      <div className="fixed inset-x-0 bottom-0 z-20 border-t-2 border-foreground bg-surface px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 sm:static sm:mt-6 sm:border-y-2 sm:bg-surface sm:px-0 sm:py-3">
+      {/* action bar — fixed bottom row of the grid (same y on every question) */}
+      <div className="z-20 border-t-2 border-foreground bg-surface px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 sm:border-y-2 sm:px-0 sm:py-3">
         <div className="mx-auto flex w-full items-stretch justify-center gap-3 sm:grid sm:grid-cols-[repeat(3,minmax(200px,260px))] sm:justify-center sm:gap-4">
           <Button
             variant="outline"
