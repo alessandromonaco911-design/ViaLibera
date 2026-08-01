@@ -85,7 +85,7 @@ export function PracticeResultView({ result, topicName }: { result: PracticeResu
   ];
 
   return (
-    <div className="mx-auto w-full max-w-3xl px-4 pb-16">
+    <div className="mx-auto w-full max-w-6xl px-4 pb-16 sm:px-6">
       {/* summary poster */}
       <section className="mt-6 border-2 border-foreground bg-surface shadow-pop motion-enter" aria-live="polite">
         <div className="border-b-2 border-foreground bg-accent-yellow p-6 text-center">

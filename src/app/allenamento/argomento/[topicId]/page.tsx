@@ -20,7 +20,7 @@ export default async function AllenamentoTopicPage({ params }: { params: Promise
   return (
     <div className="flex min-h-dvh w-full flex-col">
       <SiteHeader mode="Allenamento" />
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 pb-16 pt-8">
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-8 sm:px-6">
         <Link href="/allenamento" className="inline-flex items-center gap-1 font-mono text-sm uppercase tracking-wide text-muted hover:text-foreground">
           <span aria-hidden>←</span> Argomenti
         </Link>
