@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { siteConfig } from "@/config/site";
 import type { PublicPracticeQuestion } from "@/lib/practice/types";
 import {
   loadPersistedPracticeState,
@@ -307,7 +306,7 @@ export function PracticeRunner({
 
   if (!current) {
     return (
-      <div className="mx-auto max-w-xl px-4 py-16 text-center text-muted">
+      <div className="mx-auto max-w-xl px-4 py-16 text-center font-mono text-muted">
         Posizione domanda non valida.
       </div>
     );
@@ -319,14 +318,18 @@ export function PracticeRunner({
   const checkReady = selected[current.id] !== undefined && currentVerified === undefined;
 
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-3xl flex-col" data-hydrated={hydrated ? "true" : "false"}>
+    <div
+      className="mx-auto flex min-h-dvh w-full max-w-3xl flex-col"
+      data-hydrated={hydrated ? "true" : "false"}
+    >
       {/* header */}
-      <header className="sticky top-0 z-20 border-b border-border bg-background/95">
-        <div className="flex items-center gap-3 px-4 py-3">
-          <Link href="/" className="text-sm font-semibold tracking-tight text-foreground">
-            {siteConfig.name}
+      <header className="sticky top-0 z-20 border-b-2 border-foreground bg-accent-yellow">
+        <div className="mx-auto flex max-w-3xl items-center gap-3 px-4 py-2.5">
+          <Link href="/" className="flex shrink-0 items-baseline gap-0.5 font-mono text-sm font-semibold tracking-tight">
+            <span>VIA</span>
+            <span className="bg-foreground px-0.5 text-accent-yellow">LIBERA</span>
           </Link>
-          <span className="truncate text-sm text-muted">
+          <span className="truncate font-mono text-xs uppercase tracking-wide text-foreground">
             {mode === "mistakes" ? "Ripasso errori" : "Allenamento"} · {position} di {totalQuestions}
           </span>
           <div className="ml-auto flex items-center gap-2">
@@ -343,115 +346,124 @@ export function PracticeRunner({
       {/* question body */}
       <main className="flex-1 px-4 pb-44 pt-5 sm:pb-28">
         <div className="mx-auto max-w-2xl">
-          <span className="mb-3 inline-flex max-w-full items-center gap-1 rounded-full bg-primary-soft px-3 py-1 text-xs font-medium text-primary">
-            {mode === "mistakes" ? "Ripasso degli errori" : topicName}
-          </span>
+          <div key={position} className="motion-scale-in">
+            <span className="mb-3 inline-flex max-w-full items-center gap-1 border border-foreground bg-accent-blue px-2 py-0.5 font-mono text-xs uppercase tracking-wide">
+              {mode === "mistakes" ? "Ripasso degli errori" : topicName}
+            </span>
 
-          <h1 className="text-lg font-medium leading-relaxed sm:text-xl">{current.statement}</h1>
+            <div className="border-2 border-foreground bg-surface p-5 shadow-pop sm:p-7">
+              <p className="font-mono text-xs uppercase tracking-wide text-muted">
+                Domanda {String(position).padStart(2, "0")}
+                {current.officialQuestionCode && <> · Codice {current.officialQuestionCode}</>}
+                {current.groupCode && <> · Gruppo {current.groupCode}</>}
+              </p>
+              <h1 className="mt-3 text-[1.15rem] leading-[1.5] text-foreground sm:text-[1.3rem]">{current.statement}</h1>
 
-          {current.image && (
-            <div className="mt-4">
-              <button
-                type="button"
-                onClick={() => setZoomImage(current.image!.url)}
-                className="block w-full overflow-hidden rounded-xl border border-border bg-surface"
-                aria-label="Ingrandisci immagine"
-              >
-                <QuestionImage
-                  src={current.image.url}
-                  width={current.image.width}
-                  height={current.image.height}
-                  className="mx-auto max-h-72 w-auto object-contain"
-                />
-              </button>
-              <p className="mt-1 text-center text-xs text-muted">Tocca l’immagine per ingrandirla</p>
+              {current.image && (
+                <div className="mt-5 border-t-2 border-foreground pt-5">
+                  <button
+                    type="button"
+                    onClick={() => setZoomImage(current.image!.url)}
+                    className="block w-full border border-foreground bg-surface"
+                    aria-label="Ingrandisci immagine"
+                  >
+                    <QuestionImage
+                      src={current.image.url}
+                      width={current.image.width}
+                      height={current.image.height}
+                      className="mx-auto max-h-72 w-auto object-contain"
+                    />
+                  </button>
+                  <p className="mt-1 text-center font-mono text-xs uppercase tracking-wide text-muted">
+                    Tocca l’immagine per ingrandirla
+                  </p>
+                </div>
+              )}
             </div>
-          )}
 
-          {/* answers — green/red ONLY after verification */}
-          <div className="mt-6 grid grid-cols-2 gap-3" role="group" aria-label="Risposta">
-            {[true, false].map((val) => {
-              const label = val ? "VERO" : "FALSO";
-              const isSelected = currentVerified !== undefined ? currentVerified.selectedAnswer === val : selected[current.id] === val;
-              const locked = currentVerified !== undefined;
-              const correct = currentVerified !== undefined && currentVerified.isCorrect;
-              const isRightAnswer = currentVerified !== undefined && currentVerified.selectedAnswer === val && correct;
-              const isWrongPick = currentVerified !== undefined && currentVerified.selectedAnswer === val && !correct;
-              return (
-                <button
-                  key={String(val)}
-                  type="button"
-                  onClick={() => !locked && selectAnswer(current.id, val)}
-                  disabled={locked}
-                  aria-pressed={isSelected}
+            {/* answers — green/red ONLY after verification */}
+            <div className="mt-4 grid grid-cols-2 gap-3" role="group" aria-label="Risposta">
+              {[true, false].map((val) => {
+                const label = val ? "VERO" : "FALSO";
+                const isSelected = currentVerified !== undefined ? currentVerified.selectedAnswer === val : selected[current.id] === val;
+                const locked = currentVerified !== undefined;
+                const correct = currentVerified !== undefined && currentVerified.isCorrect;
+                const isRightAnswer = currentVerified !== undefined && currentVerified.selectedAnswer === val && correct;
+                const isWrongPick = currentVerified !== undefined && currentVerified.selectedAnswer === val && !correct;
+                return (
+                  <button
+                    key={String(val)}
+                    type="button"
+                    onClick={() => !locked && selectAnswer(current.id, val)}
+                    disabled={locked}
+                    aria-pressed={isSelected}
+                    className={cn(
+                      "h-16 rounded-md border-2 border-foreground font-mono text-lg font-semibold uppercase tracking-widest transition-colors",
+                      locked
+                        ? isRightAnswer
+                          ? "bg-success-soft text-success"
+                          : isWrongPick
+                            ? "bg-danger-soft text-danger"
+                            : "bg-surface text-muted"
+                        : isSelected
+                          ? "bg-foreground text-white"
+                          : "bg-surface text-foreground hover:bg-accent-blue",
+                    )}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* feedback */}
+            <div aria-live="polite" className="mt-4">
+              {currentVerified && (
+                <div
                   className={cn(
-                    "h-16 rounded-xl border-2 text-base font-semibold transition-colors",
-                    locked
-                      ? isRightAnswer
-                        ? "border-success bg-success-soft text-success"
-                        : isWrongPick
-                          ? "border-danger bg-danger-soft text-danger"
-                          : "border-border bg-surface text-muted"
-                      : isSelected
-                        ? "border-primary bg-primary-soft text-primary"
-                        : "border-border bg-surface text-foreground hover:border-primary/40",
+                    "motion-feedback border-2 border-foreground p-4",
+                    currentVerified.isCorrect ? "bg-success-soft" : "bg-danger-soft",
                   )}
                 >
-                  {label}
-                </button>
-              );
-            })}
-          </div>
+                  <p className={cn("font-mono text-sm font-semibold uppercase tracking-widest", currentVerified.isCorrect ? "text-success" : "text-danger")}>
+                    {currentVerified.isCorrect ? "Risposta corretta" : "Risposta errata"}
+                  </p>
+                  <p className="mt-1 text-sm text-foreground">
+                    Risposta data: <b>{currentVerified.selectedAnswer ? "VERO" : "FALSO"}</b>
+                    {!currentVerified.isCorrect && (
+                      <>
+                        {" · "}Risposta corretta: <b>{currentVerified.selectedAnswer ? "FALSO" : "VERO"}</b>
+                      </>
+                    )}
+                  </p>
+                  <p className="mt-1 font-mono text-xs uppercase tracking-wide text-muted">
+                    {current.officialQuestionCode && <>Codice {current.officialQuestionCode}</>}
+                    {current.groupCode && <> · Gruppo {current.groupCode}</>}
+                  </p>
+                  <p className="mt-1 font-mono text-xs uppercase tracking-wide text-muted">
+                    Per questa domanda non è ancora disponibile una spiegazione revisionata.
+                  </p>
+                </div>
+              )}
+              {!currentVerified && checkReady && (
+                <p className="font-mono text-sm uppercase tracking-wide text-muted">Seleziona Verifica risposta per controllare.</p>
+              )}
+              {!currentVerified && !checkReady && (
+                <p className="font-mono text-sm uppercase tracking-wide text-muted">Seleziona VERO o FALSO per rispondere.</p>
+              )}
+            </div>
 
-          {/* feedback */}
-          <div aria-live="polite" className="mt-4">
-            {currentVerified && (
-              <div
-                className={cn(
-                  "rounded-xl border p-3 text-sm",
-                  currentVerified.isCorrect
-                    ? "border-success/30 bg-success-soft text-success"
-                    : "border-danger/30 bg-danger-soft text-danger",
-                )}
-              >
-                <p className="font-semibold">
-                  {currentVerified.isCorrect ? "Risposta corretta" : "Risposta errata"}
-                </p>
-                <p className="mt-1">
-                  Risposta data: <b>{currentVerified.selectedAnswer ? "VERO" : "FALSO"}</b>
-                  {!currentVerified.isCorrect && (
-                    <>
-                      {" · "}Risposta corretta: <b>{currentVerified.selectedAnswer ? "FALSO" : "VERO"}</b>
-                    </>
-                  )}
-                </p>
-                <p className="mt-1 text-xs text-muted">
-                  {current.officialQuestionCode && <>Codice {current.officialQuestionCode}</>}
-                  {current.groupCode && <> · Gruppo {current.groupCode}</>}
-                </p>
-                <p className="mt-1 text-xs text-muted">
-                  Per questa domanda non è ancora disponibile una spiegazione revisionata.
-                </p>
+            {errorMsg && (
+              <div role="alert" className="mt-4 border-2 border-foreground bg-danger-soft p-3 font-mono text-sm text-danger">
+                {errorMsg}
               </div>
             )}
-            {!currentVerified && checkReady && (
-              <p className="text-sm text-muted">Seleziona Verifica risposta per controllare.</p>
-            )}
-            {!currentVerified && !checkReady && (
-              <p className="text-sm text-muted">Seleziona VERO o FALSO per rispondere.</p>
-            )}
           </div>
-
-          {errorMsg && (
-            <div role="alert" className="mt-4 rounded-lg border border-danger/30 bg-danger-soft p-3 text-sm text-danger">
-              {errorMsg}
-            </div>
-          )}
         </div>
       </main>
 
       {/* mobile bottom action bar */}
-      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-surface px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 sm:static sm:border-0 sm:bg-transparent sm:px-0 sm:pb-6">
+      <div className="fixed inset-x-0 bottom-0 z-20 border-t-2 border-foreground bg-surface px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 sm:static sm:border-0 sm:bg-transparent sm:px-0 sm:pb-6">
         <div className="mx-auto flex max-w-2xl items-center gap-2">
           <Button variant="outline" size="md" onClick={navPrev} disabled={position <= 1} className="flex-1 sm:flex-none sm:w-28">
             ← Indietro
@@ -501,16 +513,16 @@ export function PracticeRunner({
                 aria-current={isCurrent ? "true" : undefined}
                 aria-label={`Domanda ${q.position}, ${status}`}
                 className={cn(
-                  "flex h-11 items-center justify-center rounded-lg border text-sm font-medium tabular-nums",
+                  "flex h-11 items-center justify-center border-2 border-foreground font-mono text-sm font-medium tabular-nums",
                   isCurrent
-                    ? "border-primary bg-primary text-white"
+                    ? "bg-foreground text-white"
                     : v !== undefined
                       ? v.isCorrect
-                        ? "border-success bg-success-soft text-success"
-                        : "border-danger bg-danger-soft text-danger"
+                        ? "bg-success-soft text-success"
+                        : "bg-danger-soft text-danger"
                       : hasSelection
-                        ? "border-primary/40 bg-primary-soft text-primary"
-                        : "border-border bg-surface text-foreground",
+                        ? "bg-accent-blue text-foreground"
+                        : "bg-surface text-foreground",
                 )}
               >
                 {q.position}
@@ -518,18 +530,18 @@ export function PracticeRunner({
             );
           })}
         </div>
-        <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
-          <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded bg-primary" /> corrente</span>
-          <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded border border-border bg-surface" /> senza risposta</span>
-          <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded bg-primary-soft ring-1 ring-primary/40" /> selezionata</span>
-          <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded bg-success-soft ring-1 ring-success/40" /> corretta</span>
-          <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded bg-danger-soft ring-1 ring-danger/40" /> errata</span>
+        <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1 font-mono text-xs uppercase tracking-wide text-muted">
+          <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 border-2 border-foreground bg-foreground" /> corrente</span>
+          <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 border-2 border-foreground bg-surface" /> senza risposta</span>
+          <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 border-2 border-foreground bg-accent-blue" /> selezionata</span>
+          <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 border-2 border-foreground bg-success-soft" /> corretta</span>
+          <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 border-2 border-foreground bg-danger-soft" /> errata</span>
         </div>
       </Drawer>
 
       {/* completion confirmation */}
       <Dialog open={completeOpen} onClose={() => setCompleteOpen(false)} title="Completare l’allenamento?" busy={phase === "checking"}>
-        <p className="text-sm text-muted">
+        <p className="font-mono text-sm text-muted">
           {uncheckedCount === 1
             ? "1 domanda non verificata sarà considerata senza risposta."
             : `${uncheckedCount} domande non verificate saranno considerate senza risposta.`}
@@ -547,7 +559,7 @@ export function PracticeRunner({
       {/* image zoom */}
       {zoomImage && (
         <Dialog open={!!zoomImage} onClose={() => setZoomImage(null)} title="Immagine ingrandita">
-          <QuestionImage src={zoomImage} width={null} height={null} className="mx-auto max-h-[70dvh] w-auto rounded-lg object-contain" />
+          <QuestionImage src={zoomImage} width={null} height={null} className="mx-auto max-h-[70dvh] w-auto rounded-md object-contain" />
         </Dialog>
       )}
     </div>

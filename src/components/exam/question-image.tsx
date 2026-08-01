@@ -44,7 +44,7 @@ export function QuestionImage({
   if (failed) {
     return (
       <div
-        className={cn("flex aspect-[4/3] w-full items-center justify-center rounded-xl border border-dashed border-border bg-surface", className)}
+        className={cn("flex aspect-[4/3] w-full items-center justify-center border-2 border-dashed border-foreground bg-surface", className)}
         role="img"
         aria-label="Immagine non disponibile"
       >

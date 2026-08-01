@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { PublicExamQuestion } from "@/lib/exam/types";
-import { siteConfig } from "@/config/site";
 import { remainingMs, formatClock, timerTone } from "@/lib/exam/timer";
 import {
   loadPersistedState,
@@ -54,8 +53,7 @@ export function ExamRunner({ sessionId, version, startedAt, expiresAt, totalQues
   const current = byPosition.get(position);
   const answeredCount = questions.filter((q) => answers[q.id] !== undefined).length;
 
-  // ---- restore from localStorage (post-mount, deferred one macrotask so the rule
-  //      on synchronous setState-in-effect is respected and no hydration mismatch occurs) ----
+  // ---- restore from localStorage (post-mount, deferred one macrotask) ----
   useEffect(() => {
     const t = setTimeout(() => {
       const stored = loadPersistedState(localStorage, sessionId);
@@ -98,6 +96,7 @@ export function ExamRunner({ sessionId, version, startedAt, expiresAt, totalQues
     const t = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(t);
   }, [mounted]);
+
   const doSubmit = useCallback(
     async (payloadAnswers: Record<string, boolean>, payloadFlagged: string[]) => {
       if (submittingRef.current || submittedRef.current) return;
@@ -260,7 +259,7 @@ export function ExamRunner({ sessionId, version, startedAt, expiresAt, totalQues
 
   if (!current) {
     return (
-      <div className="mx-auto max-w-xl px-4 py-16 text-center text-muted">
+      <div className="mx-auto max-w-xl px-4 py-16 text-center font-mono text-muted">
         Posizione domanda non valida.
       </div>
     );
@@ -272,18 +271,21 @@ export function ExamRunner({ sessionId, version, startedAt, expiresAt, totalQues
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-3xl flex-col">
       {/* header */}
-      <header className="sticky top-0 z-20 border-b border-border bg-background/95 backdrop-blur-none">
-        <div className="flex items-center gap-3 px-4 py-3">
-          <Link href="/" className="text-sm font-semibold tracking-tight text-foreground">
-            {siteConfig.name}
+      <header className="sticky top-0 z-20 border-b-2 border-foreground bg-accent-blue">
+        <div className="mx-auto flex max-w-3xl items-center gap-3 px-4 py-2.5">
+          <Link href="/" className="flex shrink-0 items-baseline gap-0.5 font-mono text-sm font-semibold tracking-tight">
+            <span>VIA</span>
+            <span className="bg-foreground px-0.5 text-accent-blue">LIBERA</span>
           </Link>
-          <span className="text-sm text-muted">Domanda {position} di {totalQuestions}</span>
+          <span className="font-mono text-xs uppercase tracking-wide text-foreground">
+            Domanda {position} di {totalQuestions}
+          </span>
           <div className="ml-auto flex items-center gap-2">
             <span
               className={cn(
-                "tabular-nums text-sm font-medium",
+                "border-2 border-foreground bg-surface px-2 py-1 font-mono text-sm font-semibold tabular-nums",
                 timerClass,
-                tone === "critical" && "font-semibold",
+                tone === "critical" && "font-bold",
               )}
               role="timer"
               aria-label="Tempo rimanente"
@@ -291,7 +293,7 @@ export function ExamRunner({ sessionId, version, startedAt, expiresAt, totalQues
               {formatClock(remaining ?? 0)}
             </span>
             <Button variant="secondary" size="sm" onClick={() => setNavigatorOpen(true)} aria-label="Apri navigatore domande">
-              <GridIcon />
+              ☰
             </Button>
             <Button variant="outline" size="sm" onClick={() => setSubmitOpen(true)}>
               Termina
@@ -301,88 +303,104 @@ export function ExamRunner({ sessionId, version, startedAt, expiresAt, totalQues
       </header>
 
       {/* question body */}
-      <main className="flex-1 px-4 pb-40 pt-5 sm:pb-24">
+      <main className="flex-1 px-4 pb-44 pt-5 sm:pb-28">
         <div className="mx-auto max-w-2xl">
-          {current.topic && (
-            <span className="mb-3 inline-block rounded-full bg-primary-soft px-3 py-1 text-xs font-medium text-primary">
-              {current.topic}
-            </span>
-          )}
-          <h1 className="text-lg font-medium leading-relaxed sm:text-xl">{current.statement}</h1>
+          <div key={position} className="motion-scale-in">
+            {current.topic && (
+              <span className="mb-3 inline-block border border-foreground bg-accent-blue px-2 py-0.5 font-mono text-xs uppercase tracking-wide">
+                {current.topic}
+              </span>
+            )}
 
-          {current.image && (
-            <div className="mt-4">
-              <button
-                type="button"
-                onClick={() => setZoomImage(current.image!.url)}
-                className="block w-full overflow-hidden rounded-xl border border-border bg-surface"
-                aria-label="Ingrandisci immagine"
-              >
-                <QuestionImage
-                  src={current.image.url}
-                  width={current.image.width}
-                  height={current.image.height}
-                  className="mx-auto max-h-72 w-auto object-contain"
-                />
-              </button>
-              <p className="mt-1 text-center text-xs text-muted">Tocca l’immagine per ingrandirla</p>
+            <div className="border-2 border-foreground bg-surface p-5 shadow-pop sm:p-7">
+              <p className="font-mono text-xs uppercase tracking-wide text-muted">
+                Domanda {String(position).padStart(2, "0")}
+                {current.officialQuestionCode && <> · Codice {current.officialQuestionCode}</>}
+                {current.groupCode && <> · Gruppo {current.groupCode}</>}
+              </p>
+              <h1 className="mt-3 text-[1.15rem] leading-[1.5] text-foreground sm:text-[1.3rem]">{current.statement}</h1>
+
+              {current.image && (
+                <div className="mt-5 border-t-2 border-foreground pt-5">
+                  <button
+                    type="button"
+                    onClick={() => setZoomImage(current.image!.url)}
+                    className="block w-full border border-foreground bg-surface"
+                    aria-label="Ingrandisci immagine"
+                  >
+                    <QuestionImage
+                      src={current.image.url}
+                      width={current.image.width}
+                      height={current.image.height}
+                      className="mx-auto max-h-72 w-auto object-contain"
+                    />
+                  </button>
+                  <p className="mt-1 text-center font-mono text-xs uppercase tracking-wide text-muted">
+                    Tocca l’immagine per ingrandirla
+                  </p>
+                </div>
+              )}
             </div>
-          )}
 
-          {/* answers */}
-          <div className="mt-6 grid grid-cols-2 gap-3" role="group" aria-label="Risposta">
-            {[true, false].map((val) => {
-              const label = val ? "VERO" : "FALSO";
-              const isSelected = selected === val;
-              return (
-                <button
-                  key={String(val)}
-                  type="button"
-                  onClick={() => selectAnswer(current.id, val)}
-                  aria-pressed={isSelected}
-                  className={cn(
-                    "h-16 rounded-xl border-2 text-base font-semibold transition-colors",
-                    isSelected
-                      ? "border-primary bg-primary-soft text-primary"
-                      : "border-border bg-surface text-foreground hover:border-primary/40",
-                  )}
-                >
-                  {label}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* fixed-height aria-live feedback (no layout shift, no correct/incorrect colors) */}
-          <div aria-live="polite" className="mt-2 flex h-5 items-center justify-center">
-            {feedbackTick > 0 && <span className="text-sm font-medium text-primary">Risposta registrata</span>}
-          </div>
-
-          {/* desktop-only shortcut hint */}
-          <p className="mt-2 hidden text-center text-xs text-muted sm:block">
-            Scorciatoie: V / F · ← → · M contrassegna · G navigatore
-          </p>
-
-          {errorMsg && (
-            <div role="alert" className="mt-4 rounded-lg border border-danger/30 bg-danger-soft p-3 text-sm text-danger">
-              {errorMsg}
+            {/* answers — never green/red in simulation */}
+            <div className="mt-4 grid grid-cols-2 gap-3" role="group" aria-label="Risposta">
+              {[true, false].map((val) => {
+                const label = val ? "VERO" : "FALSO";
+                const isSelected = selected === val;
+                return (
+                  <button
+                    key={String(val)}
+                    type="button"
+                    onClick={() => selectAnswer(current.id, val)}
+                    aria-pressed={isSelected}
+                    className={cn(
+                      "h-16 rounded-md border-2 border-foreground font-mono text-lg font-semibold uppercase tracking-widest transition-colors",
+                      isSelected
+                        ? "bg-foreground text-white"
+                        : "bg-surface text-foreground hover:bg-accent-blue",
+                    )}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
             </div>
-          )}
+
+            {/* fixed-height aria-live feedback (no layout shift) */}
+            <div aria-live="polite" className="mt-3 flex h-6 items-center justify-center">
+              {feedbackTick > 0 && (
+                <span className="border border-foreground bg-accent-yellow px-2 py-0.5 font-mono text-xs uppercase tracking-wide">
+                  Risposta registrata
+                </span>
+              )}
+            </div>
+
+            {/* desktop-only shortcut hint */}
+            <p className="mt-2 hidden text-center font-mono text-xs uppercase tracking-wide text-muted sm:block">
+              V / F · ← → · M contrassegna · G navigatore
+            </p>
+
+            {errorMsg && (
+              <div role="alert" className="mt-4 border-2 border-foreground bg-danger-soft p-3 font-mono text-sm text-danger">
+                {errorMsg}
+              </div>
+            )}
+          </div>
         </div>
       </main>
 
       {/* mobile bottom action bar */}
-      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-surface px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 sm:static sm:border-0 sm:bg-transparent sm:px-0 sm:pb-6">
+      <div className="fixed inset-x-0 bottom-0 z-20 border-t-2 border-foreground bg-surface px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 sm:static sm:border-0 sm:bg-transparent sm:px-0 sm:pb-6">
         <div className="mx-auto flex max-w-2xl items-center gap-2">
           <Button variant="outline" size="md" onClick={navPrev} disabled={position <= 1} className="flex-1 sm:flex-none sm:w-28">
             ← Indietro
           </Button>
           <Button
-            variant="secondary"
+            variant="pastel"
             size="md"
             onClick={() => toggleFlag(current.id)}
             aria-pressed={isFlagged}
-            className="flex-1 sm:flex-none sm:w-32"
+            className="flex-1 sm:flex-none sm:w-36"
           >
             {isFlagged ? "★ Contrassegnata" : "☆ Contrassegna"}
           </Button>
@@ -408,42 +426,41 @@ export function ExamRunner({ sessionId, version, startedAt, expiresAt, totalQues
                 aria-current={isCurrent ? "true" : undefined}
                 aria-label={`Domanda ${q.position}${answered ? ", risposta data" : ", senza risposta"}${isFlag ? ", contrassegnata" : ""}`}
                 className={cn(
-                  "flex h-11 items-center justify-center rounded-lg border text-sm font-medium tabular-nums",
+                  "relative flex h-11 items-center justify-center border-2 border-foreground font-mono text-sm font-medium tabular-nums",
                   isCurrent
-                    ? "border-primary bg-primary text-white"
+                    ? "bg-foreground text-white"
                     : answered
-                      ? "border-primary/40 bg-primary-soft text-primary"
-                      : "border-border bg-surface text-foreground",
-                  isFlag && !isCurrent && "ring-2 ring-amber-400",
+                      ? "bg-accent-blue text-foreground"
+                      : "bg-surface text-foreground",
                 )}
               >
                 {q.position}
-                {isFlag && <span className="sr-only">contrassegnata</span>}
+                {isFlag && <span aria-hidden className="absolute right-0.5 top-0 text-[10px]">★</span>}
               </button>
             );
           })}
         </div>
-        <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
-          <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded bg-primary" /> corrente</span>
-          <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded bg-primary-soft ring-1 ring-primary/40" /> risposta data</span>
-          <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded border border-border bg-surface" /> senza risposta</span>
-          <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded ring-2 ring-amber-400" /> contrassegnata</span>
+        <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1 font-mono text-xs uppercase tracking-wide text-muted">
+          <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 border-2 border-foreground bg-foreground" /> corrente</span>
+          <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 border-2 border-foreground bg-surface" /> senza risposta</span>
+          <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 border-2 border-foreground bg-accent-blue" /> risposta data</span>
+          <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 border-2 border-foreground bg-accent-yellow" /> contrassegnata</span>
         </div>
       </Drawer>
 
       {/* submit confirmation dialog */}
       <Dialog open={submitOpen} onClose={() => setSubmitOpen(false)} title="Consegnare la simulazione?" busy={phase === "submitting"}>
-        <ul className="space-y-2 text-sm">
-          <li className="flex justify-between"><span className="text-muted">Risposte date</span><b>{answeredCount} / {totalQuestions}</b></li>
-          <li className="flex justify-between"><span className="text-muted">Senza risposta</span><b className={totalQuestions - answeredCount > 0 ? "text-danger" : ""}>{totalQuestions - answeredCount}</b></li>
-          <li className="flex justify-between"><span className="text-muted">Contrassegnate</span><b>{flagged.length}</b></li>
-          <li className="flex justify-between"><span className="text-muted">Tempo residuo</span><b>{formatClock(remaining ?? 0)}</b></li>
+        <ul className="space-y-2 font-mono text-sm">
+          <li className="flex justify-between border-b border-foreground/30 pb-1"><span className="uppercase text-muted">Risposte date</span><b>{answeredCount} / {totalQuestions}</b></li>
+          <li className="flex justify-between border-b border-foreground/30 pb-1"><span className="uppercase text-muted">Senza risposta</span><b className={totalQuestions - answeredCount > 0 ? "text-danger" : ""}>{totalQuestions - answeredCount}</b></li>
+          <li className="flex justify-between border-b border-foreground/30 pb-1"><span className="uppercase text-muted">Contrassegnate</span><b>{flagged.length}</b></li>
+          <li className="flex justify-between"><span className="uppercase text-muted">Tempo residuo</span><b className="tabular-nums">{formatClock(remaining ?? 0)}</b></li>
         </ul>
-        <p className="mt-4 rounded-lg bg-warning-soft p-3 text-sm text-warning">
+        <p className="mt-4 border-2 border-foreground bg-warning-soft p-3 font-mono text-sm text-warning">
           Le domande senza risposta saranno considerate errate.
         </p>
         {errorMsg && phase === "error" && (
-          <p role="alert" className="mt-3 rounded-lg border border-danger/30 bg-danger-soft p-3 text-sm text-danger">
+          <p role="alert" className="mt-3 border-2 border-foreground bg-danger-soft p-3 font-mono text-sm text-danger">
             {errorMsg}
           </p>
         )}
@@ -465,20 +482,9 @@ export function ExamRunner({ sessionId, version, startedAt, expiresAt, totalQues
       {/* image zoom */}
       {zoomImage && (
         <Dialog open={!!zoomImage} onClose={() => setZoomImage(null)} title="Immagine ingrandita">
-          <QuestionImage src={zoomImage} width={null} height={null} className="mx-auto max-h-[70dvh] w-auto rounded-lg object-contain" />
+          <QuestionImage src={zoomImage} width={null} height={null} className="mx-auto max-h-[70dvh] w-auto rounded-md object-contain" />
         </Dialog>
       )}
     </div>
-  );
-}
-
-function GridIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
-      <rect x="1.5" y="1.5" width="5" height="5" rx="1" stroke="currentColor" />
-      <rect x="9.5" y="1.5" width="5" height="5" rx="1" stroke="currentColor" />
-      <rect x="1.5" y="9.5" width="5" height="5" rx="1" stroke="currentColor" />
-      <rect x="9.5" y="9.5" width="5" height="5" rx="1" stroke="currentColor" />
-    </svg>
   );
 }
