@@ -87,15 +87,16 @@ avvia-app.bat           avvia o riavvia il frontend
 avvia-app.bat --clean   cancella la cache .next prima di avviare
 ```
 
-### Warning su filesystem lento e hydration mismatch (solo dev)
+### Warning su hydration mismatch (solo dev) — risolto
 
-Se in modalità sviluppo (`npm run dev`) compaiono nel browser errori di hydration del tipo
+In passato, con il dev server su Turbopack (`next dev`), poteva comparire nel browser l'errore
 "A tree hydrated but some attributes of the server rendered HTML didn't match" sull'attributo
-`className` dell'elemento `<html>` (classi `geist_..._variable` dei font), la causa è la cache
-`.next` generata in modo incoerente su filesystem lenti/condivisi (E: in questo ambiente).
-Non è un problema del codice: la build di produzione non lo manifesta.
+`className` dell'elemento `<html>` (classi `geist_..._variable` dei font). Causa: bug noto di
+`next/font` con Turbopack in dev, che genera hash CSS diversi tra server e client.
 
-Soluzione: cancellare la cache e riavviare.
+Il dev server ora usa **webpack** (`npm run dev` = `next dev --webpack`), che produce hash
+deterministici: il mismatch non si manifesta più. La build di produzione non era mai stata
+interessata. Se il problema dovesse ripresentarsi, cancellare la cache e riavviare:
 
 ```
 rmdir /s /q .next
