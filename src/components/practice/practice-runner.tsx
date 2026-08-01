@@ -319,12 +319,12 @@ export function PracticeRunner({
 
   return (
     <div
-      className="mx-auto flex min-h-dvh w-full max-w-6xl flex-col px-4 sm:px-6"
+      className="mx-auto flex min-h-dvh w-full max-w-[1480px] flex-col px-4 sm:px-6"
       data-hydrated={hydrated ? "true" : "false"}
     >
       {/* header */}
       <header className="sticky top-0 z-20 -mx-4 border-b-2 border-foreground bg-accent-yellow sm:-mx-6">
-        <div className="mx-auto flex w-full max-w-6xl items-center gap-3 px-4 py-2.5">
+        <div className="mx-auto flex w-full max-w-[1480px] items-center gap-3 px-4 py-2.5">
           <Link href="/" className="flex shrink-0 items-baseline gap-0.5 font-mono text-sm font-semibold tracking-tight">
             <span>VIA</span>
             <span className="bg-foreground px-0.5 text-accent-yellow">LIBERA</span>
@@ -344,8 +344,8 @@ export function PracticeRunner({
       </header>
 
       {/* question body */}
-      <main className="flex-1 py-5 pb-44 sm:pb-32">
-        <div className="mx-auto max-w-4xl">
+      <main className="py-6 pb-28 sm:pb-10">
+        <div className="mx-auto w-full max-w-[1200px]">
           <div key={position} className="motion-scale-in">
             <span className="mb-3 inline-flex max-w-full items-center gap-1 border border-foreground bg-accent-blue px-2 py-0.5 font-mono text-xs uppercase tracking-wide">
               {mode === "mistakes" ? "Ripasso degli errori" : topicName}
@@ -357,10 +357,10 @@ export function PracticeRunner({
                 {current.officialQuestionCode && <> · Codice {current.officialQuestionCode}</>}
                 {current.groupCode && <> · Gruppo {current.groupCode}</>}
               </p>
-              <h1 className="mx-auto mt-4 max-w-3xl text-[1.3rem] leading-[1.5] text-foreground sm:text-[1.5rem]">{current.statement}</h1>
+              <h1 className="mx-auto mt-4 max-w-[74ch] text-[1.35rem] leading-[1.55] text-foreground sm:text-[1.6rem] 2xl:text-[1.75rem]">{current.statement}</h1>
 
               {current.image && (
-                <div className="mx-auto mt-6 max-w-3xl border-t-2 border-foreground pt-6">
+                <div className="mx-auto mt-6 max-w-[1100px] border-t-2 border-foreground pt-6">
                   <button
                     type="button"
                     onClick={() => setZoomImage(current.image!.url)}
@@ -371,7 +371,7 @@ export function PracticeRunner({
                       src={current.image.url}
                       width={current.image.width}
                       height={current.image.height}
-                      className="mx-auto max-h-80 w-auto object-contain sm:max-h-96"
+                      className="mx-auto max-h-80 w-auto object-contain sm:max-h-[440px] 2xl:max-h-[520px]"
                     />
                   </button>
                   <p className="mt-1 text-center font-mono text-xs uppercase tracking-wide text-muted">
@@ -382,7 +382,11 @@ export function PracticeRunner({
             </div>
 
             {/* answers — green/red ONLY after verification */}
-            <div className="mx-auto mt-5 grid max-w-3xl grid-cols-2 gap-4" role="group" aria-label="Risposta">
+            <div
+              className="mx-auto mt-5 grid max-w-[1100px] grid-cols-2 gap-4"
+              role="group"
+              aria-label="Risposta"
+            >
               {[true, false].map((val) => {
                 const label = val ? "VERO" : "FALSO";
                 const isSelected = currentVerified !== undefined ? currentVerified.selectedAnswer === val : selected[current.id] === val;
@@ -398,7 +402,7 @@ export function PracticeRunner({
                     disabled={locked}
                     aria-pressed={isSelected}
                     className={cn(
-                      "h-16 rounded-md border-2 border-foreground font-mono text-lg font-semibold uppercase tracking-widest transition-colors sm:h-20 sm:text-xl",
+                      "h-16 rounded-md border-2 border-foreground font-mono text-xl font-semibold uppercase tracking-widest transition-colors sm:h-[88px] sm:text-2xl",
                       locked
                         ? isRightAnswer
                           ? "bg-success-soft text-success"
@@ -417,7 +421,7 @@ export function PracticeRunner({
             </div>
 
             {/* feedback */}
-            <div aria-live="polite" className="mx-auto mt-4 max-w-3xl">
+            <div aria-live="polite" className="mx-auto mt-4 max-w-[1100px]">
               {currentVerified && (
                 <div
                   className={cn(
