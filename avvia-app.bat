@@ -93,7 +93,7 @@ REM ---------------------------------------------------------------
 REM 4. Avvio / verifica container PostgreSQL
 REM ---------------------------------------------------------------
 echo [DB] Avvio container PostgreSQL...
-docker compose up -d >nul 2>nul
+docker compose up -d <nul >nul 2>nul
 if errorlevel 1 (
   echo [ERRORE] Impossibile avviare il container PostgreSQL.
   echo        Verifica che i file docker-compose.yml e .env esistano.
@@ -156,7 +156,7 @@ if "%MODE%"=="prod" (
   echo      - Per riavviarlo: chiudi e riesegui avvia-app.bat
 ) else (
   echo.
-  echo [OK] Modalita' SVILUPPO (hot reload).
+  echo [OK] Modalita SVILUPPO - hot reload.
   echo      Avvio il frontend su http://localhost:3000
   echo      - Per fermarlo: premi Ctrl+C in questa finestra
   echo      - Se vedi errori di hydration o compilazioni strane,
