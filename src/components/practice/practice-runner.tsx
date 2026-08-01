@@ -319,12 +319,12 @@ export function PracticeRunner({
 
   return (
     <div
-      className="mx-auto flex min-h-dvh w-full max-w-[1480px] flex-col px-4 sm:px-6"
+      className="mx-auto flex min-h-dvh w-full max-w-[1600px] flex-col px-4 sm:px-6"
       data-hydrated={hydrated ? "true" : "false"}
     >
       {/* header */}
       <header className="sticky top-0 z-20 -mx-4 border-b-2 border-foreground bg-accent-yellow sm:-mx-6">
-        <div className="mx-auto flex w-full max-w-[1480px] items-center gap-3 px-4 py-2.5">
+        <div className="mx-auto flex w-full max-w-[1600px] items-center gap-3 px-4 py-2.5">
           <Link href="/" className="flex shrink-0 items-baseline gap-0.5 font-mono text-sm font-semibold tracking-tight">
             <span>VIA</span>
             <span className="bg-foreground px-0.5 text-accent-yellow">LIBERA</span>
@@ -344,8 +344,8 @@ export function PracticeRunner({
       </header>
 
       {/* question body */}
-      <main className="py-6 pb-28 sm:pb-10">
-        <div className="mx-auto w-full max-w-[1200px]">
+      <main className="py-6 pb-28 sm:pb-0">
+        <div className="mx-auto w-full">
           <div key={position} className="motion-scale-in">
             <span className="mb-3 inline-flex max-w-full items-center gap-1 border border-foreground bg-accent-blue px-2 py-0.5 font-mono text-xs uppercase tracking-wide">
               {mode === "mistakes" ? "Ripasso degli errori" : topicName}
@@ -360,7 +360,7 @@ export function PracticeRunner({
               <h1 className="mx-auto mt-4 max-w-[74ch] text-[1.35rem] leading-[1.55] text-foreground sm:text-[1.6rem] 2xl:text-[1.75rem]">{current.statement}</h1>
 
               {current.image && (
-                <div className="mx-auto mt-6 max-w-[1100px] border-t-2 border-foreground pt-6">
+                <div className="mt-6 border-t-2 border-foreground pt-6">
                   <button
                     type="button"
                     onClick={() => setZoomImage(current.image!.url)}
@@ -371,7 +371,7 @@ export function PracticeRunner({
                       src={current.image.url}
                       width={current.image.width}
                       height={current.image.height}
-                      className="mx-auto max-h-80 w-auto object-contain sm:max-h-[440px] 2xl:max-h-[520px]"
+                      className="mx-auto max-h-80 w-auto object-contain sm:max-h-[480px] 2xl:max-h-[520px]"
                     />
                   </button>
                   <p className="mt-1 text-center font-mono text-xs uppercase tracking-wide text-muted">
@@ -382,11 +382,7 @@ export function PracticeRunner({
             </div>
 
             {/* answers — green/red ONLY after verification */}
-            <div
-              className="mx-auto mt-5 grid max-w-[1100px] grid-cols-2 gap-4"
-              role="group"
-              aria-label="Risposta"
-            >
+            <div className="mt-5 grid grid-cols-2 gap-4" role="group" aria-label="Risposta">
               {[true, false].map((val) => {
                 const label = val ? "VERO" : "FALSO";
                 const isSelected = currentVerified !== undefined ? currentVerified.selectedAnswer === val : selected[current.id] === val;
@@ -421,7 +417,7 @@ export function PracticeRunner({
             </div>
 
             {/* feedback */}
-            <div aria-live="polite" className="mx-auto mt-4 max-w-[1100px]">
+            <div aria-live="polite" className="mt-4">
               {currentVerified && (
                 <div
                   className={cn(
@@ -467,8 +463,8 @@ export function PracticeRunner({
       </main>
 
       {/* action bar — in normal flow on desktop, sticky bottom on mobile */}
-      <div className="fixed inset-x-0 bottom-0 z-20 border-t-2 border-foreground bg-surface px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 sm:static sm:mt-6 sm:border-y-2 sm:bg-surface sm:px-0 sm:py-4">
-        <div className="mx-auto flex w-full max-w-[1100px] items-stretch justify-center gap-3 sm:gap-4">
+      <div className="fixed inset-x-0 bottom-0 z-20 border-t-2 border-foreground bg-surface px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 sm:static sm:mt-6 sm:border-y-2 sm:bg-surface sm:px-0 sm:py-3">
+        <div className="mx-auto flex w-full max-w-[1600px] items-stretch justify-center gap-3 sm:gap-4">
           <Button
             variant="outline"
             size="lg"
