@@ -6,6 +6,7 @@ import { siteConfig } from "@/config/site";
 import { Button } from "@/components/ui/button";
 import { QuestionImage } from "@/components/exam/question-image";
 import { StatBlock, SectionLabel } from "@/components/ui/editorial";
+import { EditorialAccordion } from "@/components/ui/editorial-accordion";
 import { cn } from "@/lib/utils/cn";
 
 type Filter = "all" | "errors" | "unanswered";
@@ -161,66 +162,64 @@ export function ResultView({ data }: { data: ResultViewData }) {
                 !q.correct && "border-l-8 border-l-danger",
               )}
             >
-              <button
-                type="button"
-                onClick={() => toggle(q.position)}
-                aria-expanded={open.has(q.position)}
-                className="flex w-full items-center gap-3 px-4 py-3 text-left"
+              <EditorialAccordion
+                open={open.has(q.position)}
+                onToggle={() => toggle(q.position)}
+                trigger={
+                  <>
+                    <span
+                      className={cn(
+                        "flex h-7 w-7 shrink-0 items-center justify-center border-2 border-foreground font-mono text-xs font-semibold tabular-nums",
+                        q.correct ? "bg-success-soft" : q.unanswered ? "bg-surface" : "bg-danger-soft",
+                      )}
+                    >
+                      {q.position}
+                    </span>
+                    <span className="flex-1 truncate text-sm">{q.statement}</span>
+                    <span
+                      className="font-mono text-xs font-medium uppercase"
+                      aria-label={q.correct ? "Corretta" : q.unanswered ? "Non risposta" : "Errata"}
+                    >
+                      {q.correct ? "✓" : q.unanswered ? "—" : "✗"}
+                    </span>
+                    <span aria-hidden className={cn("font-mono text-muted transition-transform", open.has(q.position) && "rotate-45")}>
+                      +
+                    </span>
+                  </>
+                }
               >
-                <span
-                  className={cn(
-                    "flex h-7 w-7 shrink-0 items-center justify-center border-2 border-foreground font-mono text-xs font-semibold tabular-nums",
-                    q.correct ? "bg-success-soft" : q.unanswered ? "bg-surface" : "bg-danger-soft",
-                  )}
-                >
-                  {q.position}
-                </span>
-                <span className="flex-1 truncate text-sm">{q.statement}</span>
-                <span
-                  className="font-mono text-xs font-medium uppercase"
-                  aria-label={q.correct ? "Corretta" : q.unanswered ? "Non risposta" : "Errata"}
-                >
-                  {q.correct ? "✓" : q.unanswered ? "—" : "✗"}
-                </span>
-                <span aria-hidden className={cn("font-mono text-muted transition-transform", open.has(q.position) && "rotate-45")}>
-                  +
-                </span>
-              </button>
-              {open.has(q.position) && (
-                <div className="border-t-2 border-foreground px-4 py-3">
-                  {q.topic && <span className="font-mono text-xs uppercase tracking-wide text-primary">{q.topic}</span>}
-                  {q.imageUrl && (
-                    <div className="mt-2 max-w-[220px]">
-                      <QuestionImage src={q.imageUrl} width={null} height={null} className="w-full border border-foreground object-contain" />
-                    </div>
-                  )}
-                  <p className="mt-2 text-sm leading-relaxed">{q.statement}</p>
-                  <dl className="mt-3 space-y-1.5 text-sm">
-                    <div className="flex gap-2">
-                      <dt className="w-32 shrink-0 font-mono text-xs uppercase tracking-wide text-muted">Risposta data</dt>
-                      <dd>
-                        {q.selectedAnswer === null ? (
-                          <span className="font-medium text-danger">Non risposta</span>
-                        ) : (
-                          <span className="font-medium">{q.selectedAnswer ? "VERO" : "FALSO"}</span>
-                        )}
-                      </dd>
-                    </div>
-                    <div className="flex gap-2">
-                      <dt className="w-32 shrink-0 font-mono text-xs uppercase tracking-wide text-muted">Risposta corretta</dt>
-                      <dd className="font-medium">{q.correctAnswer ? "VERO" : "FALSO"}</dd>
-                    </div>
-                    <div className="flex gap-2">
-                      <dt className="w-32 shrink-0 font-mono text-xs uppercase tracking-wide text-muted">Codice</dt>
-                      <dd className="tabular-nums">{q.officialQuestionCode ?? "—"}</dd>
-                    </div>
-                    <div className="flex gap-2">
-                      <dt className="w-32 shrink-0 font-mono text-xs uppercase tracking-wide text-muted">Gruppo</dt>
-                      <dd>{q.groupCode ?? "—"}</dd>
-                    </div>
-                  </dl>
-                </div>
-              )}
+                {q.topic && <span className="font-mono text-xs uppercase tracking-wide text-primary">{q.topic}</span>}
+                {q.imageUrl && (
+                  <div className="mt-2 max-w-[220px]">
+                    <QuestionImage src={q.imageUrl} width={null} height={null} className="w-full border border-foreground object-contain" />
+                  </div>
+                )}
+                <p className="mt-2 text-sm leading-relaxed">{q.statement}</p>
+                <dl className="mt-3 space-y-1.5 text-sm">
+                  <div className="flex gap-2">
+                    <dt className="w-32 shrink-0 font-mono text-xs uppercase tracking-wide text-muted">Risposta data</dt>
+                    <dd>
+                      {q.selectedAnswer === null ? (
+                        <span className="font-medium text-danger">Non risposta</span>
+                      ) : (
+                        <span className="font-medium">{q.selectedAnswer ? "VERO" : "FALSO"}</span>
+                      )}
+                    </dd>
+                  </div>
+                  <div className="flex gap-2">
+                    <dt className="w-32 shrink-0 font-mono text-xs uppercase tracking-wide text-muted">Risposta corretta</dt>
+                    <dd className="font-medium">{q.correctAnswer ? "VERO" : "FALSO"}</dd>
+                  </div>
+                  <div className="flex gap-2">
+                    <dt className="w-32 shrink-0 font-mono text-xs uppercase tracking-wide text-muted">Codice</dt>
+                    <dd className="tabular-nums">{q.officialQuestionCode ?? "—"}</dd>
+                  </div>
+                  <div className="flex gap-2">
+                    <dt className="w-32 shrink-0 font-mono text-xs uppercase tracking-wide text-muted">Gruppo</dt>
+                    <dd>{q.groupCode ?? "—"}</dd>
+                  </div>
+                </dl>
+              </EditorialAccordion>
             </li>
           ))}
         </ul>

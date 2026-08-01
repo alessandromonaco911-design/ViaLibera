@@ -6,6 +6,7 @@ import { siteConfig } from "@/config/site";
 import { Button } from "@/components/ui/button";
 import { QuestionImage } from "@/components/exam/question-image";
 import { StatBlock, SectionLabel } from "@/components/ui/editorial";
+import { EditorialAccordion } from "@/components/ui/editorial-accordion";
 import { cn } from "@/lib/utils/cn";
 import type { PracticeResult } from "@/lib/practice/types";
 
@@ -157,76 +158,74 @@ export function PracticeResultView({ result, topicName }: { result: PracticeResu
         <ul className="space-y-2">
           {filtered.map((a) => (
             <li key={a.questionId} className={cn("border-2 border-foreground bg-surface", a.unanswered ? "" : !a.isCorrect && "border-l-8 border-l-danger")}>
-              <button
-                type="button"
-                onClick={() => toggle(a.position)}
-                aria-expanded={open.has(a.position)}
-                className="flex w-full items-center gap-3 px-4 py-3 text-left"
+              <EditorialAccordion
+                open={open.has(a.position)}
+                onToggle={() => toggle(a.position)}
+                trigger={
+                  <>
+                    <span
+                      className={cn(
+                        "flex h-7 w-7 shrink-0 items-center justify-center border-2 border-foreground font-mono text-xs font-semibold tabular-nums",
+                        a.isCorrect ? "bg-success-soft" : a.unanswered ? "bg-surface" : "bg-danger-soft",
+                      )}
+                    >
+                      {a.position}
+                    </span>
+                    <span className="flex-1 truncate text-sm">{a.statement}</span>
+                    <span
+                      className="font-mono text-xs font-medium uppercase"
+                      aria-label={a.isCorrect ? "Corretta" : a.unanswered ? "Non risposta" : "Errata"}
+                    >
+                      {a.isCorrect ? "✓" : a.unanswered ? "—" : "✗"}
+                    </span>
+                    <span aria-hidden className={cn("font-mono text-muted transition-transform", open.has(a.position) && "rotate-45")}>
+                      +
+                    </span>
+                  </>
+                }
               >
-                <span
-                  className={cn(
-                    "flex h-7 w-7 shrink-0 items-center justify-center border-2 border-foreground font-mono text-xs font-semibold tabular-nums",
-                    a.isCorrect ? "bg-success-soft" : a.unanswered ? "bg-surface" : "bg-danger-soft",
+                {a.image && (
+                  <div className="mt-2 max-w-[220px]">
+                    <QuestionImage
+                      src={a.image.url}
+                      width={a.image.width}
+                      height={a.image.height}
+                      className="w-full border border-foreground object-contain"
+                    />
+                  </div>
+                )}
+                <p className="mt-2 text-sm leading-relaxed">{a.statement}</p>
+                <dl className="mt-3 space-y-1.5 text-sm">
+                  <div className="flex gap-2">
+                    <dt className="w-32 shrink-0 font-mono text-xs uppercase tracking-wide text-muted">Risposta data</dt>
+                    <dd>
+                      {a.unanswered ? (
+                        <span className="font-medium text-danger">Non risposta</span>
+                      ) : (
+                        <span className="font-medium">{a.selectedAnswer ? "VERO" : "FALSO"}</span>
+                      )}
+                    </dd>
+                  </div>
+                  <div className="flex gap-2">
+                    <dt className="w-32 shrink-0 font-mono text-xs uppercase tracking-wide text-muted">Risposta corretta</dt>
+                    <dd className="font-medium">{a.correctAnswer ? "VERO" : "FALSO"}</dd>
+                  </div>
+                  {a.topic && (
+                    <div className="flex gap-2">
+                      <dt className="w-32 shrink-0 font-mono text-xs uppercase tracking-wide text-muted">Argomento</dt>
+                      <dd>{a.topic}</dd>
+                    </div>
                   )}
-                >
-                  {a.position}
-                </span>
-                <span className="flex-1 truncate text-sm">{a.statement}</span>
-                <span
-                  className="font-mono text-xs font-medium uppercase"
-                  aria-label={a.isCorrect ? "Corretta" : a.unanswered ? "Non risposta" : "Errata"}
-                >
-                  {a.isCorrect ? "✓" : a.unanswered ? "—" : "✗"}
-                </span>
-                <span aria-hidden className={cn("font-mono text-muted transition-transform", open.has(a.position) && "rotate-45")}>
-                  +
-                </span>
-              </button>
-              {open.has(a.position) && (
-                <div className="border-t-2 border-foreground px-4 py-3">
-                  {a.image && (
-                    <div className="mt-2 max-w-[220px]">
-                      <QuestionImage
-                        src={a.image.url}
-                        width={a.image.width}
-                        height={a.image.height}
-                        className="w-full border border-foreground object-contain"
-                      />
-                    </div>
-                  )}
-                  <p className="mt-2 text-sm leading-relaxed">{a.statement}</p>
-                  <dl className="mt-3 space-y-1.5 text-sm">
-                    <div className="flex gap-2">
-                      <dt className="w-32 shrink-0 font-mono text-xs uppercase tracking-wide text-muted">Risposta data</dt>
-                      <dd>
-                        {a.unanswered ? (
-                          <span className="font-medium text-danger">Non risposta</span>
-                        ) : (
-                          <span className="font-medium">{a.selectedAnswer ? "VERO" : "FALSO"}</span>
-                        )}
-                      </dd>
-                    </div>
-                    <div className="flex gap-2">
-                      <dt className="w-32 shrink-0 font-mono text-xs uppercase tracking-wide text-muted">Risposta corretta</dt>
-                      <dd className="font-medium">{a.correctAnswer ? "VERO" : "FALSO"}</dd>
-                    </div>
-                    {a.topic && (
-                      <div className="flex gap-2">
-                        <dt className="w-32 shrink-0 font-mono text-xs uppercase tracking-wide text-muted">Argomento</dt>
-                        <dd>{a.topic}</dd>
-                      </div>
-                    )}
-                    <div className="flex gap-2">
-                      <dt className="w-32 shrink-0 font-mono text-xs uppercase tracking-wide text-muted">Codice</dt>
-                      <dd className="tabular-nums">{a.officialQuestionCode ?? "—"}</dd>
-                    </div>
-                    <div className="flex gap-2">
-                      <dt className="w-32 shrink-0 font-mono text-xs uppercase tracking-wide text-muted">Gruppo</dt>
-                      <dd>{a.groupCode ?? "—"}</dd>
-                    </div>
-                  </dl>
-                </div>
-              )}
+                  <div className="flex gap-2">
+                    <dt className="w-32 shrink-0 font-mono text-xs uppercase tracking-wide text-muted">Codice</dt>
+                    <dd className="tabular-nums">{a.officialQuestionCode ?? "—"}</dd>
+                  </div>
+                  <div className="flex gap-2">
+                    <dt className="w-32 shrink-0 font-mono text-xs uppercase tracking-wide text-muted">Gruppo</dt>
+                    <dd>{a.groupCode ?? "—"}</dd>
+                  </div>
+                </dl>
+              </EditorialAccordion>
             </li>
           ))}
         </ul>
