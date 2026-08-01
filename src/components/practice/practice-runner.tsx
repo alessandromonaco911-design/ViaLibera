@@ -319,12 +319,12 @@ export function PracticeRunner({
 
   return (
     <div
-      className="mx-auto flex min-h-dvh w-full max-w-3xl flex-col"
+      className="mx-auto flex min-h-dvh w-full max-w-6xl flex-col px-4 sm:px-6"
       data-hydrated={hydrated ? "true" : "false"}
     >
       {/* header */}
-      <header className="sticky top-0 z-20 border-b-2 border-foreground bg-accent-yellow">
-        <div className="mx-auto flex max-w-3xl items-center gap-3 px-4 py-2.5">
+      <header className="sticky top-0 z-20 -mx-4 border-b-2 border-foreground bg-accent-yellow sm:-mx-6">
+        <div className="mx-auto flex w-full max-w-6xl items-center gap-3 px-4 py-2.5">
           <Link href="/" className="flex shrink-0 items-baseline gap-0.5 font-mono text-sm font-semibold tracking-tight">
             <span>VIA</span>
             <span className="bg-foreground px-0.5 text-accent-yellow">LIBERA</span>
@@ -344,23 +344,23 @@ export function PracticeRunner({
       </header>
 
       {/* question body */}
-      <main className="flex-1 px-4 pb-44 pt-5 sm:pb-28">
-        <div className="mx-auto max-w-2xl">
+      <main className="flex-1 py-5 pb-44 sm:pb-32">
+        <div className="mx-auto max-w-4xl">
           <div key={position} className="motion-scale-in">
             <span className="mb-3 inline-flex max-w-full items-center gap-1 border border-foreground bg-accent-blue px-2 py-0.5 font-mono text-xs uppercase tracking-wide">
               {mode === "mistakes" ? "Ripasso degli errori" : topicName}
             </span>
 
-            <div className="border-2 border-foreground bg-surface p-5 shadow-pop sm:p-7">
+            <div className="border-2 border-foreground bg-surface p-6 shadow-pop sm:p-9">
               <p className="font-mono text-xs uppercase tracking-wide text-muted">
                 Domanda {String(position).padStart(2, "0")}
                 {current.officialQuestionCode && <> · Codice {current.officialQuestionCode}</>}
                 {current.groupCode && <> · Gruppo {current.groupCode}</>}
               </p>
-              <h1 className="mt-3 text-[1.15rem] leading-[1.5] text-foreground sm:text-[1.3rem]">{current.statement}</h1>
+              <h1 className="mx-auto mt-4 max-w-3xl text-[1.3rem] leading-[1.5] text-foreground sm:text-[1.5rem]">{current.statement}</h1>
 
               {current.image && (
-                <div className="mt-5 border-t-2 border-foreground pt-5">
+                <div className="mx-auto mt-6 max-w-3xl border-t-2 border-foreground pt-6">
                   <button
                     type="button"
                     onClick={() => setZoomImage(current.image!.url)}
@@ -371,7 +371,7 @@ export function PracticeRunner({
                       src={current.image.url}
                       width={current.image.width}
                       height={current.image.height}
-                      className="mx-auto max-h-72 w-auto object-contain"
+                      className="mx-auto max-h-80 w-auto object-contain sm:max-h-96"
                     />
                   </button>
                   <p className="mt-1 text-center font-mono text-xs uppercase tracking-wide text-muted">
@@ -382,7 +382,7 @@ export function PracticeRunner({
             </div>
 
             {/* answers — green/red ONLY after verification */}
-            <div className="mt-4 grid grid-cols-2 gap-3" role="group" aria-label="Risposta">
+            <div className="mx-auto mt-5 grid max-w-3xl grid-cols-2 gap-4" role="group" aria-label="Risposta">
               {[true, false].map((val) => {
                 const label = val ? "VERO" : "FALSO";
                 const isSelected = currentVerified !== undefined ? currentVerified.selectedAnswer === val : selected[current.id] === val;
@@ -398,7 +398,7 @@ export function PracticeRunner({
                     disabled={locked}
                     aria-pressed={isSelected}
                     className={cn(
-                      "h-16 rounded-md border-2 border-foreground font-mono text-lg font-semibold uppercase tracking-widest transition-colors",
+                      "h-16 rounded-md border-2 border-foreground font-mono text-lg font-semibold uppercase tracking-widest transition-colors sm:h-20 sm:text-xl",
                       locked
                         ? isRightAnswer
                           ? "bg-success-soft text-success"
@@ -417,7 +417,7 @@ export function PracticeRunner({
             </div>
 
             {/* feedback */}
-            <div aria-live="polite" className="mt-4">
+            <div aria-live="polite" className="mx-auto mt-4 max-w-3xl">
               {currentVerified && (
                 <div
                   className={cn(
@@ -462,20 +462,20 @@ export function PracticeRunner({
         </div>
       </main>
 
-      {/* mobile bottom action bar */}
-      <div className="fixed inset-x-0 bottom-0 z-20 border-t-2 border-foreground bg-surface px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 sm:static sm:border-0 sm:bg-transparent sm:px-0 sm:pb-6">
-        <div className="mx-auto flex max-w-2xl items-center gap-2">
-          <Button variant="outline" size="md" onClick={navPrev} disabled={position <= 1} className="flex-1 sm:flex-none sm:w-28">
+      {/* mobile bottom action bar — centered, generous buttons */}
+      <div className="fixed inset-x-0 bottom-0 z-20 border-t-2 border-foreground bg-surface px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 sm:static sm:border-y-2 sm:bg-surface sm:px-0 sm:py-5">
+        <div className="mx-auto flex max-w-4xl items-stretch justify-center gap-3">
+          <Button variant="outline" size="lg" onClick={navPrev} disabled={position <= 1} className="flex-1 sm:flex-none sm:min-w-36 sm:px-8">
             ← Indietro
           </Button>
           {!currentVerified && (
             <Button
               variant="primary"
-              size="md"
+              size="lg"
               onClick={() => void verifyCurrent()}
               disabled={!checkReady || phase === "checking"}
               aria-busy={phase === "checking"}
-              className="flex-1 sm:flex-none sm:w-44"
+              className="flex-1 sm:flex-none sm:min-w-56 sm:px-8"
             >
               {phase === "checking" ? "Verifica…" : "Verifica risposta"}
             </Button>
@@ -483,10 +483,10 @@ export function PracticeRunner({
           {currentVerified && (
             <Button
               variant="primary"
-              size="md"
+              size="lg"
               onClick={isLast ? () => setCompleteOpen(true) : navNext}
               disabled={isLast ? false : !canAdvance}
-              className="flex-1 sm:flex-none sm:w-44"
+              className="flex-1 sm:flex-none sm:min-w-56 sm:px-8"
               aria-label={isLast ? "Completa allenamento" : "Avanti"}
             >
               {isLast ? "Completa allenamento" : "Avanti →"}
