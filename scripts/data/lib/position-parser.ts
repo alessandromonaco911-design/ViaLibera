@@ -161,13 +161,22 @@ export function parsePositional(items: PositionItem[], numberCells: NumberCellLi
       if (row && it.x < 50) {
         row.group = currentGroup;
         groupHasRows = true;
-        const statement = normalizeLine(row.statementItems.map((s) => s.s).join(" "));
+        // skip column headers (e.g. "Testo domanda") that fall inside the row
+        // band on pages where the header row is closer than the next question
+        const statementItems = row.statementItems.filter((s) => !SKIP_VALUES.has(s.s));
+        let statement = normalizeLine(statementItems.map((s) => s.s).join(" "));
         let answer: boolean | null = null;
         if (row.answerItems.length > 0) {
           answer = row.answerItems[0].s === "VERO";
         } else {
+          // short questions: VERO/FALSO is concatenated at the end of the
+          // statement cell in the PDF; derive the answer AND strip the token
+          // so it never contaminates the official text
           const m = statement.match(/\s*(VERO|FALSO)\s*$/);
-          if (m) answer = m[1] === "VERO";
+          if (m) {
+            answer = m[1] === "VERO";
+            statement = statement.replace(/\s*(VERO|FALSO)\s*$/, "");
+          }
         }
         if (answer === null) {
           unrecognized.push({ page, line: lineCounter, text: `domanda ${row.number}: risposta non rilevata (${statement.slice(0, 80)})` });
