@@ -80,12 +80,17 @@ PostgreSQL gira in Docker (`docker compose up -d`, porta 5433). Le migration si 
 ### Avvio rapido
 
 Il file `avvia-app.bat` nella root del progetto verifica/avvia Docker e il database, controlla la
-porta 3000 e avvia `npm run dev` aprendo il browser:
+porta 3000 e avvia il frontend aprendo il browser:
 
 ```
-avvia-app.bat           avvia o riavvia il frontend
+avvia-app.bat           avvia in PRODUZIONE (build + start): stabile e veloce
+avvia-app.bat --dev     avvia il dev server (hot reload)
 avvia-app.bat --clean   cancella la cache .next prima di avviare
 ```
+
+Nota: in questo ambiente (filesystem lento su E:) il dev server può diventare irresponsivo dopo
+poche richieste; la modalità di default (produzione) è stabile ed è quella consigliata per
+usare l'applicativo.
 
 ### Warning su hydration mismatch (solo dev) — risolto
 

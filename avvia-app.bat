@@ -1,16 +1,23 @@
 @echo off
 setlocal enabledelayedexpansion
-title ViaLibera - Avvio / Riavvio frontend
+title ViaLibera - Avvio / Riavvio applicazione
 cd /d "%~dp0"
 
-REM Uso:
-REM   avvia-app.bat          avvia o riavvia il frontend
-REM   avvia-app.bat --clean  cancella la cache .next prima di avviare
-REM                          (consigliato se vedi errori di hydration o
-REM                          compilazioni incoerenti dopo aggiornamenti)
+REM ============================================================
+REM  Uso:
+REM   avvia-app.bat             avvia il frontend in PRODUZIONE
+REM                             (build + start: stabile e veloce)
+REM   avvia-app.bat --dev       avvia il dev server (hot reload)
+REM   avvia-app.bat --clean     cancella la cache .next prima di
+REM                             avviare (consigliato dopo aggiornamenti)
+REM ============================================================
 
+set MODE=prod
 set CLEAN=0
+if /i "%~1"=="--dev" set MODE=dev
 if /i "%~1"=="--clean" set CLEAN=1
+if /i "%~2"=="--dev" set MODE=dev
+if /i "%~2"=="--clean" set CLEAN=1
 
 echo ============================================
 echo   ViaLibera - Avvio / Riavvio applicazione
@@ -132,24 +139,44 @@ if defined PORT_PID (
 )
 
 REM ---------------------------------------------------------------
-REM 6. Avvio frontend (dev) e apertura browser
+REM 6. Avvio frontend e apertura browser
 REM ---------------------------------------------------------------
-echo.
-echo [OK] Avvio il frontend su http://localhost:3000
-echo      - Per fermarlo: premi Ctrl+C in questa finestra
-echo      - Per riavviarlo: chiudi e riesegui avvia-app.bat
-echo      - Se compaiono errori di hydration o compilazioni strane,
-echo        riesegui con: avvia-app.bat --clean
+if "%MODE%"=="prod" (
+  echo.
+  echo [OK] Modalita' PRODUZIONE.
+  echo      Verifico/creo la build di produzione...
+  call npm run build
+  if errorlevel 1 (
+    echo [ERRORE] Build fallita.
+    pause
+    exit /b 1
+  )
+  echo [OK] Avvio il server su http://localhost:3000
+  echo      - Per fermarlo: premi Ctrl+C in questa finestra
+  echo      - Per riavviarlo: chiudi e riesegui avvia-app.bat
+) else (
+  echo.
+  echo [OK] Modalita' SVILUPPO (hot reload).
+  echo      Avvio il frontend su http://localhost:3000
+  echo      - Per fermarlo: premi Ctrl+C in questa finestra
+  echo      - Se vedi errori di hydration o compilazioni strane,
+  echo        riesegui con: avvia-app.bat --clean
+)
+
 echo.
 echo Apro il browser tra pochi secondi...
 if /i "%VIALIBERA_SKIP_BROWSER%"=="1" (
   echo [TEST] Apertura browser disabilitata, VIALIBERA_SKIP_BROWSER=1.
-  goto run_dev
+  goto run_app
 )
 start "" cmd /c "timeout /t 4 /nobreak >nul & start "" http://localhost:3000"
-:run_dev
+:run_app
 
-call npm run dev
+if "%MODE%"=="prod" (
+  call npm run start
+) else (
+  call npm run dev
+)
 
 echo.
 echo Il server si e' fermato.
