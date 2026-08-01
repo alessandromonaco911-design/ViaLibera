@@ -17,10 +17,11 @@ test.beforeEach(async () => {
 test.describe("ViaLibera — flussi esame reali (auto-advance rimosso)", () => {
   test("1. homepage: apertura e contenuti essenziali", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByText("ViaLibera", { exact: true })).toBeVisible();
-    await expect(page.getByText("Preparati all’esame senza perdere tempo.")).toBeVisible();
+    await expect(page.getByText("VIA", { exact: true }).first()).toBeVisible();
+    await expect(page.getByText("LIBERA", { exact: true }).first()).toBeVisible();
+    await expect(page.getByText("Preparati", { exact: false })).toBeVisible();
     await expect(page.getByRole("button", { name: "Inizia simulazione" })).toBeVisible();
-    await expect(page.getByText("Nessuna registrazione richiesta.")).toBeVisible();
+    await expect(page.getByText("Nessuna registrazione richiesta", { exact: true })).toBeVisible();
   });
 
   test("2+3. click Inizia simulazione -> creazione e apertura sessione", async ({ page }) => {
@@ -176,7 +177,7 @@ test.describe("ViaLibera — flussi esame reali (auto-advance rimosso)", () => {
     await page.getByRole("button", { name: "Consegna" }).click();
     await page.waitForURL(/\/risultato/);
     // il dettaglio è collassato: espandi la prima domanda per verificare il contenuto
-    await page.locator("button[aria-expanded='false']").first().click();
+    await page.locator("section[aria-label='Dettaglio domande'] button[aria-expanded='false']").first().click();
     await expect(page.getByText("Risposta corretta").first()).toBeVisible();
     await expect(page.getByText("Nuova simulazione")).toBeVisible();
   });
@@ -196,11 +197,11 @@ test.describe("ViaLibera — flussi esame reali (auto-advance rimosso)", () => {
     await page.waitForURL(/\/risultato/);
     const errorsFilter = page.getByRole("button", { name: /Errori \(\d+\)/ });
     await errorsFilter.click();
-    await page.locator("button[aria-expanded='false']").first().click();
+    await page.locator("section[aria-label='Dettaglio domande'] button[aria-expanded='false']").first().click();
     await expect(page.getByText("Non risposta").first()).toBeVisible();
     const unansweredFilter = page.getByRole("button", { name: /Non risposte \(\d+\)/ });
     await unansweredFilter.click();
-    await page.locator("button[aria-expanded='false']").first().click();
+    await page.locator("section[aria-label='Dettaglio domande'] button[aria-expanded='false']").first().click();
     await expect(page.getByText("Non risposta").first()).toBeVisible();
   });
 

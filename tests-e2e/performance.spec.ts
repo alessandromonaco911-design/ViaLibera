@@ -67,7 +67,7 @@ test.describe("Performance reale", () => {
     // nessuna immagine caricata finché non si espande una domanda (lazy)
     expect(media().size).toBe(0);
     // espandi la prima domanda -> 1 immagine al massimo
-    await page.locator("button[aria-expanded='false']").first().click();
+    await page.locator("section[aria-label='Dettaglio domande'] button[aria-expanded='false']").first().click();
     await page.waitForTimeout(1200);
     expect(media().size).toBeLessThanOrEqual(2);
   });

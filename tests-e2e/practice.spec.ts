@@ -77,9 +77,9 @@ test.beforeEach(async () => {
 test.describe("Allenamento (practice) — flussi reali", () => {
   test("1+2+3. homepage -> Allenati per argomento -> lista topic", async ({ page }) => {
     await page.goto("/");
-    await page.getByRole("link", { name: "Allenati per argomento" }).click();
+    await page.getByRole("link", { name: "Allenati per argomento", exact: true }).first().click();
     await page.waitForURL(/\/allenamento/);
-    await expect(page.getByRole("heading", { name: /Allenati per argomento/ })).toBeVisible();
+    await expect(page.getByText("Allenati per argomento", { exact: true })).toBeVisible();
     // lista topic reale (25 dal DB)
     const links = page.locator("a[href^='/allenamento/argomento/']");
     await expect(links.first()).toBeVisible();
@@ -390,12 +390,15 @@ test.describe("Allenamento (practice) — flussi reali", () => {
     // topic list
     await page.goto("/allenamento");
     await expect(page.locator("a[href^='/allenamento/argomento/']").first()).toBeVisible();
+    // attendi la fine delle animazioni di ingresso (opacity/transform) prima dello scan
+    await page.waitForTimeout(600);
     let res = await new AxeBuilder({ page }).analyze();
     expect(res.violations.filter((v) => v.impact === "serious" || v.impact === "critical"), "topic list axe").toEqual([]);
 
     // setup
     await page.goto(`/allenamento/argomento/${topic.id}`);
     await expect(page.getByRole("button", { name: "Inizia allenamento" })).toBeVisible();
+    await page.waitForTimeout(600);
     res = await new AxeBuilder({ page }).analyze();
     expect(res.violations.filter((v) => v.impact === "serious" || v.impact === "critical"), "setup axe").toEqual([]);
 

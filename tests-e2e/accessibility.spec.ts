@@ -7,6 +7,8 @@ test.beforeEach(async () => {
 });
 
 async function scan(page: Page, name: string) {
+  // lascia terminare le brevi animazioni di ingresso (max ~180ms) prima dello scan
+  await page.waitForTimeout(400);
   const results = await new AxeBuilder({ page }).analyze();
   const violations = results.violations.filter((v) => ["serious", "critical"].includes(v.impact ?? ""));
   expect(violations, `${name}: violazioni axe ${violations.map((v) => v.id).join(", ")}`).toEqual([]);
