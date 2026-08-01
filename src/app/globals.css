@@ -245,9 +245,10 @@ body {
   animation: marquee-track 28s linear infinite;
 }
 
-/* shared wide shell for exam/practice sections (home-style full-width feel) */
+/* shared fluid shell for exam/practice sections (edge-to-edge, no desktop max) */
 .shell-wide {
-  width: min(calc(100vw - 2rem), 1650px);
+  width: calc(100vw - clamp(16px, 2vw, 40px));
+  max-width: none;
   margin-inline: auto;
 }
 
