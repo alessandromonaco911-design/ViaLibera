@@ -466,10 +466,16 @@ export function PracticeRunner({
         </div>
       </main>
 
-      {/* mobile bottom action bar — centered, generous buttons */}
-      <div className="fixed inset-x-0 bottom-0 z-20 border-t-2 border-foreground bg-surface px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 sm:static sm:border-y-2 sm:bg-surface sm:px-0 sm:py-5">
-        <div className="mx-auto flex max-w-4xl items-stretch justify-center gap-3">
-          <Button variant="outline" size="lg" onClick={navPrev} disabled={position <= 1} className="flex-1 sm:flex-none sm:min-w-36 sm:px-8">
+      {/* action bar — in normal flow on desktop, sticky bottom on mobile */}
+      <div className="fixed inset-x-0 bottom-0 z-20 border-t-2 border-foreground bg-surface px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 sm:static sm:mt-6 sm:border-y-2 sm:bg-surface sm:px-0 sm:py-4">
+        <div className="mx-auto flex w-full max-w-[1100px] items-stretch justify-center gap-3 sm:gap-4">
+          <Button
+            variant="outline"
+            size="lg"
+            onClick={navPrev}
+            disabled={position <= 1}
+            className="flex-1 sm:flex-none sm:h-16 sm:min-w-[200px] sm:px-10 sm:text-lg"
+          >
             ← Indietro
           </Button>
           {!currentVerified && (
@@ -479,7 +485,7 @@ export function PracticeRunner({
               onClick={() => void verifyCurrent()}
               disabled={!checkReady || phase === "checking"}
               aria-busy={phase === "checking"}
-              className="flex-1 sm:flex-none sm:min-w-56 sm:px-8"
+              className="flex-1 sm:flex-none sm:h-16 sm:min-w-[260px] sm:px-10 sm:text-lg"
             >
               {phase === "checking" ? "Verifica…" : "Verifica risposta"}
             </Button>
@@ -490,7 +496,7 @@ export function PracticeRunner({
               size="lg"
               onClick={isLast ? () => setCompleteOpen(true) : navNext}
               disabled={isLast ? false : !canAdvance}
-              className="flex-1 sm:flex-none sm:min-w-56 sm:px-8"
+              className="flex-1 sm:flex-none sm:h-16 sm:min-w-[260px] sm:px-10 sm:text-lg"
               aria-label={isLast ? "Completa allenamento" : "Avanti"}
             >
               {isLast ? "Completa allenamento" : "Avanti →"}
