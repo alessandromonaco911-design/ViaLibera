@@ -1,45 +1,66 @@
 @import "tailwindcss";
 
+/* ============================================================
+   ViaLibera — editorial brutalist design tokens
+   Flat surfaces, hard black borders, pastel accents, mono type.
+   ============================================================ */
+
 :root {
-  --background: #f5f6f8;
+  /* palette */
+  --background: #f4f0e8;
   --surface: #ffffff;
-  --foreground: #1c2333;
-  --primary: #3b5bdb;
-  --primary-strong: #2f4bd0;
-  --primary-soft: #edf1ff;
-  --success: #237a35;
-  --success-soft: #e8f6ec;
-  --danger: #cf2626;
-  --danger-soft: #fdecec;
-  --warning: #a05e08;
-  --warning-soft: #fff4e0;
-  --muted: #5b6478;
-  --border: #e2e6ee;
-  --ring: rgba(59, 91, 219, 0.45);
+  --foreground: #111111;
+  --muted: #4b4740;
+  --border: #111111;
+
+  --accent-blue: #a8def3;
+  --accent-yellow: #ffe99a;
+  --accent-pink: #f5cfe4;
+  --accent-green: #bee3c2;
+  --accent-orange: #f4bc82;
+
+  --success: #1a6228;
+  --success-soft: #bee3c2;
+  --danger: #b51b1b;
+  --danger-soft: #f5cfe4;
+  --warning: #8a5206;
+  --warning-soft: #ffe99a;
+
+  /* motion */
+  --motion-fast: 120ms;
+  --motion-normal: 180ms;
+  --motion-slow: 280ms;
+  --ease-editorial: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-snap: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-surface: var(--surface);
   --color-foreground: var(--foreground);
-  --color-primary: var(--primary);
-  --color-primary-strong: var(--primary-strong);
-  --color-primary-soft: var(--primary-soft);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-accent-blue: var(--accent-blue);
+  --color-accent-yellow: var(--accent-yellow);
+  --color-accent-pink: var(--accent-pink);
+  --color-accent-green: var(--accent-green);
+  --color-accent-orange: var(--accent-orange);
+  --color-primary: #111111;
+  --color-primary-strong: #000000;
+  --color-primary-soft: var(--accent-blue);
   --color-success: var(--success);
   --color-success-soft: var(--success-soft);
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
   --color-warning: var(--warning);
   --color-warning-soft: var(--warning-soft);
-  --color-muted: var(--muted);
-  --color-border: var(--border);
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  --radius-lg: 0.75rem;
-  --radius-md: 0.5rem;
-  --radius-sm: 0.375rem;
-  --shadow-card: 0 1px 2px rgba(28, 35, 51, 0.05), 0 1px 6px rgba(28, 35, 51, 0.04);
-  --shadow-pop: 0 8px 30px rgba(28, 35, 51, 0.14);
+  --radius-lg: 6px;
+  --radius-md: 4px;
+  --radius-sm: 2px;
+  --shadow-card: 4px 4px 0 #111111;
+  --shadow-pop: 4px 4px 0 #111111;
 }
 
 * {
@@ -57,14 +78,190 @@ body {
   font-feature-settings: "cv02", "cv03", "cv04";
 }
 
-/* focus visible everywhere */
+/* focus visible: hard black outline, never removed */
 :focus-visible {
-  outline: 2px solid var(--color-ring);
+  outline: 2px solid #111111;
   outline-offset: 2px;
-  border-radius: 4px;
+  border-radius: 2px;
 }
 
-/* respect reduced motion */
+::selection {
+  background: var(--accent-blue);
+  color: #111111;
+}
+
+/* ============================================================
+   Editorial motion utilities
+   ============================================================ */
+
+@keyframes editorial-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes editorial-slide-left {
+  from {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes editorial-slide-right {
+  from {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes editorial-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes feedback-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes marquee-track {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/* utility classes */
+.motion-enter {
+  animation: editorial-enter var(--motion-normal) var(--ease-editorial) both;
+}
+.motion-slide-left {
+  animation: editorial-slide-left var(--motion-normal) var(--ease-editorial) both;
+}
+.motion-slide-right {
+  animation: editorial-slide-right var(--motion-normal) var(--ease-editorial) both;
+}
+.motion-scale-in {
+  animation: editorial-scale-in var(--motion-fast) var(--ease-snap) both;
+}
+.motion-feedback {
+  animation: feedback-enter var(--motion-fast) var(--ease-snap) both;
+}
+
+/* card hover/press — desktop only (no sticky hover on touch) */
+@media (hover: hover) and (pointer: fine) {
+  .editorial-hover {
+    transition:
+      transform var(--motion-fast) var(--ease-snap),
+      box-shadow var(--motion-fast) var(--ease-snap),
+      background-color var(--motion-fast) var(--ease-snap);
+  }
+  .editorial-hover:hover {
+    transform: translateY(-3px);
+    box-shadow: 4px 4px 0 #111111;
+  }
+  .editorial-hover:active {
+    transform: translate(2px, 2px);
+    box-shadow: 1px 1px 0 #111111;
+  }
+}
+
+/* button press: mechanical, no excessive scale */
+.editorial-press {
+  transition:
+    transform var(--motion-fast) var(--ease-snap),
+    box-shadow var(--motion-fast) var(--ease-snap),
+    background-color var(--motion-fast) var(--ease-snap),
+    color var(--motion-fast) var(--ease-snap);
+}
+@media (hover: hover) and (pointer: fine) {
+  .editorial-press:hover {
+    transform: translate(-1px, -1px);
+    box-shadow: 3px 3px 0 #111111;
+  }
+}
+.editorial-press:active {
+  transform: translate(2px, 2px);
+  box-shadow: 0 0 0 #111111;
+}
+.editorial-press:disabled {
+  transform: none;
+  box-shadow: none;
+}
+
+/* arrow nudge */
+.arrow-nudge {
+  transition: transform var(--motion-fast) var(--ease-snap);
+}
+@media (hover: hover) and (pointer: fine) {
+  .group:hover .arrow-nudge,
+  a:hover .arrow-nudge,
+  button:hover .arrow-nudge {
+    transform: translateX(4px);
+  }
+}
+
+/* marquee strip (homepage only) */
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: marquee-track 28s linear infinite;
+}
+
+/* editorial section enter helpers */
+.editorial-delay-1 {
+  animation-delay: 60ms;
+}
+.editorial-delay-2 {
+  animation-delay: 100ms;
+}
+.editorial-delay-3 {
+  animation-delay: 150ms;
+}
+
+/* focus on input: hard shadow accent */
+.editorial-input {
+  transition:
+    outline-color var(--motion-fast) var(--ease-snap),
+    box-shadow var(--motion-fast) var(--ease-snap);
+}
+.editorial-input:focus {
+  outline: 2px solid #111111;
+  outline-offset: 2px;
+  box-shadow: 3px 3px 0 var(--accent-blue);
+}
+
+/* ============================================================
+   Reduced motion: everything stops, nothing lost
+   ============================================================ */
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -73,6 +270,10 @@ body {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+  .marquee-track {
+    animation: none;
+    transform: none;
   }
 }
 
