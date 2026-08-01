@@ -8,9 +8,9 @@ import { cn } from "@/lib/utils/cn";
 import type { PracticeTopicSummary } from "@/lib/practice/types";
 
 /**
- * Session configuration for a topic: pick 10/20/30 questions and start.
- * Options exceeding the topic's available questions are disabled (no
- * duplication to reach the count).
+ * Session configuration for a topic: pick 10/20/30 and start.
+ * Editorial card with a three-cell rectangular selector.
+ * Options exceeding the topic's questions are disabled (no duplication).
  */
 export function PracticeSetup({ topic }: { topic: PracticeTopicSummary }) {
   const router = useRouter();
@@ -44,9 +44,13 @@ export function PracticeSetup({ topic }: { topic: PracticeTopicSummary }) {
   }
 
   return (
-    <section aria-label="Configurazione allenamento" className="mt-8 rounded-2xl border border-border bg-surface p-5 shadow-card">
-      <h2 className="text-sm font-semibold">Numero di domande</h2>
-      <div className="mt-3 grid grid-cols-3 gap-2" role="group" aria-label="Numero di domande">
+    <section
+      aria-label="Configurazione allenamento"
+      className="border-2 border-foreground bg-accent-yellow p-6 shadow-pop motion-enter editorial-delay-1 sm:p-8"
+    >
+      <h2 className="font-mono text-xl font-semibold uppercase tracking-tight">Numero di domande</h2>
+
+      <div className="mt-4 grid grid-cols-3 border-2 border-foreground" role="group" aria-label="Numero di domande">
         {options.map((n) => {
           const disabled = topic.questionCount < n;
           return (
@@ -56,14 +60,15 @@ export function PracticeSetup({ topic }: { topic: PracticeTopicSummary }) {
               onClick={() => !disabled && setCount(n)}
               disabled={disabled}
               aria-pressed={count === n}
+              aria-disabled={disabled}
               aria-label={`${n} domande${disabled ? " (non disponibile)" : ""}`}
               className={cn(
-                "h-14 rounded-xl border-2 text-base font-semibold transition-colors",
+                "h-16 border-r-2 border-foreground font-mono text-2xl font-semibold transition-colors last:border-r-0",
                 disabled
-                  ? "cursor-not-allowed border-border bg-black/5 text-muted opacity-60"
+                  ? "cursor-not-allowed bg-black/10 text-muted opacity-60"
                   : count === n
-                    ? "border-primary bg-primary-soft text-primary"
-                    : "border-border bg-surface text-foreground hover:border-primary/40",
+                    ? "bg-foreground text-white"
+                    : "bg-surface text-foreground hover:bg-accent-blue",
               )}
             >
               {n}
@@ -71,36 +76,35 @@ export function PracticeSetup({ topic }: { topic: PracticeTopicSummary }) {
           );
         })}
       </div>
+
       {options.some((n) => topic.questionCount < n) && (
-        <p className="mt-2 text-xs text-muted">
-          Questo argomento ha {topic.questionCount} domande: le opzioni non disponibili sono disattivate.
+        <p className="mt-2 font-mono text-xs uppercase tracking-wide text-muted">
+          Argomento con {topic.questionCount} domande: opzioni non disponibili disattivate.
         </p>
       )}
 
-      <dl className="mt-5 space-y-2 rounded-xl bg-black/5 p-4 text-sm">
+      <dl className="mt-5 space-y-2 border-2 border-foreground bg-surface p-4 font-mono text-sm">
         <div className="flex justify-between gap-3">
-          <dt className="text-muted">Argomento</dt>
-          <dd className="text-right font-medium">{topic.name}</dd>
-        </div>
-        <div className="flex justify-between gap-3">
-          <dt className="text-muted">Quesiti disponibili</dt>
+          <dt className="uppercase text-muted">Quesiti disponibili</dt>
           <dd className="tabular-nums">{topic.questionCount}</dd>
         </div>
-        <div className="flex justify-between gap-3">
-          <dt className="text-muted">Domande scelte</dt>
+        <div className="flex justify-between gap-3 border-t border-foreground/30 pt-2">
+          <dt className="uppercase text-muted">Domande scelte</dt>
           <dd className="tabular-nums">{count}</dd>
         </div>
-        <div className="flex justify-between gap-3">
-          <dt className="text-muted">Modalità</dt>
+        <div className="flex justify-between gap-3 border-t border-foreground/30 pt-2">
+          <dt className="uppercase text-muted">Modalità</dt>
           <dd>Feedback immediato</dd>
         </div>
-        <div className="flex justify-between gap-3">
-          <dt className="text-muted">Tempo</dt>
+        <div className="flex justify-between gap-3 border-t border-foreground/30 pt-2">
+          <dt className="uppercase text-muted">Tempo</dt>
           <dd>Nessun limite</dd>
         </div>
       </dl>
 
-      <p className="mt-3 text-xs text-muted">Puoi cambiare risposta finché non premi Verifica.</p>
+      <p className="mt-3 font-mono text-xs uppercase tracking-wide text-muted">
+        Puoi cambiare risposta finché non premi Verifica.
+      </p>
 
       <div className="mt-4">
         <Button size="lg" fullWidth onClick={start} disabled={busy} aria-busy={busy}>
@@ -109,7 +113,7 @@ export function PracticeSetup({ topic }: { topic: PracticeTopicSummary }) {
       </div>
 
       {error && (
-        <p role="alert" className="mt-3 rounded-lg border border-danger/30 bg-danger-soft p-3 text-sm text-danger">
+        <p role="alert" className="mt-3 border-2 border-foreground bg-danger-soft p-3 font-mono text-sm text-danger">
           {error}
         </p>
       )}

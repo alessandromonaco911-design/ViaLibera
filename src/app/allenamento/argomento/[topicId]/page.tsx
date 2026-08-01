@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { getImportedCatalogId } from "@/lib/exam/generator";
 import { listPracticeTopics } from "@/lib/practice/generator";
 import { PracticeSetup } from "@/components/practice/practice-setup";
+import { SiteHeader } from "@/components/ui/site-header";
+import { SectionLabel } from "@/components/ui/editorial";
 import { siteConfig } from "@/config/site";
 
 export const dynamic = "force-dynamic";
@@ -16,24 +18,32 @@ export default async function AllenamentoTopicPage({ params }: { params: Promise
   if (!topic) notFound();
 
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-xl flex-col px-4">
-      <header className="flex items-center justify-between py-6">
-        <Link href="/" className="text-lg font-semibold tracking-tight">
-          {siteConfig.name}
+    <div className="flex min-h-dvh w-full flex-col">
+      <SiteHeader mode="Allenamento" />
+      <main className="mx-auto w-full max-w-5xl flex-1 px-4 pb-16 pt-8">
+        <Link href="/allenamento" className="inline-flex items-center gap-1 font-mono text-sm uppercase tracking-wide text-muted hover:text-foreground">
+          <span aria-hidden>←</span> Argomenti
         </Link>
-        <Link href="/allenamento" className="text-sm font-medium text-primary hover:underline">
-          ← Argomenti
-        </Link>
-      </header>
 
-      <main className="flex-1 pb-16">
-        <h1 className="text-2xl font-semibold tracking-tight">Allenamento</h1>
-        <p className="mt-2 text-sm leading-relaxed text-muted">{topic.name}</p>
-        <p className="mt-1 text-xs text-muted">
-          {topic.questionCount} domande disponibili{topic.imageCount > 0 ? ` · ${topic.imageCount} con immagini` : ""}
-        </p>
-        <PracticeSetup topic={topic} />
+        <div className="mt-6 grid gap-6 md:grid-cols-[1.2fr_1fr]">
+          <div className="border-2 border-foreground bg-surface p-6 shadow-pop motion-enter sm:p-8">
+            <SectionLabel>Argomento</SectionLabel>
+            <h1 className="mt-2 font-mono text-[clamp(1.6rem,3vw,2.6rem)] font-semibold leading-tight tracking-tight">
+              {topic.name}
+            </h1>
+            <p className="mt-4 font-mono text-sm uppercase tracking-wide text-muted">
+              {topic.questionCount} quesiti disponibili
+              {topic.imageCount > 0 ? ` · ${topic.imageCount} con immagini` : ""}
+            </p>
+          </div>
+
+          <PracticeSetup topic={topic} />
+        </div>
       </main>
+
+      <footer className="border-t-2 border-foreground bg-surface py-6 text-center font-mono text-xs uppercase tracking-wide text-muted">
+        {siteConfig.name} · allenamento senza limite di tempo
+      </footer>
     </div>
   );
 }
