@@ -5,6 +5,7 @@ import { siteConfig } from "@/config/site";
 import { SiteHeader } from "@/components/ui/site-header";
 import { TopicSearch } from "@/components/practice/topic-search";
 import { SectionLabel } from "@/components/ui/editorial";
+import { cn } from "@/lib/utils/cn";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -28,6 +29,21 @@ export default async function AllenamentoPage() {
           Feedback immediato su ogni risposta, nessun limite di tempo, nessuna registrazione.
           {topics.length > 0 && ` ${topics.length} argomenti disponibili.`}
         </p>
+
+        <ul className="mt-6 flex flex-wrap gap-3" aria-label="Caratteristiche dell'allenamento">
+          {[
+            ["Feedback immediato", "bg-accent-blue"],
+            ["Nessun limite di tempo", "bg-accent-green"],
+            ["Nessuna registrazione", "bg-accent-pink"],
+          ].map(([label, bg]) => (
+            <li
+              key={label as string}
+              className={cn("border-2 border-foreground px-3 py-1.5 font-mono text-xs uppercase tracking-[0.14em]", bg as string)}
+            >
+              {label}
+            </li>
+          ))}
+        </ul>
 
         {topics.length === 0 ? (
           <div role="status" className="mt-10 border-2 border-foreground bg-surface p-8 text-center shadow-pop">

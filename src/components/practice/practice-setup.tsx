@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { siteConfig } from "@/config/site";
 import { Button } from "@/components/ui/button";
+import { SectionLabel } from "@/components/ui/editorial";
 import { cn } from "@/lib/utils/cn";
 import type { PracticeTopicSummary } from "@/lib/practice/types";
 
@@ -48,7 +49,8 @@ export function PracticeSetup({ topic }: { topic: PracticeTopicSummary }) {
       aria-label="Configurazione allenamento"
       className="border-2 border-foreground bg-accent-yellow p-6 shadow-pop motion-enter editorial-delay-1 sm:p-8"
     >
-      <h2 className="font-mono text-xl font-semibold uppercase tracking-tight">Numero di domande</h2>
+      <SectionLabel>Allenamento per argomento</SectionLabel>
+      <h2 className="mt-1 font-mono text-xl font-semibold uppercase tracking-tight">Numero di domande</h2>
 
       <div className="mt-4 grid grid-cols-3 border-2 border-foreground" role="group" aria-label="Numero di domande">
         {options.map((n) => {
@@ -63,7 +65,7 @@ export function PracticeSetup({ topic }: { topic: PracticeTopicSummary }) {
               aria-disabled={disabled}
               aria-label={`${n} domande${disabled ? " (non disponibile)" : ""}`}
               className={cn(
-                "h-16 border-r-2 border-foreground font-mono text-2xl font-semibold transition-colors last:border-r-0",
+                "flex h-16 flex-col items-center justify-center border-r-2 border-foreground transition-colors last:border-r-0",
                 disabled
                   ? "cursor-not-allowed bg-black/10 text-muted opacity-60"
                   : count === n
@@ -71,7 +73,8 @@ export function PracticeSetup({ topic }: { topic: PracticeTopicSummary }) {
                     : "bg-surface text-foreground hover:bg-accent-blue",
               )}
             >
-              {n}
+              <span className="font-mono text-2xl font-semibold leading-none">{n}</span>
+              <span className="mt-1 font-mono text-[10px] uppercase tracking-[0.14em]">Domande</span>
             </button>
           );
         })}
@@ -94,7 +97,11 @@ export function PracticeSetup({ topic }: { topic: PracticeTopicSummary }) {
         </div>
         <div className="flex justify-between gap-3 border-t border-foreground/30 pt-2">
           <dt className="uppercase text-muted">Modalità</dt>
-          <dd>Feedback immediato</dd>
+          <dd>
+            <span className="inline-flex items-center border border-foreground bg-accent-blue px-2 py-0.5 font-mono text-xs uppercase tracking-wide">
+              Feedback immediato
+            </span>
+          </dd>
         </div>
         <div className="flex justify-between gap-3 border-t border-foreground/30 pt-2">
           <dt className="uppercase text-muted">Tempo</dt>
