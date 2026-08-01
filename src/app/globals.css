@@ -158,6 +158,16 @@ body {
   }
 }
 
+@keyframes topic-glyph-spin {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(90deg);
+  }
+}
+
 /* utility classes */
 .motion-enter {
   animation: editorial-enter var(--motion-normal) var(--ease-editorial) both;
@@ -244,6 +254,17 @@ body {
 }
 .editorial-delay-3 {
   animation-delay: 150ms;
+}
+
+/* topic badge: subtle rotating corner dot (4s, reduced-motion safe) */
+.topic-glyph-dot {
+  animation: topic-glyph-spin 4s var(--ease-snap) infinite;
+}
+@media (hover: hover) and (pointer: fine) {
+  a:hover .topic-glyph-dot,
+  .group:hover .topic-glyph-dot {
+    animation-duration: 1.2s;
+  }
 }
 
 /* focus on input: hard shadow accent */

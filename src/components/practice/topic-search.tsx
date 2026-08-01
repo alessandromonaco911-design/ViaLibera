@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { PracticeTopicSummary } from "@/lib/practice/types";
 import { cn } from "@/lib/utils/cn";
+import { TopicGlyph } from "./topic-glyph";
 
 /** Client-side text search over the topic list (server provides data). */
 export function TopicSearch({ topics }: { topics: PracticeTopicSummary[] }) {
@@ -21,8 +22,11 @@ export function TopicSearch({ topics }: { topics: PracticeTopicSummary[] }) {
         Cerca argomento
       </label>
       <div className="relative max-w-md">
-        <span aria-hidden className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 font-mono text-lg">
-          ⌕
+        <span
+          aria-hidden
+          className="pointer-events-none absolute left-3 top-1/2 flex h-4 w-4 -translate-y-1/2 items-center justify-center rounded-full border border-foreground"
+        >
+          <span className="h-1 w-1 rounded-full border border-foreground" />
         </span>
         <input
           id="topic-search"
@@ -51,10 +55,8 @@ export function TopicSearch({ topics }: { topics: PracticeTopicSummary[] }) {
                       : "bg-accent-yellow",
                 )}
               >
-                <span aria-hidden className="text-2xl">
-                  {topicIcon(t.code, t.name)}
-                </span>
-                <span className="mt-4">
+              <TopicGlyph code={t.code} name={t.name} />
+              <span className="mt-4">
                   <span className="block text-base font-semibold leading-snug text-foreground">{t.name}</span>
                   <span className="mt-2 block font-mono text-xs uppercase tracking-wide text-muted">
                     {t.questionCount} domande · {t.imageCount} con immagini
@@ -73,28 +75,3 @@ export function TopicSearch({ topics }: { topics: PracticeTopicSummary[] }) {
   );
 }
 
-/** Simple, coherent icon derived from the official topic code (stable, no fakes). */
-function topicIcon(code: string, name: string): string {
-  const n = `${code} ${name}`.toLowerCase();
-  if (n.includes("segnali di pericolo")) return "⚠";
-  if (n.includes("segnali di divieto")) return "⛔";
-  if (n.includes("segnali di obbligo")) return "→";
-  if (n.includes("segnali di precedenza")) return "▲";
-  if (n.includes("segnali di indicazione")) return "▤";
-  if (n.includes("segnaletica orizzontale")) return "═";
-  if (n.includes("semafor")) return "●";
-  if (n.includes("precedenza")) return "✦";
-  if (n.includes("sorpasso")) return "⇢";
-  if (n.includes("velocità")) return "⇧";
-  if (n.includes("distanza di sicurezza")) return "─";
-  if (n.includes("sosta")) return "P";
-  if (n.includes("luci")) return "◐";
-  if (n.includes("casco") || n.includes("cinture")) return "◉";
-  if (n.includes("patenti")) return "▣";
-  if (n.includes("assicurazione")) return "◈";
-  if (n.includes("primo soccorso") || n.includes("incidente")) return "+";
-  if (n.includes("inquinamento") || n.includes("consumi")) return "♻";
-  if (n.includes("motocicli")) return "≈";
-  if (n.includes("pannelli integrativi")) return "▭";
-  return "▣";
-}
