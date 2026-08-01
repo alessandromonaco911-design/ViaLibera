@@ -18,9 +18,15 @@ export function SiteHeader({ mode }: { mode?: string }) {
 
   const navItems = [
     { href: "/", label: "Home" },
+    { href: "/#inizia", label: "Simulazione" },
     { href: "/allenamento", label: "Allenamento" },
-    { href: "/simulazione/00000000-0000-4000-8000-000000000000", label: "Simulazione", disabled: true },
-  ].filter((i) => !i.disabled);
+  ];
+
+  const isActive = (href: string) => {
+    if (href === "/") return pathname === "/";
+    if (href === "/#inizia") return pathname === "/";
+    return pathname.startsWith(href);
+  };
 
   // Esc closes the mobile menu; focus trap while open
   useEffect(() => {
@@ -78,18 +84,12 @@ export function SiteHeader({ mode }: { mode?: string }) {
               href={item.href}
               className={cn(
                 "inline-flex h-10 items-center border-2 border-transparent px-3 font-mono text-sm uppercase tracking-wide transition-colors hover:border-foreground hover:bg-surface",
-                pathname === item.href && "bg-surface",
+                isActive(item.href) && "bg-surface",
               )}
             >
               {item.label}
             </Link>
           ))}
-          <Link
-            href="/allenamento"
-            className="editorial-press ml-2 inline-flex h-10 items-center border-2 border-foreground bg-foreground px-4 font-mono text-sm uppercase tracking-wide text-white hover:bg-black"
-          >
-            Allenati
-          </Link>
         </nav>
 
         {/* mobile menu trigger */}
@@ -121,19 +121,12 @@ export function SiteHeader({ mode }: { mode?: string }) {
                 onClick={() => setOpen(false)}
                 className={cn(
                   "flex min-h-11 items-center border-b border-foreground/30 px-2 font-mono text-base uppercase tracking-wide",
-                  pathname === item.href && "bg-accent-blue",
+                  isActive(item.href) && "bg-accent-blue",
                 )}
               >
                 {item.label}
               </Link>
             ))}
-            <Link
-              href="/allenamento"
-              onClick={() => setOpen(false)}
-              className="mt-3 inline-flex h-12 items-center justify-center border-2 border-foreground bg-foreground px-4 font-mono text-base uppercase tracking-wide text-white"
-            >
-              Allenati per argomento
-            </Link>
           </nav>
         </div>
       )}
