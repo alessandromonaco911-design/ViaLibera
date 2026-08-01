@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 
-/** Coherent empty/error state (no stack traces to the user). */
+/** Coherent empty/error state (no stack traces to the user). Editorial flat card. */
 export function StateCard({
   title,
   message,
@@ -12,8 +12,8 @@ export function StateCard({
 }) {
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col items-center justify-center px-4 text-center">
-      <div className="w-full rounded-2xl border border-border bg-surface p-8 shadow-card">
-        <h1 className="text-lg font-semibold">{title}</h1>
+      <div className="w-full border-2 border-foreground bg-surface p-8 shadow-pop motion-scale-in">
+        <h1 className="font-mono text-lg font-semibold uppercase tracking-wide">{title}</h1>
         <p className="mt-2 text-sm text-muted">{message}</p>
         {action && (
           <div className="mt-6">
@@ -30,14 +30,14 @@ export function StateCard({
 export function StateCardLink({ title, message, action }: { title: string; message: string; action?: { label: string; href: string } }) {
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col items-center justify-center px-4 text-center">
-      <div className="w-full rounded-2xl border border-border bg-surface p-8 shadow-card">
-        <h1 className="text-lg font-semibold">{title}</h1>
+      <div className="w-full border-2 border-foreground bg-surface p-8 shadow-pop motion-scale-in">
+        <h1 className="font-mono text-lg font-semibold uppercase tracking-wide">{title}</h1>
         <p className="mt-2 text-sm text-muted">{message}</p>
         {action && (
           <div className="mt-6">
             <a
               href={action.href}
-              className="inline-flex h-11 w-full items-center justify-center rounded-lg bg-primary px-5 text-sm font-medium text-white hover:bg-primary-strong"
+              className="editorial-press inline-flex h-11 w-full items-center justify-center rounded-md border-2 border-foreground bg-foreground px-5 font-mono text-sm font-medium uppercase tracking-wide text-white hover:bg-black"
             >
               {action.label}
             </a>
@@ -49,6 +49,12 @@ export function StateCardLink({ title, message, action }: { title: string; messa
 }
 
 export function ErrorState({ code, message }: { code: string; message: string }) {
-  void code;
-  return <StateCardLink title="Qualcosa è andato storto" message={message} action={{ label: "Torna alla home", href: "/" }} />;
+  return (
+    <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col items-center justify-center px-4 text-center">
+      <div className="w-full border-2 border-foreground bg-danger-soft p-8 shadow-pop motion-scale-in">
+        <p className="font-mono text-xs uppercase tracking-[0.2em] text-danger">{code}</p>
+        <p className="mt-2 text-sm text-foreground">{message}</p>
+      </div>
+    </div>
+  );
 }

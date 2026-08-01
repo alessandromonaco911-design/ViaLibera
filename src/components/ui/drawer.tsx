@@ -2,7 +2,7 @@
 
 import { useEffect, type ReactNode } from "react";
 
-/** Bottom-sheet drawer (mobile navigator). */
+/** Bottom-sheet drawer (mobile navigator). Editorial flat style. */
 export function Drawer({
   open,
   onClose,
@@ -31,20 +31,20 @@ export function Drawer({
 
   return (
     <div className="fixed inset-0 z-40 flex items-end">
-      <div className="absolute inset-0 bg-foreground/40" aria-hidden onClick={onClose} />
+      <div className="absolute inset-0 bg-foreground/60" aria-hidden onClick={onClose} />
       <div
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className="relative z-10 flex max-h-[82dvh] w-full flex-col rounded-t-2xl bg-surface shadow-pop"
+        className="relative z-10 flex max-h-[82dvh] w-full flex-col rounded-t-md border-t-2 border-foreground bg-surface shadow-pop motion-enter"
       >
-        <div className="flex items-center justify-between px-5 pt-4 pb-2">
-          <h2 className="text-base font-semibold">{title}</h2>
+        <div className="flex items-center justify-between border-b-2 border-foreground px-5 pt-4 pb-2">
+          <h2 className="font-mono text-base font-semibold uppercase tracking-wide">{title}</h2>
           <button
             type="button"
             onClick={onClose}
             aria-label="Chiudi navigatore"
-            className="inline-flex h-9 w-9 items-center justify-center rounded-md text-muted hover:bg-black/5"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-sm border-2 border-foreground font-mono hover:bg-accent-blue"
           >
             ✕
           </button>

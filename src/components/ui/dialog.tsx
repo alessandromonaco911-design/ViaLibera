@@ -5,6 +5,7 @@ import { useEffect, useRef, type ReactNode } from "react";
 /**
  * Accessible modal dialog: role=dialog, aria-modal, Esc to close, backdrop
  * click to close (except while busy), focus moved on open, focus trap.
+ * Editorial style: flat white surface, black 2px border, hard shadow.
  */
 export function Dialog({
   open,
@@ -64,19 +65,15 @@ export function Dialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
-      <div
-        className="absolute inset-0 bg-foreground/40"
-        aria-hidden
-        onClick={busy ? undefined : onClose}
-      />
+      <div className="absolute inset-0 bg-foreground/60" aria-hidden onClick={busy ? undefined : onClose} />
       <div
         ref={ref}
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className="relative z-10 w-full max-w-md rounded-t-2xl bg-surface p-5 shadow-pop sm:rounded-2xl"
+        className="relative z-10 w-full max-w-md rounded-md border-2 border-foreground bg-surface p-5 shadow-pop motion-scale-in sm:rounded-md"
       >
-        <h2 className="text-lg font-semibold">{title}</h2>
+        <h2 className="font-mono text-lg font-semibold uppercase tracking-wide">{title}</h2>
         <div className="mt-3">{children}</div>
       </div>
     </div>
