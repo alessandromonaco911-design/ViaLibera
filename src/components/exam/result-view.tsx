@@ -87,7 +87,7 @@ export function ResultView({ data }: { data: ResultViewData }) {
   ];
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 pb-16 sm:px-6">
+    <div className="shell-wide px-4 pb-16 sm:px-6">
       {/* verdict + poster stats */}
       <section className="mt-6 border-2 border-foreground bg-surface shadow-pop motion-enter" aria-live="polite">
         <div

@@ -18,7 +18,7 @@ export default async function AllenamentoPage() {
     <div className="flex min-h-dvh w-full flex-col">
       <SiteHeader mode="Allenamento" />
 
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-8 sm:px-6">
+      <main className="shell-wide flex-1 px-4 pb-16 pt-8 sm:px-6">
         <SectionLabel>Allenati per argomento</SectionLabel>
         <h1 className="mt-2 font-mono text-[clamp(2rem,4vw,4rem)] font-semibold leading-[0.95] tracking-tight">
           Scegli un argomento,
