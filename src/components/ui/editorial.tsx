@@ -49,11 +49,13 @@ export function StatBlock({
   value,
   tone = "white",
   className,
+  valueClassName,
 }: {
   label: string;
   value: ReactNode;
   tone?: "white" | "blue" | "yellow" | "pink" | "green" | "orange";
   className?: string;
+  valueClassName?: string;
 }) {
   const fills: Record<string, string> = {
     white: "bg-surface",
@@ -66,7 +68,7 @@ export function StatBlock({
   return (
     <div className={cn("border-2 border-foreground p-4", fills[tone], className)}>
       <p className="font-mono text-[0.65rem] uppercase tracking-[0.18em] text-foreground">{label}</p>
-      <p className="mt-1 font-mono text-3xl font-semibold leading-none tabular-nums sm:text-4xl">{value}</p>
+      <p className={cn("mt-1 font-mono text-3xl font-semibold leading-none tabular-nums sm:text-4xl", valueClassName)}>{value}</p>
     </div>
   );
 }

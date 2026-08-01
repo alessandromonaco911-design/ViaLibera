@@ -50,9 +50,14 @@ export default function Home() {
             <div className="motion-enter editorial-delay-1 grid grid-cols-2 gap-4 bg-accent-blue p-6 sm:p-10">
               <StatBlock label="Domande" value="30" tone="white" className="col-span-2" />
               <StatBlock label="Minuti" value="20" tone="yellow" />
-              <StatBlock label="Errori max" value="3" tone="pink" />
+              <StatBlock label="Errori massimi" value="3" tone="pink" />
               <StatBlock label="Patente" value="B" tone="white" />
-              <StatBlock label="Feedback allenamento" value="OK" tone="green" />
+              <StatBlock
+                label="Feedback"
+                value="Immediato"
+                tone="green"
+                valueClassName="text-lg sm:text-xl xl:text-2xl"
+              />
             </div>
           </div>
         </section>
