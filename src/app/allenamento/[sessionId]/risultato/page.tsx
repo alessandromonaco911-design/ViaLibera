@@ -3,6 +3,7 @@ import { getPracticeSession, getPracticeSessionQuestions } from "@/lib/practice/
 import { getTopic } from "@/lib/practice/generator";
 import { buildPracticeResult } from "@/lib/practice/service";
 import { PracticeResultView } from "@/components/practice/practice-result-view";
+import { SiteHeader } from "@/components/ui/site-header";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -29,5 +30,12 @@ export default async function PracticeResultPage({ params }: { params: Promise<{
   const result = buildPracticeResult(session, rows);
   const topic = session.topicId ? await getTopic(session.topicId).catch(() => ({ id: "", code: "", name: "" })) : { id: "", code: "", name: "" };
 
-  return <PracticeResultView result={result} topicName={topic.name || (rows[0]?.topic ?? "")} />;
+  return (
+    <div className="flex min-h-dvh w-full flex-col">
+      <SiteHeader mode="Risultato" />
+      <div className="flex-1">
+        <PracticeResultView result={result} topicName={topic.name || (rows[0]?.topic ?? "")} />
+      </div>
+    </div>
+  );
 }

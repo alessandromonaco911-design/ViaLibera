@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { siteConfig } from "@/config/site";
 import { Button } from "@/components/ui/button";
 import { QuestionImage } from "@/components/exam/question-image";
+import { StatBlock, SectionLabel } from "@/components/ui/editorial";
 import { cn } from "@/lib/utils/cn";
 import type { PracticeResult } from "@/lib/practice/types";
 
@@ -84,63 +85,56 @@ export function PracticeResultView({ result, topicName }: { result: PracticeResu
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 pb-16">
-      {/* summary */}
-      <section className="mt-6 rounded-2xl border border-border bg-surface p-5 text-center shadow-card" aria-live="polite">
-        <p className="text-2xl font-bold tracking-tight text-foreground">
-          {result.mode === "mistakes" ? "Ripasso completato" : "Allenamento completato"}
-        </p>
-        <p className="mt-1 text-sm text-muted">{topicName}</p>
-        <p className="mt-3 text-base font-medium">
-          Hai risposto correttamente a {result.correctCount} domande su {result.totalQuestions}
-        </p>
-        <div className="mt-4 grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
-          <div className="rounded-lg bg-black/5 p-2.5">
-            <span className="block text-xs text-muted">Corrette</span>
-            <b className="text-lg tabular-nums text-success">{result.correctCount}</b>
-          </div>
-          <div className="rounded-lg bg-black/5 p-2.5">
-            <span className="block text-xs text-muted">Errori</span>
-            <b className="text-lg tabular-nums text-danger">{result.errorCount}</b>
-          </div>
-          <div className="rounded-lg bg-black/5 p-2.5">
-            <span className="block text-xs text-muted">Non risposte</span>
-            <b className="text-lg tabular-nums">{result.unansweredCount}</b>
-          </div>
-          <div className="rounded-lg bg-black/5 p-2.5">
-            <span className="block text-xs text-muted">Tempo</span>
-            <b className="text-lg tabular-nums">{formatClock(result.timeUsedSeconds * 1000)}</b>
-          </div>
+      {/* summary poster */}
+      <section className="mt-6 border-2 border-foreground bg-surface shadow-pop motion-enter" aria-live="polite">
+        <div className="border-b-2 border-foreground bg-accent-yellow p-6 text-center">
+          <SectionLabel>{result.mode === "mistakes" ? "Ripasso errori" : "Allenamento"}</SectionLabel>
+          <p className="mt-1 font-mono text-[clamp(1.8rem,5vw,3.5rem)] font-bold leading-none tracking-tight">
+            {result.mode === "mistakes" ? "Ripasso completato" : "Allenamento completato"}
+          </p>
+          <p className="mt-2 font-mono text-sm uppercase tracking-wide text-muted">{topicName}</p>
+          <p className="mt-2 text-base font-medium">
+            Hai risposto correttamente a {result.correctCount} domande su {result.totalQuestions}
+          </p>
         </div>
-        <p className="mt-2 text-xs text-muted">Percentuale di corrette sulle domande verificate: {result.percentage}%</p>
 
-        <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+        <div className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-4">
+          <StatBlock label="Corrette" value={String(result.correctCount).padStart(2, "0")} tone="green" />
+          <StatBlock label="Errori" value={String(result.errorCount).padStart(2, "0")} tone="pink" />
+          <StatBlock label="Non risposte" value={String(result.unansweredCount).padStart(2, "0")} tone="white" />
+          <StatBlock label="Precisione" value={`${result.percentage}%`} tone="blue" />
+        </div>
+
+        <p className="px-4 pb-2 font-mono text-xs uppercase tracking-wide text-muted">
+          Tempo impiegato: {formatClock(result.timeUsedSeconds * 1000)}
+        </p>
+
+        <div className="flex flex-col gap-2 border-t-2 border-foreground p-4 sm:flex-row">
           <Button fullWidth onClick={() => router.push(`/allenamento/argomento/${result.topic.id}`)}>
             Ripeti argomento
           </Button>
           {hasErrors && (
-            <Button variant="primary" fullWidth onClick={() => void ripassaErrori()} disabled={mistakesBusy} aria-busy={mistakesBusy}>
+            <Button variant="secondary" fullWidth onClick={() => void ripassaErrori()} disabled={mistakesBusy} aria-busy={mistakesBusy}>
               {mistakesBusy ? "Preparazione…" : "Ripassa gli errori"}
             </Button>
           )}
           <Button variant="outline" fullWidth onClick={() => router.push("/allenamento")}>
             Cambia argomento
           </Button>
-        </div>
-        <div className="mt-2">
           <Button variant="ghost" fullWidth onClick={() => router.push("/")}>
             Torna alla home
           </Button>
         </div>
         {mistakesError && (
-          <p role="alert" className="mt-3 rounded-lg border border-danger/30 bg-danger-soft p-3 text-sm text-danger">
+          <p role="alert" className="mx-4 mb-4 border-2 border-foreground bg-danger-soft p-3 font-mono text-sm text-danger">
             {mistakesError}
           </p>
         )}
       </section>
 
       {/* filters */}
-      <div className="sticky top-0 z-20 -mx-4 mt-6 border-b border-border bg-background/95 px-4 py-2 backdrop-blur-sm">
-        <div className="flex items-center gap-2 overflow-x-auto">
+      <div className="sticky top-0 z-20 -mx-4 mt-6 border-y-2 border-foreground bg-surface px-4 py-2">
+        <div className="flex items-center gap-1 overflow-x-auto">
           {filters.map((f) => (
             <button
               key={f.key}
@@ -148,8 +142,8 @@ export function PracticeResultView({ result, topicName }: { result: PracticeResu
               onClick={() => changeFilter(f.key)}
               aria-pressed={filter === f.key}
               className={cn(
-                "shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
-                filter === f.key ? "bg-primary text-white" : "bg-surface text-muted ring-1 ring-border hover:bg-black/5",
+                "shrink-0 border-2 border-foreground px-3 py-1.5 font-mono text-xs font-medium uppercase tracking-wide transition-colors",
+                filter === f.key ? "bg-foreground text-white" : "bg-surface text-foreground hover:bg-accent-blue",
               )}
             >
               {f.label} ({f.count})
@@ -162,7 +156,7 @@ export function PracticeResultView({ result, topicName }: { result: PracticeResu
       <section className="mt-4" aria-label="Dettaglio domande">
         <ul className="space-y-2">
           {filtered.map((a) => (
-            <li key={a.questionId} className="overflow-hidden rounded-xl border border-border bg-surface shadow-card">
+            <li key={a.questionId} className={cn("border-2 border-foreground bg-surface", a.unanswered ? "" : !a.isCorrect && "border-l-8 border-l-danger")}>
               <button
                 type="button"
                 onClick={() => toggle(a.position)}
@@ -171,40 +165,39 @@ export function PracticeResultView({ result, topicName }: { result: PracticeResu
               >
                 <span
                   className={cn(
-                    "flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-xs font-semibold tabular-nums",
-                    a.isCorrect
-                      ? "bg-success-soft text-success"
-                      : a.unanswered
-                        ? "bg-black/5 text-muted"
-                        : "bg-danger-soft text-danger",
+                    "flex h-7 w-7 shrink-0 items-center justify-center border-2 border-foreground font-mono text-xs font-semibold tabular-nums",
+                    a.isCorrect ? "bg-success-soft" : a.unanswered ? "bg-surface" : "bg-danger-soft",
                   )}
                 >
                   {a.position}
                 </span>
                 <span className="flex-1 truncate text-sm">{a.statement}</span>
                 <span
-                  className="text-xs font-medium"
+                  className="font-mono text-xs font-medium uppercase"
                   aria-label={a.isCorrect ? "Corretta" : a.unanswered ? "Non risposta" : "Errata"}
                 >
                   {a.isCorrect ? "✓" : a.unanswered ? "—" : "✗"}
                 </span>
+                <span aria-hidden className={cn("font-mono text-muted transition-transform", open.has(a.position) && "rotate-45")}>
+                  +
+                </span>
               </button>
               {open.has(a.position) && (
-                <div className="border-t border-border px-4 py-3">
+                <div className="border-t-2 border-foreground px-4 py-3">
                   {a.image && (
                     <div className="mt-2 max-w-[220px]">
                       <QuestionImage
                         src={a.image.url}
                         width={a.image.width}
                         height={a.image.height}
-                        className="w-full rounded-lg border border-border object-contain"
+                        className="w-full border border-foreground object-contain"
                       />
                     </div>
                   )}
                   <p className="mt-2 text-sm leading-relaxed">{a.statement}</p>
                   <dl className="mt-3 space-y-1.5 text-sm">
                     <div className="flex gap-2">
-                      <dt className="w-32 shrink-0 text-muted">Risposta data</dt>
+                      <dt className="w-32 shrink-0 font-mono text-xs uppercase tracking-wide text-muted">Risposta data</dt>
                       <dd>
                         {a.unanswered ? (
                           <span className="font-medium text-danger">Non risposta</span>
@@ -214,21 +207,21 @@ export function PracticeResultView({ result, topicName }: { result: PracticeResu
                       </dd>
                     </div>
                     <div className="flex gap-2">
-                      <dt className="w-32 shrink-0 text-muted">Risposta corretta</dt>
+                      <dt className="w-32 shrink-0 font-mono text-xs uppercase tracking-wide text-muted">Risposta corretta</dt>
                       <dd className="font-medium">{a.correctAnswer ? "VERO" : "FALSO"}</dd>
                     </div>
                     {a.topic && (
                       <div className="flex gap-2">
-                        <dt className="w-32 shrink-0 text-muted">Argomento</dt>
+                        <dt className="w-32 shrink-0 font-mono text-xs uppercase tracking-wide text-muted">Argomento</dt>
                         <dd>{a.topic}</dd>
                       </div>
                     )}
                     <div className="flex gap-2">
-                      <dt className="w-32 shrink-0 text-muted">Codice</dt>
+                      <dt className="w-32 shrink-0 font-mono text-xs uppercase tracking-wide text-muted">Codice</dt>
                       <dd className="tabular-nums">{a.officialQuestionCode ?? "—"}</dd>
                     </div>
                     <div className="flex gap-2">
-                      <dt className="w-32 shrink-0 text-muted">Gruppo</dt>
+                      <dt className="w-32 shrink-0 font-mono text-xs uppercase tracking-wide text-muted">Gruppo</dt>
                       <dd>{a.groupCode ?? "—"}</dd>
                     </div>
                   </dl>
@@ -239,7 +232,7 @@ export function PracticeResultView({ result, topicName }: { result: PracticeResu
         </ul>
       </section>
 
-      <footer className="mt-10 border-t border-border py-6 text-center text-xs text-muted">
+      <footer className="mt-10 border-t-2 border-foreground py-6 text-center font-mono text-xs uppercase tracking-wide text-muted">
         {siteConfig.name} · allenamento senza limite di tempo
       </footer>
     </div>

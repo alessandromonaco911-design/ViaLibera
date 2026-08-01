@@ -3,10 +3,14 @@
 import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { siteConfig } from "@/config/site";
-import { formatClock } from "@/lib/exam/timer";
 import { Button } from "@/components/ui/button";
-import { QuestionImage } from "./question-image";
+import { QuestionImage } from "@/components/exam/question-image";
+import { StatBlock, SectionLabel } from "@/components/ui/editorial";
 import { cn } from "@/lib/utils/cn";
+
+type Filter = "all" | "errors" | "unanswered";
+
+const FILTER_PARAM: Record<Filter, string> = { all: "all", errors: "errors", unanswered: "unanswered" };
 
 export interface ResultQuestionDetail {
   position: number;
@@ -34,10 +38,14 @@ export interface ResultViewData {
   questions: ResultQuestionDetail[];
 }
 
-type Filter = "all" | "errors" | "unanswered";
+function formatClock(ms: number): string {
+  const total = Math.max(0, Math.floor(ms / 1000));
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
 
-const FILTER_PARAM: Record<Filter, string> = { all: "all", errors: "errors", unanswered: "unanswered" };
-
+/** Exam result: statistical poster + editorial accordion list. */
 export function ResultView({ data }: { data: ResultViewData }) {
   const router = useRouter();
   const params = useSearchParams();
@@ -79,39 +87,36 @@ export function ResultView({ data }: { data: ResultViewData }) {
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 pb-16">
-      {/* verdict */}
-      <section
-        className={cn(
-          "mt-6 rounded-2xl border bg-surface p-5 text-center shadow-card",
-          data.passed ? "border-success/30" : "border-danger/30",
-        )}
-        aria-live="polite"
-      >
-        <p className={cn("text-2xl font-bold tracking-tight", data.passed ? "text-success" : "text-danger")}>
-          {data.passed ? "SUPERATO" : "NON SUPERATO"}
-        </p>
-        <div className="mt-3 grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
-          <div className="rounded-lg bg-black/5 p-2.5">
-            <span className="block text-xs text-muted">Corrette</span>
-            <b className="text-lg tabular-nums">{data.correctCount}</b>
-          </div>
-          <div className="rounded-lg bg-black/5 p-2.5">
-            <span className="block text-xs text-muted">Errori</span>
-            <b className={cn("text-lg tabular-nums", data.errorCount > data.allowedErrors ? "text-danger" : "")}>{data.errorCount}</b>
-          </div>
-          <div className="rounded-lg bg-black/5 p-2.5">
-            <span className="block text-xs text-muted">Non risposte</span>
-            <b className="text-lg tabular-nums">{data.unansweredCount}</b>
-          </div>
-          <div className="rounded-lg bg-black/5 p-2.5">
-            <span className="block text-xs text-muted">Tempo</span>
-            <b className="text-lg tabular-nums">{formatClock(data.timeUsedSeconds * 1000)}</b>
-          </div>
+      {/* verdict + poster stats */}
+      <section className="mt-6 border-2 border-foreground bg-surface shadow-pop motion-enter" aria-live="polite">
+        <div
+          className={cn(
+            "border-b-2 border-foreground p-6 text-center",
+            data.passed ? "bg-success-soft" : "bg-danger-soft",
+          )}
+        >
+          <SectionLabel>Esito</SectionLabel>
+          <p
+            className={cn(
+              "mt-1 font-mono text-[clamp(2rem,6vw,4.5rem)] font-bold leading-none tracking-tight",
+              data.passed ? "text-success" : "text-danger",
+            )}
+          >
+            {data.passed ? "SUPERATO" : "NON SUPERATO"}
+          </p>
+          <p className="mt-2 font-mono text-xs uppercase tracking-wide text-muted">
+            Soglia: massimo {data.allowedErrors} errori · {data.totalQuestions} domande · {Math.round(siteConfig.exam.durationSeconds / 60)} minuti
+          </p>
         </div>
-        <p className="mt-2 text-xs text-muted">
-          Soglia: massimo {data.allowedErrors} errori · {data.totalQuestions} domande · {Math.round(siteConfig.exam.durationSeconds / 60)} minuti
-        </p>
-        <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+
+        <div className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-4">
+          <StatBlock label="Corrette" value={String(data.correctCount).padStart(2, "0")} tone="green" />
+          <StatBlock label="Errori" value={String(data.errorCount).padStart(2, "0")} tone="pink" />
+          <StatBlock label="Non risposte" value={String(data.unansweredCount).padStart(2, "0")} tone="yellow" />
+          <StatBlock label="Tempo" value={formatClock(data.timeUsedSeconds * 1000)} tone="blue" />
+        </div>
+
+        <div className="flex flex-col gap-2 border-t-2 border-foreground p-4 sm:flex-row">
           <Button fullWidth onClick={() => router.push("/")}>Nuova simulazione</Button>
           {data.errorCount > 0 && (
             <Button variant="outline" fullWidth onClick={scrollToFirstError}>
@@ -122,8 +127,8 @@ export function ResultView({ data }: { data: ResultViewData }) {
       </section>
 
       {/* sticky compact summary bar with filters */}
-      <div className="sticky top-0 z-20 -mx-4 mt-6 border-b border-border bg-background/95 px-4 py-2 backdrop-blur-sm">
-        <div className="flex items-center gap-2 overflow-x-auto">
+      <div className="sticky top-0 z-20 -mx-4 mt-6 border-y-2 border-foreground bg-surface px-4 py-2">
+        <div className="flex items-center gap-1 overflow-x-auto">
           {filters.map((f) => (
             <button
               key={f.key}
@@ -131,14 +136,14 @@ export function ResultView({ data }: { data: ResultViewData }) {
               onClick={() => changeFilter(f.key)}
               aria-pressed={filter === f.key}
               className={cn(
-                "shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
-                filter === f.key ? "bg-primary text-white" : "bg-surface text-muted ring-1 ring-border hover:bg-black/5",
+                "shrink-0 border-2 border-foreground px-3 py-1.5 font-mono text-xs font-medium uppercase tracking-wide transition-colors",
+                filter === f.key ? "bg-foreground text-white" : "bg-surface text-foreground hover:bg-accent-blue",
               )}
             >
               {f.label} ({f.count})
             </button>
           ))}
-          <span className="ml-auto hidden text-xs text-muted sm:block">
+          <span className="ml-auto hidden shrink-0 font-mono text-xs uppercase text-muted sm:block">
             {filtered.length} domande
           </span>
         </div>
@@ -152,8 +157,8 @@ export function ResultView({ data }: { data: ResultViewData }) {
               key={q.questionId}
               id={`q-${q.position}`}
               className={cn(
-                "scroll-mt-16 overflow-hidden rounded-xl border bg-surface shadow-card",
-                !q.correct ? "border-danger/40" : "border-border",
+                "scroll-mt-20 border-2 border-foreground bg-surface",
+                !q.correct && "border-l-8 border-l-danger",
               )}
             >
               <button
@@ -164,53 +169,53 @@ export function ResultView({ data }: { data: ResultViewData }) {
               >
                 <span
                   className={cn(
-                    "inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white",
-                    q.correct ? "bg-success" : "bg-danger",
+                    "flex h-7 w-7 shrink-0 items-center justify-center border-2 border-foreground font-mono text-xs font-semibold tabular-nums",
+                    q.correct ? "bg-success-soft" : q.unanswered ? "bg-surface" : "bg-danger-soft",
                   )}
-                  aria-label={q.correct ? "Corretta" : "Errata o non risposta"}
                 >
                   {q.position}
                 </span>
                 <span className="flex-1 truncate text-sm">{q.statement}</span>
                 <span
-                  className="text-xs font-medium"
+                  className="font-mono text-xs font-medium uppercase"
                   aria-label={q.correct ? "Corretta" : q.unanswered ? "Non risposta" : "Errata"}
                 >
                   {q.correct ? "✓" : q.unanswered ? "—" : "✗"}
                 </span>
+                <span aria-hidden className={cn("font-mono text-muted transition-transform", open.has(q.position) && "rotate-45")}>
+                  +
+                </span>
               </button>
               {open.has(q.position) && (
-                <div className="border-t border-border px-4 py-3">
-                  {q.topic && <span className="text-xs font-medium text-primary">{q.topic}</span>}
+                <div className="border-t-2 border-foreground px-4 py-3">
+                  {q.topic && <span className="font-mono text-xs uppercase tracking-wide text-primary">{q.topic}</span>}
                   {q.imageUrl && (
                     <div className="mt-2 max-w-[220px]">
-                      <QuestionImage src={q.imageUrl} width={null} height={null} className="w-full rounded-lg border border-border object-contain" />
+                      <QuestionImage src={q.imageUrl} width={null} height={null} className="w-full border border-foreground object-contain" />
                     </div>
                   )}
                   <p className="mt-2 text-sm leading-relaxed">{q.statement}</p>
                   <dl className="mt-3 space-y-1.5 text-sm">
                     <div className="flex gap-2">
-                      <dt className="w-32 shrink-0 text-muted">Risposta data</dt>
+                      <dt className="w-32 shrink-0 font-mono text-xs uppercase tracking-wide text-muted">Risposta data</dt>
                       <dd>
                         {q.selectedAnswer === null ? (
                           <span className="font-medium text-danger">Non risposta</span>
                         ) : (
-                          <span className={cn("font-medium", q.correct ? "text-success" : "text-danger")}>
-                            {q.selectedAnswer ? "VERO" : "FALSO"}
-                          </span>
+                          <span className="font-medium">{q.selectedAnswer ? "VERO" : "FALSO"}</span>
                         )}
                       </dd>
                     </div>
                     <div className="flex gap-2">
-                      <dt className="w-32 shrink-0 text-muted">Risposta corretta</dt>
+                      <dt className="w-32 shrink-0 font-mono text-xs uppercase tracking-wide text-muted">Risposta corretta</dt>
                       <dd className="font-medium">{q.correctAnswer ? "VERO" : "FALSO"}</dd>
                     </div>
                     <div className="flex gap-2">
-                      <dt className="w-32 shrink-0 text-muted">Codice</dt>
+                      <dt className="w-32 shrink-0 font-mono text-xs uppercase tracking-wide text-muted">Codice</dt>
                       <dd className="tabular-nums">{q.officialQuestionCode ?? "—"}</dd>
                     </div>
                     <div className="flex gap-2">
-                      <dt className="w-32 shrink-0 text-muted">Gruppo</dt>
+                      <dt className="w-32 shrink-0 font-mono text-xs uppercase tracking-wide text-muted">Gruppo</dt>
                       <dd>{q.groupCode ?? "—"}</dd>
                     </div>
                   </dl>
