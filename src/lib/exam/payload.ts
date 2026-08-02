@@ -10,8 +10,9 @@ import type { PublicExamPayload, PublicExamQuestion } from "./types";
 
 export function mediaUrlFor(imageRef: string | null): string | null {
   if (!imageRef) return null;
-  // imageRef is the media sha256; served by the controlled media route
-  return `/api/media/${imageRef}`;
+  // imageRef is the media sha256; shipped as static assets (public/media/questions)
+  // so remote deployments never depend on local filesystem or object storage.
+  return `/media/questions/${imageRef}.png`;
 }
 
 export function toPublicQuestion(c: DbCandidate, position: number): PublicExamQuestion {
