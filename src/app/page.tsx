@@ -18,7 +18,7 @@ export default function Home() {
             {/* left: title + CTAs */}
             <div className="motion-enter min-w-0 p-6 sm:p-10">
               <SectionLabel>Esame patente {siteConfig.licenseCategory} · teorico</SectionLabel>
-              <h1 className="mt-4 max-w-full font-mono text-[clamp(2.2rem,5vw,4.5rem)] font-semibold leading-[0.95] tracking-tight">
+              <h1 className="mt-4 max-w-full font-mono text-[clamp(2.2rem,5.2vw,4.75rem)] font-semibold leading-[0.95] tracking-tight">
                 Preparati
                 <br />
                 all&apos;esame.
