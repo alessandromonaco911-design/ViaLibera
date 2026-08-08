@@ -333,10 +333,10 @@ export function PracticeRunner({
             {mode === "mistakes" ? "Ripasso errori" : "Allenamento"} · {position} di {totalQuestions}
           </span>
           <div className="ml-auto flex items-center gap-2">
-            <Button variant="secondary" size="sm" onClick={() => setNavigatorOpen(true)} aria-label="Apri navigatore domande">
+            <Button variant="secondary" size="sm" onClick={() => setNavigatorOpen(true)} aria-label="Apri navigatore domande" className="quiz-hdr-btn">
               ☰
             </Button>
-            <Button variant="outline" size="sm" onClick={() => setCompleteOpen(true)}>
+            <Button variant="outline" size="sm" onClick={() => setCompleteOpen(true)} className="quiz-hdr-btn">
               Completa
             </Button>
           </div>
@@ -344,23 +344,26 @@ export function PracticeRunner({
       </header>
 
       {/* question body — scrollable stage (stable geometry, action bar row fixed) */}
-      <main className="min-h-0 overflow-y-auto py-6 pb-6 sm:pb-8">
+      <main className="min-h-0 overflow-y-auto py-4 pb-6 sm:py-8 sm:pb-8">
         <div className="mx-auto w-full">
           <div key={position} className="motion-scale-in">
-            <span className="mb-3 inline-flex max-w-full items-center gap-1 border border-foreground bg-accent-blue px-2 py-0.5 font-mono text-xs uppercase tracking-wide">
+            <span
+              title={mode === "mistakes" ? "Ripasso degli errori" : topicName}
+              className="mb-2 inline-flex max-w-full truncate items-center gap-1 border border-foreground bg-accent-blue px-1.5 py-0.5 font-mono text-[11px] uppercase tracking-wide sm:mb-3 sm:px-2 sm:text-xs"
+            >
               {mode === "mistakes" ? "Ripasso degli errori" : topicName}
             </span>
 
-            <div className="border-2 border-foreground bg-surface p-6 shadow-pop sm:p-9">
-              <p className="font-mono text-xs uppercase tracking-wide text-muted">
+            <div className="border-2 border-foreground bg-surface p-4 shadow-pop sm:p-9">
+              <p className="font-mono text-[11px] uppercase tracking-wide text-muted sm:text-xs">
                 Domanda {String(position).padStart(2, "0")}
                 {current.officialQuestionCode && <> · Codice {current.officialQuestionCode}</>}
                 {current.groupCode && <> · Gruppo {current.groupCode}</>}
               </p>
-              <h1 className="mx-auto mt-4 max-w-[74ch] text-[1.35rem] leading-[1.55] text-foreground sm:text-[1.6rem] 2xl:text-[1.75rem]">{current.statement}</h1>
+              <h1 className="mx-auto mt-3 max-w-[74ch] text-[clamp(1.15rem,5vw,1.45rem)] leading-[1.3] text-foreground sm:mt-4 sm:text-[1.6rem] sm:leading-[1.55] 2xl:text-[1.75rem]">{current.statement}</h1>
 
               {current.image && (
-                <div className="mt-6 border-t-2 border-foreground pt-6">
+                <div className="mt-4 border-t-2 border-foreground pt-4 sm:mt-6 sm:pt-6">
                   <button
                     type="button"
                     onClick={() => setZoomImage(current.image!.url)}
@@ -371,10 +374,10 @@ export function PracticeRunner({
                       src={current.image.url}
                       width={current.image.width}
                       height={current.image.height}
-                      className="mx-auto max-h-80 w-auto object-contain sm:max-h-[480px] 2xl:max-h-[520px]"
+                      className="mx-auto max-h-[clamp(170px,27dvh,240px)] w-auto object-contain sm:max-h-[480px] 2xl:max-h-[520px]"
                     />
                   </button>
-                  <p className="mt-1 text-center font-mono text-xs uppercase tracking-wide text-muted">
+                  <p className="mt-1 text-center font-mono text-[10px] uppercase tracking-wide text-muted sm:text-xs">
                     Tocca l’immagine per ingrandirla
                   </p>
                 </div>
@@ -382,7 +385,7 @@ export function PracticeRunner({
             </div>
 
             {/* answers — green/red ONLY after verification */}
-            <div className="mt-5 grid grid-cols-2 gap-4" role="group" aria-label="Risposta">
+            <div className="mt-4 grid grid-cols-2 gap-2.5 sm:mt-5 sm:gap-4" role="group" aria-label="Risposta">
               {[true, false].map((val) => {
                 const label = val ? "VERO" : "FALSO";
                 const isSelected = currentVerified !== undefined ? currentVerified.selectedAnswer === val : selected[current.id] === val;
@@ -398,7 +401,7 @@ export function PracticeRunner({
                     disabled={locked}
                     aria-pressed={isSelected}
                     className={cn(
-                      "h-16 rounded-md border-2 border-foreground font-mono text-xl font-semibold uppercase tracking-widest transition-colors sm:h-[88px] sm:text-2xl",
+                      "h-14 rounded-md border-2 border-foreground font-mono text-lg font-semibold uppercase tracking-widest transition-colors sm:h-[88px] sm:text-2xl",
                       locked
                         ? isRightAnswer
                           ? "bg-success-soft text-success"
@@ -417,32 +420,26 @@ export function PracticeRunner({
             </div>
 
             {/* feedback */}
-            <div aria-live="polite" className="mt-4">
+            <div aria-live="polite" className="mt-3 sm:mt-4">
               {currentVerified && (
                 <div
                   className={cn(
-                    "motion-feedback border-2 border-foreground p-4",
+                    "motion-feedback border-2 border-foreground p-3 sm:p-4",
                     currentVerified.isCorrect ? "bg-success-soft" : "bg-danger-soft",
                   )}
                 >
-                  <p className={cn("font-mono text-sm font-semibold uppercase tracking-widest", currentVerified.isCorrect ? "text-success" : "text-danger")}>
-                    {currentVerified.isCorrect ? "Risposta corretta" : "Risposta errata"}
-                  </p>
-                  <p className="mt-1 text-sm text-foreground">
-                    Risposta data: <b>{currentVerified.selectedAnswer ? "VERO" : "FALSO"}</b>
-                    {!currentVerified.isCorrect && (
-                      <>
-                        {" · "}Risposta corretta: <b>{currentVerified.selectedAnswer ? "FALSO" : "VERO"}</b>
-                      </>
+                  <p
+                    className={cn(
+                      "font-mono text-sm font-bold uppercase tracking-widest",
+                      currentVerified.isCorrect ? "text-success" : "text-danger",
                     )}
+                  >
+                    {currentVerified.isCorrect
+                      ? "Corretta"
+                      : `Errata — risposta corretta: ${currentVerified.selectedAnswer ? "FALSO" : "VERO"}`}
                   </p>
-                  <p className="mt-1 font-mono text-xs uppercase tracking-wide text-muted">
-                    {current.officialQuestionCode && <>Codice {current.officialQuestionCode}</>}
-                    {current.groupCode && <> · Gruppo {current.groupCode}</>}
-                  </p>
-                  <p className="mt-1 font-mono text-xs uppercase tracking-wide text-muted">
-                    Per questa domanda non è ancora disponibile una spiegazione revisionata.
-                  </p>
+                  <p className="mt-1 text-sm text-foreground">Spiegazione non ancora disponibile.</p>
+                  <p className="mt-0.5 text-xs text-muted">La risposta è stata corretta usando il catalogo ufficiale.</p>
                 </div>
               )}
               {!currentVerified && checkReady && (
@@ -470,7 +467,8 @@ export function PracticeRunner({
             size="lg"
             onClick={navPrev}
             disabled={position <= 1}
-            className="sm:flex-none sm:h-16 sm:min-w-[200px] sm:px-10 sm:text-lg"
+            aria-label="Domanda precedente"
+            className="action-bar-btn flex-none sm:flex-none sm:min-w-[200px]"
           >
             ← Indietro
           </Button>
@@ -481,7 +479,7 @@ export function PracticeRunner({
               onClick={() => void verifyCurrent()}
               disabled={!checkReady || phase === "checking"}
               aria-busy={phase === "checking"}
-              className="sm:flex-none sm:h-16 sm:min-w-[260px] sm:px-10 sm:text-lg"
+              className="action-bar-btn flex-1 sm:flex-none sm:min-w-[260px]"
             >
               {phase === "checking" ? "Verifica…" : "Verifica risposta"}
             </Button>
@@ -492,7 +490,7 @@ export function PracticeRunner({
               size="lg"
               onClick={isLast ? () => setCompleteOpen(true) : navNext}
               disabled={isLast ? false : !canAdvance}
-              className="sm:flex-none sm:h-16 sm:min-w-[260px] sm:px-10 sm:text-lg"
+              className="action-bar-btn flex-1 sm:flex-none sm:min-w-[260px]"
               aria-label={isLast ? "Completa allenamento" : "Avanti"}
             >
               {isLast ? "Completa allenamento" : "Avanti →"}

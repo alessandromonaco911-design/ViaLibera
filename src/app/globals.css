@@ -310,3 +310,23 @@ html,
 body {
   overflow-x: hidden;
 }
+
+/* quiz mobile chrome: compact but touch-friendly (>=44px) */
+.quiz-hdr-btn {
+  height: 2.75rem !important; /* 44px mobile touch target */
+}
+.action-bar-btn {
+  height: 3rem !important; /* 48px */
+  padding-inline: 0.75rem !important;
+  font-size: 0.875rem !important;
+}
+@media (min-width: 640px) {
+  .quiz-hdr-btn {
+    height: 2.25rem !important; /* 36px desktop */
+  }
+  .action-bar-btn {
+    height: 4rem !important;
+    padding-inline: 2.5rem !important;
+    font-size: 1.125rem !important;
+  }
+}

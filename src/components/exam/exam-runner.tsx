@@ -292,10 +292,10 @@ export function ExamRunner({ sessionId, version, startedAt, expiresAt, totalQues
             >
               {formatClock(remaining ?? 0)}
             </span>
-            <Button variant="secondary" size="sm" onClick={() => setNavigatorOpen(true)} aria-label="Apri navigatore domande">
+            <Button variant="secondary" size="sm" onClick={() => setNavigatorOpen(true)} aria-label="Apri navigatore domande" className="quiz-hdr-btn">
               ☰
             </Button>
-            <Button variant="outline" size="sm" onClick={() => setSubmitOpen(true)}>
+            <Button variant="outline" size="sm" onClick={() => setSubmitOpen(true)} className="quiz-hdr-btn">
               Termina
             </Button>
           </div>
@@ -307,21 +307,24 @@ export function ExamRunner({ sessionId, version, startedAt, expiresAt, totalQues
         <div className="mx-auto w-full">
           <div key={position} className="motion-scale-in">
             {current.topic && (
-              <span className="mb-3 inline-block border border-foreground bg-accent-blue px-2 py-0.5 font-mono text-xs uppercase tracking-wide">
+              <span
+                title={current.topic}
+                className="mb-2 inline-block max-w-full truncate border border-foreground bg-accent-blue px-1.5 py-0.5 font-mono text-[11px] uppercase tracking-wide sm:mb-3 sm:px-2 sm:text-xs"
+              >
                 {current.topic}
               </span>
             )}
 
-            <div className="border-2 border-foreground bg-surface p-6 shadow-pop sm:p-9">
-              <p className="font-mono text-xs uppercase tracking-wide text-muted">
+            <div className="border-2 border-foreground bg-surface p-4 shadow-pop sm:p-9">
+              <p className="font-mono text-[11px] uppercase tracking-wide text-muted sm:text-xs">
                 Domanda {String(position).padStart(2, "0")}
                 {current.officialQuestionCode && <> · Codice {current.officialQuestionCode}</>}
                 {current.groupCode && <> · Gruppo {current.groupCode}</>}
               </p>
-              <h1 className="mx-auto mt-4 max-w-[74ch] text-[1.35rem] leading-[1.55] text-foreground sm:text-[1.6rem] 2xl:text-[1.75rem]">{current.statement}</h1>
+              <h1 className="mx-auto mt-3 max-w-[74ch] text-[clamp(1.15rem,5vw,1.45rem)] leading-[1.3] text-foreground sm:mt-4 sm:text-[1.6rem] sm:leading-[1.55] 2xl:text-[1.75rem]">{current.statement}</h1>
 
               {current.image && (
-                <div className="mt-6 border-t-2 border-foreground pt-6">
+                <div className="mt-4 border-t-2 border-foreground pt-4 sm:mt-6 sm:pt-6">
                   <button
                     type="button"
                     onClick={() => setZoomImage(current.image!.url)}
@@ -332,10 +335,10 @@ export function ExamRunner({ sessionId, version, startedAt, expiresAt, totalQues
                       src={current.image.url}
                       width={current.image.width}
                       height={current.image.height}
-                      className="mx-auto max-h-80 w-auto object-contain sm:max-h-[480px] 2xl:max-h-[520px]"
+                      className="mx-auto max-h-[clamp(170px,27dvh,240px)] w-auto object-contain sm:max-h-[480px] 2xl:max-h-[520px]"
                     />
                   </button>
-                  <p className="mt-1 text-center font-mono text-xs uppercase tracking-wide text-muted">
+                  <p className="mt-1 text-center font-mono text-[10px] uppercase tracking-wide text-muted sm:text-xs">
                     Tocca l’immagine per ingrandirla
                   </p>
                 </div>
@@ -343,7 +346,7 @@ export function ExamRunner({ sessionId, version, startedAt, expiresAt, totalQues
             </div>
 
             {/* answers — never green/red in simulation */}
-            <div className="mt-5 grid grid-cols-2 gap-4" role="group" aria-label="Risposta">
+            <div className="mt-4 grid grid-cols-2 gap-2.5 sm:mt-5 sm:gap-4" role="group" aria-label="Risposta">
               {[true, false].map((val) => {
                 const label = val ? "VERO" : "FALSO";
                 const isSelected = selected === val;
@@ -354,7 +357,7 @@ export function ExamRunner({ sessionId, version, startedAt, expiresAt, totalQues
                     onClick={() => selectAnswer(current.id, val)}
                     aria-pressed={isSelected}
                     className={cn(
-                      "h-16 rounded-md border-2 border-foreground font-mono text-xl font-semibold uppercase tracking-widest transition-colors sm:h-[88px] sm:text-2xl",
+                      "h-14 rounded-md border-2 border-foreground font-mono text-lg font-semibold uppercase tracking-widest transition-colors sm:h-[88px] sm:text-2xl",
                       isSelected
                         ? "bg-foreground text-white"
                         : "bg-surface text-foreground hover:bg-accent-blue",
@@ -397,7 +400,8 @@ export function ExamRunner({ sessionId, version, startedAt, expiresAt, totalQues
             size="lg"
             onClick={navPrev}
             disabled={position <= 1}
-            className="sm:flex-none sm:h-16 sm:min-w-[200px] sm:px-10 sm:text-lg"
+            aria-label="Domanda precedente"
+            className="action-bar-btn flex-none sm:flex-none sm:min-w-[200px]"
           >
             ← Indietro
           </Button>
@@ -406,17 +410,19 @@ export function ExamRunner({ sessionId, version, startedAt, expiresAt, totalQues
             size="lg"
             onClick={() => toggleFlag(current.id)}
             aria-pressed={isFlagged}
-            className="sm:flex-none sm:h-16 sm:min-w-[220px] sm:px-10 sm:text-lg"
+            aria-label={isFlagged ? "Togli contrassegno" : "Contrassegna domanda"}
+            className="action-bar-btn flex-none aspect-square w-12 sm:aspect-auto sm:w-auto sm:min-w-[220px]"
           >
-            {isFlagged ? "★ Contrassegnata" : "☆ Contrassegna"}
+            <span aria-hidden className="text-lg leading-none">{isFlagged ? "★" : "☆"}</span>
+            <span className="hidden sm:inline">{isFlagged ? "Contrassegnata" : "Contrassegna"}</span>
           </Button>
           <Button
             variant="primary"
             size="lg"
             onClick={navNext}
             disabled={position >= totalQuestions}
-            className="sm:flex-none sm:h-16 sm:min-w-[200px] sm:px-10 sm:text-lg"
             aria-label={position >= totalQuestions ? "Ultima domanda" : "Avanti"}
+            className="action-bar-btn flex-1 sm:flex-none sm:min-w-[200px]"
           >
             Avanti →
           </Button>
