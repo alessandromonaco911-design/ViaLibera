@@ -269,15 +269,15 @@ export function ExamRunner({ sessionId, version, startedAt, expiresAt, totalQues
   const selected = answers[current.id];
 
   return (
-    <div className="shell-wide grid h-dvh grid-rows-[auto_minmax(0,1fr)_auto] px-4 sm:px-6">
+    <div className="shell-wide grid h-dvh grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)_auto] px-4 sm:px-6">
       {/* header — stable row 1 */}
       <header className="sticky top-0 z-20 border-b-2 border-foreground bg-accent-blue">
-        <div className="flex w-full items-center gap-3 px-4 py-2.5 sm:px-6">
+        <div className="flex w-full flex-wrap items-center gap-2 px-4 py-2.5 sm:flex-nowrap sm:gap-3 sm:px-6">
           <Link href="/" className="flex shrink-0 items-baseline gap-0.5 font-mono text-sm font-semibold tracking-tight">
             <span>VIA</span>
             <span className="bg-foreground px-0.5 text-accent-blue">LIBERA</span>
           </Link>
-          <span className="font-mono text-xs uppercase tracking-wide text-foreground">
+          <span className="hidden font-mono text-xs uppercase tracking-wide text-foreground sm:block">
             Domanda {position} di {totalQuestions}
           </span>
           <div className="ml-auto flex items-center gap-2">
@@ -391,13 +391,13 @@ export function ExamRunner({ sessionId, version, startedAt, expiresAt, totalQues
 
       {/* action bar — fixed bottom row of the grid (same y on every question) */}
       <div className="z-20 border-t-2 border-foreground bg-surface px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 sm:border-y-2 sm:px-0 sm:py-3">
-        <div className="mx-auto flex w-full items-stretch justify-center gap-3 sm:grid sm:grid-cols-[repeat(3,minmax(200px,260px))] sm:justify-center sm:gap-4">
+        <div className="mx-auto flex w-full flex-wrap items-stretch justify-center gap-2 sm:grid sm:grid-cols-[repeat(3,minmax(200px,260px))] sm:justify-center sm:gap-4">
           <Button
             variant="outline"
             size="lg"
             onClick={navPrev}
             disabled={position <= 1}
-            className="flex-1 sm:flex-none sm:h-16 sm:min-w-[200px] sm:px-10 sm:text-lg"
+            className="sm:flex-none sm:h-16 sm:min-w-[200px] sm:px-10 sm:text-lg"
           >
             ← Indietro
           </Button>
@@ -406,7 +406,7 @@ export function ExamRunner({ sessionId, version, startedAt, expiresAt, totalQues
             size="lg"
             onClick={() => toggleFlag(current.id)}
             aria-pressed={isFlagged}
-            className="flex-1 sm:flex-none sm:h-16 sm:min-w-[220px] sm:px-10 sm:text-lg"
+            className="sm:flex-none sm:h-16 sm:min-w-[220px] sm:px-10 sm:text-lg"
           >
             {isFlagged ? "★ Contrassegnata" : "☆ Contrassegna"}
           </Button>
@@ -415,7 +415,7 @@ export function ExamRunner({ sessionId, version, startedAt, expiresAt, totalQues
             size="lg"
             onClick={navNext}
             disabled={position >= totalQuestions}
-            className="flex-1 sm:flex-none sm:h-16 sm:min-w-[200px] sm:px-10 sm:text-lg"
+            className="sm:flex-none sm:h-16 sm:min-w-[200px] sm:px-10 sm:text-lg"
             aria-label={position >= totalQuestions ? "Ultima domanda" : "Avanti"}
           >
             Avanti →
