@@ -476,9 +476,14 @@ body {
     animation: none;
     transform: none;
   }
-  /* intro safety: never shown under reduced motion (component also skips it) */
-  .site-intro-overlay {
-    display: none;
+  /* intro: the component itself skips it under reduced motion. Dev replay
+     (?intro=1, development only) intentionally overrides this so the
+     animation can be inspected; production never has the --dev-replay class. */
+  .site-intro-overlay--dev-replay .site-intro-logo,
+  .site-intro-overlay--dev-replay .site-intro-bulb--red,
+  .site-intro-overlay--dev-replay .site-intro-bulb--green {
+    animation-duration: 2.2s !important;
+    animation-iteration-count: 1 !important;
   }
 }
 

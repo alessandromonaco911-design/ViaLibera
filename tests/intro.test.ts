@@ -28,9 +28,15 @@ test("intro: production ignora ?intro=1 (flag presente -> saltata)", () => {
   );
 });
 
-test("intro: reduced motion -> sempre saltata, anche con replay dev", () => {
-  assert.equal(shouldShowIntro({ seen: false, reduce: true, isDev: true, replay: true }), false);
+test("intro: reduced motion -> saltata, tranne replay dev", () => {
+  // production: reduced motion always skips (anche prima visita)
   assert.equal(shouldShowIntro({ seen: false, reduce: true, isDev: false, replay: false }), false);
+  assert.equal(shouldShowIntro({ seen: false, reduce: true, isDev: false, replay: true }), false);
+  // dev senza replay: reduced motion salta
+  assert.equal(shouldShowIntro({ seen: false, reduce: true, isDev: true, replay: false }), false);
+  // dev replay (?intro=1): forzata anche con reduced motion
+  assert.equal(shouldShowIntro({ seen: false, reduce: true, isDev: true, replay: true }), true);
+  assert.equal(shouldShowIntro({ seen: true, reduce: true, isDev: true, replay: true }), true);
 });
 
 test("intro: chiave sessionStorage esportata e stabile", () => {

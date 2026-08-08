@@ -26,8 +26,9 @@ export interface IntroDecisionInput {
 }
 
 export function shouldShowIntro({ seen, reduce, isDev, replay }: IntroDecisionInput): boolean {
+  // development replay: force the intro even if already seen this session
+  // AND even under prefers-reduced-motion, so the animation can be inspected
+  if (isDev && replay) return true;
   if (reduce) return false;
-  if (!seen) return true;
-  // first visit already happened this session: only a dev replay forces it
-  return isDev && replay;
+  return !seen;
 }

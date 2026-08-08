@@ -23,6 +23,7 @@ const INTRO_TOTAL_MS = 2350;
 export function SiteIntro() {
   const [visible, setVisible] = useState(false);
   const [exiting, setExiting] = useState(false);
+  const [replayDev, setReplayDev] = useState(false);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   useLayoutEffect(() => {
@@ -45,8 +46,14 @@ export function SiteIntro() {
       /* ignore */
     }
 
-    const show = shouldShowIntro({ seen, reduce, isDev: process.env.NODE_ENV === "development", replay });
+    const isDev = process.env.NODE_ENV === "development";
+    const show = shouldShowIntro({ seen, reduce, isDev, replay });
     if (!show) return;
+
+    // dev replay marker (restores CSS animation durations under reduced motion)
+    if (isDev && replay) {
+      setReplayDev(true);
+    }
 
     // mark the session flag only on a genuine first visit; a dev replay
     // never removes or overwrites the existing flag
@@ -71,7 +78,7 @@ export function SiteIntro() {
 
   return (
     <div
-      className={exiting ? "site-intro-overlay site-intro-overlay--exit" : "site-intro-overlay"}
+      className={`${exiting ? "site-intro-overlay site-intro-overlay--exit" : "site-intro-overlay"}${replayDev ? " site-intro-overlay--dev-replay" : ""}`}
       aria-hidden="true"
     >
       <div className="site-intro-stage">
