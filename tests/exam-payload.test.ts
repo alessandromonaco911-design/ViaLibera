@@ -48,7 +48,7 @@ test("payload: campi pubblici presenti e coerenti", () => {
   assert.equal(q.officialQuestionCode, "21810");
   assert.equal(q.groupCode, "4328");
   assert.equal(q.topic, "Segnali di indicazione");
-  assert.equal(q.image?.url, "/api/media/" + "a".repeat(64));
+  assert.equal(q.image?.url, "/media/questions/" + "a".repeat(64) + ".png");
   assert.equal(q.image?.width, 200);
   assert.equal(q.image?.height, 200);
 });
@@ -69,7 +69,9 @@ test("payload: buildPublicPayload restituisce un payload serializzabile completo
   });
   const serialized = JSON.stringify(payload);
   assert.ok(!serialized.includes("correctAnswer"));
-  assert.ok(!serialized.includes("aaa.png"));
+  // no local filesystem paths leak; static asset urls are fine (they end in .png)
+  assert.ok(!serialized.includes("data/media"));
+  assert.ok(!serialized.includes("localPath"));
   const parsed = JSON.parse(serialized) as typeof payload;
   assert.equal(parsed.questions.length, 2);
   assert.equal(parsed.totalQuestions, 2);
@@ -79,5 +81,5 @@ test("payload: buildPublicPayload restituisce un payload serializzabile completo
 
 test("payload: mediaUrlFor null-safe", () => {
   assert.equal(mediaUrlFor(null), null);
-  assert.equal(mediaUrlFor("ab".repeat(32)), "/api/media/" + "ab".repeat(32));
+  assert.equal(mediaUrlFor("ab".repeat(32)), "/media/questions/" + "ab".repeat(32) + ".png");
 });

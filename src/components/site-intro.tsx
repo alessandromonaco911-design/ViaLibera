@@ -1,6 +1,7 @@
 "use client";
 
 import { useLayoutEffect, useRef, useState } from "react";
+import { INTRO_STORAGE_KEY, shouldShowIntro } from "@/lib/intro";
 
 /**
  * First-visit site intro (session-scoped).
@@ -10,10 +11,11 @@ import { useLayoutEffect, useRef, useState } from "react";
  * stops at a red traffic light, the light turns green and the logo exits,
  * revealing the homepage. Runs once per browser session (sessionStorage,
  * never localStorage), skipped under prefers-reduced-motion, pure CSS.
+ *
+ * Development replay: `?intro=1` (NODE_ENV=development only) forces the
+ * intro even when the session flag is set, without clearing the flag.
  */
 
-const INTRO_STORAGE_KEY = "vialibera_intro_seen";
-/** when the exit fade starts (ms) — must match the CSS animation length */
 const INTRO_EXIT_MS = 2050;
 /** when the overlay is removed from the DOM (ms) */
 const INTRO_TOTAL_MS = 2350;
@@ -26,28 +28,38 @@ export function SiteIntro() {
   useLayoutEffect(() => {
     let seen = false;
     let reduce = false;
+    let replay = false;
     try {
       seen = window.sessionStorage.getItem(INTRO_STORAGE_KEY) === "1";
     } catch {
-      /* storage unavailable: keep intro */
+      /* storage unavailable: treat as first visit */
     }
     try {
       reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     } catch {
-      /* no matchMedia: keep intro */
+      /* no matchMedia */
+    }
+    try {
+      replay = new URLSearchParams(window.location.search).get("intro") === "1";
+    } catch {
+      /* ignore */
     }
 
-    // first visit of this browser session: mark immediately, then show
-    if (!seen && !reduce) {
+    const show = shouldShowIntro({ seen, reduce, isDev: process.env.NODE_ENV === "development", replay });
+    if (!show) return;
+
+    // mark the session flag only on a genuine first visit; a dev replay
+    // never removes or overwrites the existing flag
+    if (!seen) {
       try {
         window.sessionStorage.setItem(INTRO_STORAGE_KEY, "1");
       } catch {
         /* ignore */
       }
-      setVisible(true);
-      timers.current.push(setTimeout(() => setExiting(true), INTRO_EXIT_MS));
-      timers.current.push(setTimeout(() => setVisible(false), INTRO_TOTAL_MS));
     }
+    setVisible(true);
+    timers.current.push(setTimeout(() => setExiting(true), INTRO_EXIT_MS));
+    timers.current.push(setTimeout(() => setVisible(false), INTRO_TOTAL_MS));
 
     return () => {
       timers.current.forEach((t) => clearTimeout(t));

@@ -72,3 +72,19 @@ test("intro: skipped under prefers-reduced-motion", async ({ browser }) => {
   await expect(page.locator("main h1")).toBeVisible();
   await context.close();
 });
+
+test("intro: production ignores ?intro=1 when the session flag is set", async ({ page }) => {
+  // the E2E webServer runs a production build (NODE_ENV=production):
+  // the query param must NOT force the intro once the flag is set
+  await page.addInitScript(() => {
+    try {
+      window.sessionStorage.setItem("vialibera_intro_seen", "1");
+    } catch {
+      /* ignore */
+    }
+  });
+  await page.goto(`${BASE}/?intro=1`, { waitUntil: "domcontentloaded" });
+  await page.waitForTimeout(600);
+  await expect(page.locator(OVERLAY)).toHaveCount(0);
+  await expect(page.locator("main h1")).toBeVisible();
+});
