@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures";
 import { createSession, clickAnswerWithoutAdvance, expectPosition, cleanupTestSessions, VERO_BTN, FALSO_BTN, waitQuizReady } from "./helpers";
 
 test.beforeEach(async () => {

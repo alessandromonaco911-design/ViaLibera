@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./fixtures";
 import AxeBuilder from "@axe-core/playwright";
 import { cleanupTestSessions, db } from "./helpers";
 
@@ -363,6 +363,7 @@ test.describe("Allenamento (practice) — flussi reali", () => {
     const { sessionId } = await createPractice(page, 10);
     const sols = await sessionSolutions(sessionId);
     await page.goto(`/allenamento/${sessionId}`);
+    await waitReady(page); // keyboard listeners must be attached before pressing keys
     // senza verifica: la freccia non avanza
     await page.keyboard.press("ArrowRight");
     await expect(page.locator("header").getByText(/1 di 10/)).toBeVisible();

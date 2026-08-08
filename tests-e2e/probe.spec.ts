@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures";
 import { createSession, cleanupTestSessions } from "./helpers";
 
 test.beforeEach(async () => {

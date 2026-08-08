@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures";
 import {
   createSession,
   backdateSession,
@@ -279,7 +279,7 @@ test.describe("ViaLibera — flussi esame reali (auto-advance rimosso)", () => {
 
   test("27. media mancante -> fallback grafico senza crash", async ({ page }) => {
     const exam = await createSession(page);
-    await page.route("**/api/media/**", (route) => route.abort()); // simula file/media non disponibile
+    await page.route("**/media/questions/**", (route) => route.abort()); // simula file/media non disponibile
     await page.goto(`/simulazione/${exam.sessionId}`);
     // una domanda con immagine deve mostrare il fallback
     let found = false;
