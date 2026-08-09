@@ -8,6 +8,7 @@ import { QuestionImage } from "@/components/exam/question-image";
 import { StatBlock, SectionLabel } from "@/components/ui/editorial";
 import { EditorialAccordion } from "@/components/ui/editorial-accordion";
 import { cn } from "@/lib/utils/cn";
+import { pageShellClass } from "@/components/ui/page-shell";
 import type { PracticeResult } from "@/lib/practice/types";
 
 type Filter = "all" | "correct" | "errors" | "unanswered";
@@ -85,7 +86,7 @@ export function PracticeResultView({ result, topicName }: { result: PracticeResu
   ];
 
   return (
-    <div className="shell-wide px-4 pb-16 sm:px-6">
+    <div className={cn(pageShellClass, "pb-16")}>
       {/* summary poster */}
       <section className="mt-6 border-2 border-foreground bg-surface shadow-pop motion-enter" aria-live="polite">
         <div className="border-b-2 border-foreground bg-accent-yellow p-6 text-center">

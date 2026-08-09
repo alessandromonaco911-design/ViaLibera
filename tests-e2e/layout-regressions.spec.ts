@@ -192,7 +192,11 @@ test.describe("quiz geometric layout", () => {
         expect(m.overflow, "nessun overflow orizzontale").toBe(false);
         expect(m.answersAligned, "VERO e FALSO allineati").toBe(true);
         if (vp.width >= 1280) {
-          expect(m.ratio, `shell ampia (ratio ${m.ratio.toFixed(2)} >= 0.95)`).toBeGreaterThanOrEqual(0.95);
+          const expectedRatio = Math.min(1, 1152 / vp.width);
+          expect(
+            Math.abs(m.ratio - expectedRatio),
+            `shell allineata alla Home (ratio ${m.ratio.toFixed(2)} vs atteso ${expectedRatio.toFixed(2)}, max-w-6xl)`,
+          ).toBeLessThan(0.03);
           expect(m.panelW, "pannello domanda piu' largo (>= 1000px)").toBeGreaterThanOrEqual(1000);
           expect(m.answersH!, "VERO/FALSO alti (>= 72px)").toBeGreaterThanOrEqual(72);
         }

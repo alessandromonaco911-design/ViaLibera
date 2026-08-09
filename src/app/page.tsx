@@ -5,6 +5,8 @@ import { ResumeCard } from "@/components/home/resume-card";
 import { PracticeResumeCard } from "@/components/home/practice-resume-card";
 import { SiteHeader } from "@/components/ui/site-header";
 import { MarqueeStrip, SectionLabel, StatBlock } from "@/components/ui/editorial";
+import { cn } from "@/lib/utils/cn";
+import { pageShellClass } from "@/components/ui/page-shell";
 
 export default function Home() {
   return (
@@ -13,7 +15,7 @@ export default function Home() {
 
       <main className="flex-1">
         {/* ============ HERO ============ */}
-        <section className="mx-auto w-full max-w-6xl px-4 pt-10 sm:px-6 sm:pt-14">
+        <section className={cn(pageShellClass, "pt-10 sm:pt-14")}>
           <div className="grid border-2 border-foreground bg-surface shadow-pop lg:grid-cols-[minmax(0,1.15fr)_minmax(340px,0.85fr)] lg:divide-x-2 lg:divide-foreground">
             {/* left: title + CTAs */}
             <div className="motion-enter min-w-0 p-6 sm:p-10">
@@ -77,7 +79,7 @@ export default function Home() {
         </div>
 
         {/* ============ RESUME CARDS ============ */}
-        <section className="mx-auto mt-10 w-full max-w-6xl px-4 sm:px-6">
+        <section className={cn(pageShellClass, "mt-10")}>
           <div className="grid gap-4 md:grid-cols-2">
             <ResumeCard />
             <PracticeResumeCard />
@@ -85,7 +87,7 @@ export default function Home() {
         </section>
 
         {/* ============ MODE CARDS ============ */}
-        <section className="mx-auto grid w-full max-w-6xl gap-4 px-4 py-12 sm:px-6 md:grid-cols-2">
+        <section className={cn(pageShellClass, "grid gap-4 py-12 md:grid-cols-2")}>
           {/* SIMULAZIONE */}
           <div className="group editorial-hover motion-enter editorial-delay-1 flex flex-col justify-between border-2 border-foreground bg-accent-blue p-8">
             <div>

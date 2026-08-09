@@ -6,6 +6,7 @@ import { SiteHeader } from "@/components/ui/site-header";
 import { TopicSearch } from "@/components/practice/topic-search";
 import { SectionLabel } from "@/components/ui/editorial";
 import { cn } from "@/lib/utils/cn";
+import { pageShellClass } from "@/components/ui/page-shell";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -18,7 +19,7 @@ export default async function AllenamentoPage() {
     <div className="flex min-h-dvh w-full flex-col">
       <SiteHeader mode="Allenamento" />
 
-      <main className="shell-wide flex-1 px-4 pb-16 pt-8 sm:px-6">
+      <main className={cn(pageShellClass, "flex-1 pb-16 pt-8")}>
         <SectionLabel>Allenati per argomento</SectionLabel>
         <h1 className="mt-2 font-mono text-[clamp(2rem,4vw,4rem)] font-semibold leading-[0.95] tracking-tight">
           Scegli un argomento,

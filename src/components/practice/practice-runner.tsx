@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Drawer } from "@/components/ui/drawer";
 import { cn } from "@/lib/utils/cn";
+import { pageShellClass } from "@/components/ui/page-shell";
 import { QuestionImage } from "@/components/exam/question-image";
 
 export interface PracticeInitialState {
@@ -319,7 +320,7 @@ export function PracticeRunner({
 
   return (
     <div
-      className="shell-wide grid h-dvh grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)_auto] px-4 sm:px-6"
+      className={cn(pageShellClass, "grid h-dvh grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)_auto]")}
       data-hydrated={hydrated ? "true" : "false"}
     >
       {/* header — stable row 1 */}

@@ -8,6 +8,7 @@ import { QuestionImage } from "@/components/exam/question-image";
 import { StatBlock, SectionLabel } from "@/components/ui/editorial";
 import { EditorialAccordion } from "@/components/ui/editorial-accordion";
 import { cn } from "@/lib/utils/cn";
+import { pageShellClass } from "@/components/ui/page-shell";
 
 type Filter = "all" | "errors" | "unanswered";
 
@@ -87,7 +88,7 @@ export function ResultView({ data }: { data: ResultViewData }) {
   ];
 
   return (
-    <div className="shell-wide px-4 pb-16 sm:px-6">
+    <div className={cn(pageShellClass, "pb-16")}>
       {/* verdict + poster stats */}
       <section className="mt-6 border-2 border-foreground bg-surface shadow-pop motion-enter" aria-live="polite">
         <div

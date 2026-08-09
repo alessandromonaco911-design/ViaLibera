@@ -5,6 +5,8 @@ import { listPracticeTopics } from "@/lib/practice/generator";
 import { PracticeSetup } from "@/components/practice/practice-setup";
 import { SiteHeader } from "@/components/ui/site-header";
 import { SectionLabel } from "@/components/ui/editorial";
+import { cn } from "@/lib/utils/cn";
+import { pageShellClass } from "@/components/ui/page-shell";
 import { siteConfig } from "@/config/site";
 
 export const dynamic = "force-dynamic";
@@ -20,7 +22,7 @@ export default async function AllenamentoTopicPage({ params }: { params: Promise
   return (
     <div className="flex min-h-dvh w-full flex-col">
       <SiteHeader mode="Allenamento" />
-      <main className="shell-wide flex-1 px-4 pb-16 pt-8 sm:px-6">
+      <main className={cn(pageShellClass, "flex-1 pb-16 pt-8")}>
         <Link href="/allenamento" className="inline-flex items-center gap-1 font-mono text-sm uppercase tracking-wide text-muted hover:text-foreground">
           <span aria-hidden>←</span> Argomenti
         </Link>

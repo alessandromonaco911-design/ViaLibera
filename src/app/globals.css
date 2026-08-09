@@ -245,13 +245,6 @@ body {
   animation: marquee-track 28s linear infinite;
 }
 
-/* shared fluid shell for exam/practice sections (edge-to-edge, no desktop max) */
-.shell-wide {
-  width: calc(100vw - clamp(16px, 2vw, 32px));
-  max-width: none;
-  margin-inline: auto;
-}
-
 /* editorial section enter helpers */
 .editorial-delay-1 {
   animation-delay: 60ms;
