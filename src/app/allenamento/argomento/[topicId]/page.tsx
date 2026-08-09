@@ -20,7 +20,7 @@ export default async function AllenamentoTopicPage({ params }: { params: Promise
   if (!topic) notFound();
 
   return (
-    <div className="flex min-h-dvh w-full flex-col">
+    <div className="flex min-h-viewport w-full flex-col">
       <SiteHeader mode="Allenamento" />
       <main className={cn(pageShellClass, "flex-1 pb-16 pt-8")}>
         <Link href="/allenamento" className="inline-flex items-center gap-1 font-mono text-sm uppercase tracking-wide text-muted hover:text-foreground">

@@ -10,7 +10,7 @@ import { pageShellClass } from "@/components/ui/page-shell";
 
 export default function Home() {
   return (
-    <div className="flex min-h-dvh w-full flex-col">
+    <div className="flex min-h-viewport w-full flex-col">
       <SiteHeader />
 
       <main className="flex-1">

@@ -270,7 +270,7 @@ export function ExamRunner({ sessionId, version, startedAt, expiresAt, totalQues
   const selected = answers[current.id];
 
   return (
-    <div className={cn(pageShellClass, "grid h-dvh grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)_auto]")}>
+    <div className={cn(pageShellClass, "grid h-viewport grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)_auto]")}>
       {/* header — stable row 1 */}
       <header className="sticky top-0 z-20 border-b-2 border-foreground bg-accent-blue">
         <div className="flex w-full flex-wrap items-center gap-2 px-4 py-2.5 sm:flex-nowrap sm:gap-3 sm:px-6">

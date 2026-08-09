@@ -320,7 +320,7 @@ export function PracticeRunner({
 
   return (
     <div
-      className={cn(pageShellClass, "grid h-dvh grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)_auto]")}
+      className={cn(pageShellClass, "grid h-viewport grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)_auto]")}
       data-hydrated={hydrated ? "true" : "false"}
     >
       {/* header — stable row 1 */}

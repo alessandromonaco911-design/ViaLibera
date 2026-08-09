@@ -304,6 +304,16 @@ body {
   overflow-x: hidden;
 }
 
+/* viewport-height fallback: 100vh legacy (older WebView/Safari < 15.4), 100dvh modern */
+.h-viewport {
+  height: 100vh;
+  height: 100dvh;
+}
+.min-h-viewport {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
 /* quiz mobile chrome: compact but touch-friendly (>=44px) */
 .quiz-hdr-btn {
   height: 2.75rem !important; /* 44px mobile touch target */

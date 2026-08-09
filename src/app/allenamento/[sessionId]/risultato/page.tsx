@@ -31,7 +31,7 @@ export default async function PracticeResultPage({ params }: { params: Promise<{
   const topic = session.topicId ? await getTopic(session.topicId).catch(() => ({ id: "", code: "", name: "" })) : { id: "", code: "", name: "" };
 
   return (
-    <div className="flex min-h-dvh w-full flex-col">
+    <div className="flex min-h-viewport w-full flex-col">
       <SiteHeader mode="Risultato" />
       <div className="flex-1">
         <PracticeResultView result={result} topicName={topic.name || (rows[0]?.topic ?? "")} />
