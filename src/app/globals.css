@@ -12,6 +12,9 @@
   --foreground: #111111;
   --muted: #4b4740;
   --border: #111111;
+  /* page gutters — single source of truth, same as home card insets */
+  --page-gutter-mobile: 1rem;
+  --page-gutter-sm: 1.5rem;
 
   --accent-blue: #a8def3;
   --accent-yellow: #ffe99a;

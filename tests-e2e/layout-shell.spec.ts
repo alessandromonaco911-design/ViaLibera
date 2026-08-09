@@ -19,6 +19,16 @@ async function shellRect(page: import("@playwright/test").Page) {
   });
 }
 
+/** main card insets: home hero card vs quiz question card (same gutters) */
+async function cardRect(page: import("@playwright/test").Page) {
+  return page.evaluate(() => {
+    const el = document.querySelector("main section .border-2.bg-surface, main .border-2.bg-surface.shadow-pop");
+    if (!el) return null;
+    const r = el.getBoundingClientRect();
+    return { left: Math.round(r.left), right: Math.round(r.right), width: Math.round(r.width) };
+  });
+}
+
 test("home, simulazione, allenamento e risultati condividono la stessa shell", async ({ page }) => {
   test.setTimeout(300000);
   const t = await page.request.post(`${BASE}/api/practice`, { data: { topicId: TOPIC, questionCount: 10 } });
@@ -29,6 +39,7 @@ test("home, simulazione, allenamento e risultati condividono la stessa shell", a
   const { sessionId: examId } = await ex.json();
 
   const saved: Record<string, { left: number; right: number; width: number }> = {};
+  const savedCard: Record<string, { left: number; right: number; width: number }> = {};
   for (const [w, h] of VPS) {
     await page.setViewportSize({ width: w, height: h });
     await page.goto(`${BASE}/`, { waitUntil: "domcontentloaded", timeout: 60000 });
@@ -36,6 +47,9 @@ test("home, simulazione, allenamento e risultati condividono la stessa shell", a
     const home = await shellRect(page);
     expect(home, "home shell").not.toBeNull();
     saved[`home@${w}`] = home!;
+    const homeCard = await cardRect(page);
+    expect(homeCard, "home hero card").not.toBeNull();
+    savedCard[`home@${w}`] = homeCard!;
 
     await page.goto(`${BASE}/allenamento/${sessionId}`, { waitUntil: "domcontentloaded", timeout: 60000 });
     await page.waitForTimeout(1400);
@@ -43,6 +57,13 @@ test("home, simulazione, allenamento e risultati condividono la stessa shell", a
     expect(quiz, `allenamento shell @${w}`).not.toBeNull();
     expect(Math.abs(quiz!.left - home!.left), `allenamento left @${w}`).toBeLessThanOrEqual(2);
     expect(Math.abs(quiz!.width - home!.width), `allenamento width @${w}`).toBeLessThanOrEqual(2);
+    if (w <= 768) {
+      const quizCard = await cardRect(page);
+      expect(quizCard, `allenamento card @${w}`).not.toBeNull();
+      expect(Math.abs(quizCard!.left - homeCard!.left), `allenamento card left @${w}`).toBeLessThanOrEqual(2);
+      expect(Math.abs(quizCard!.right - homeCard!.right), `allenamento card right @${w}`).toBeLessThanOrEqual(2);
+      expect(Math.abs(quizCard!.width - homeCard!.width), `allenamento card width @${w}`).toBeLessThanOrEqual(2);
+    }
 
     await page.goto(`${BASE}/simulazione/${examId}`, { waitUntil: "domcontentloaded", timeout: 60000 });
     await page.waitForTimeout(1400);
@@ -50,6 +71,13 @@ test("home, simulazione, allenamento e risultati condividono la stessa shell", a
     expect(sim, `simulazione shell @${w}`).not.toBeNull();
     expect(Math.abs(sim!.left - home!.left), `simulazione left @${w}`).toBeLessThanOrEqual(2);
     expect(Math.abs(sim!.width - home!.width), `simulazione width @${w}`).toBeLessThanOrEqual(2);
+    if (w <= 768) {
+      const simCard = await cardRect(page);
+      expect(simCard, `simulazione card @${w}`).not.toBeNull();
+      expect(Math.abs(simCard!.left - homeCard!.left), `simulazione card left @${w}`).toBeLessThanOrEqual(2);
+      expect(Math.abs(simCard!.right - homeCard!.right), `simulazione card right @${w}`).toBeLessThanOrEqual(2);
+      expect(Math.abs(simCard!.width - homeCard!.width), `simulazione card width @${w}`).toBeLessThanOrEqual(2);
+    }
   }
 
   for (const [w, h] of [[1440, 900], [390, 844]] as const) {

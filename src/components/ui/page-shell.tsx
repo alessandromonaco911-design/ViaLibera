@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils/cn";
  * container. Replicates the home page: max-w-6xl (1152px) centered on
  * desktop, full width with px-4 (16px) gutters on mobile, px-6 from sm+.
  */
-export const pageShellClass = "mx-auto w-full max-w-6xl px-4 sm:px-6";
+export const pageShellClass = "mx-auto w-full max-w-6xl px-[var(--page-gutter-mobile)] sm:px-[var(--page-gutter-sm)]";
 
 export function PageShell({ className, children, ...rest }: HTMLAttributes<HTMLDivElement>) {
   return (
