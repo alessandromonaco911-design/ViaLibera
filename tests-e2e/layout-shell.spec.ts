@@ -8,7 +8,7 @@ import { test, expect } from "@playwright/test";
 
 const TOPIC = "d6a8ae00-4858-496e-8cab-018796468bb5";
 const BASE = process.env.PLAYWRIGHT_BASE_URL || "http://127.0.0.1:3210";
-const VPS = [[1920, 1080], [1440, 900], [1366, 768], [390, 844], [375, 812], [360, 800]] as const;
+const VPS = [[1920, 1080], [1440, 900], [1366, 768], [1024, 768], [768, 1024], [430, 932], [390, 844], [375, 812], [360, 800]] as const;
 
 async function shellRect(page: import("@playwright/test").Page) {
   return page.evaluate(() => {
@@ -30,7 +30,7 @@ async function cardRect(page: import("@playwright/test").Page) {
 }
 
 test("home, simulazione, allenamento e risultati condividono la stessa shell", async ({ page }) => {
-  test.setTimeout(300000);
+  test.setTimeout(420000);
   const t = await page.request.post(`${BASE}/api/practice`, { data: { topicId: TOPIC, questionCount: 10 } });
   expect(t.status()).toBe(201);
   const { sessionId } = await t.json();
