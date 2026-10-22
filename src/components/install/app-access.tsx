@@ -39,9 +39,23 @@ const serverEnvironment = () => "loading";
 /** A presentation rule, not authentication: mobile routes open from the Home icon. */
 export function AppAccess({ children }: { children: ReactNode }) {
   const mode = useSyncExternalStore(subscribe, environment, serverEnvironment);
+  useEffect(() => {
+    if (mode !== "app") return;
+    const update = () => document.documentElement.style.setProperty("--app-height", `${Math.round(window.visualViewport?.height ?? window.innerHeight)}px`);
+    update();
+    window.visualViewport?.addEventListener("resize", update);
+    window.addEventListener("resize", update);
+    window.addEventListener("pageshow", update);
+    return () => {
+      window.visualViewport?.removeEventListener("resize", update);
+      window.removeEventListener("resize", update);
+      window.removeEventListener("pageshow", update);
+      document.documentElement.style.removeProperty("--app-height");
+    };
+  }, [mode]);
   if (mode === "loading") return <div className={styles.loading} role="status">Caricamento ViaLibera…</div>;
   if (mode === "iphone" || mode === "phone") return <InstallGuide />;
-  return children;
+  return <div className="app-viewport" data-home-screen-app={mode === "app" ? "true" : undefined}>{children}</div>;
 }
 
 export function InstallGuide() {

@@ -6,6 +6,10 @@
    ============================================================ */
 
 :root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
   /* palette */
   --background: #f4f0e8;
   --surface: #ffffff;
@@ -72,6 +76,7 @@
 
 html {
   scroll-behavior: smooth;
+  background: var(--background);
 }
 
 body {
@@ -83,6 +88,13 @@ body {
 }
 
 .mobile-entry-loading { display: none; }
+.practice-explanation-trigger { display: block; min-height: 44px; text-decoration: underline; font-size: .875rem; font-weight: 600; text-align: left; }
+.app-viewport { min-height: var(--app-height, 100dvh); }
+@media (max-width: 1023px) {
+  html:has([data-home-screen-app]), body:has([data-home-screen-app]) { overflow: hidden; overscroll-behavior: none; }
+  [data-home-screen-app] .quiz-shell { height: var(--app-height,100dvh); padding-left: var(--safe-left); padding-right: var(--safe-right); background: var(--background); }
+  [data-home-screen-app] .quiz-shell > header { padding-top: var(--safe-top); }
+}
 .mobile-answer-result { display: flex; flex-direction: column; gap: .25rem; padding: .5rem .75rem; border: 2px solid var(--foreground); font-size: .875rem; line-height: 1.35; }
 @media (max-width: 1023px) {
   .mobile-entry-desktop { display: none; }
@@ -362,7 +374,7 @@ body {
   z-index: 20;
   border-top: 2px solid var(--foreground);
   background: var(--surface);
-  padding: .75rem 1rem max(.75rem, env(safe-area-inset-bottom));
+  padding: .75rem 1rem max(.75rem, var(--safe-bottom));
 }
 .quiz-actions {
   display: grid;
@@ -377,7 +389,7 @@ body {
 .quiz-hdr-btn { min-height: 3rem; }
 .action-bar-btn { min-height: 3.25rem; padding: .75rem 1rem; font-size: 1rem; }
 .quiz-back, .quiz-flag { width: 3.25rem; padding-inline: .5rem; }
-.dialog-panel { max-height: calc(100dvh - 1.5rem); padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
+.dialog-panel { max-height: calc(100dvh - 1.5rem); padding-bottom: max(1rem, var(--safe-bottom)); }
 .stat-block { container-type: inline-size; overflow-wrap: anywhere; }
 .stat-value { font-size: clamp(1.5rem, 18cqi, 2.5rem); line-height: 1.15; }
 .result-filters { position: sticky; top: calc(4rem + 2px); z-index: 20; }
@@ -426,7 +438,7 @@ body {
   .quiz-response > [aria-live] > div { padding: .375rem .5rem; }
   .quiz-response > [aria-live] p { font-size: .875rem; line-height: 1.35; }
   .quiz-shortcuts { display: none; }
-  .quiz-action-bar { padding: .5rem .75rem max(.5rem, env(safe-area-inset-bottom)); }
+  .quiz-action-bar { padding: .5rem .75rem max(.5rem, var(--safe-bottom)); }
   .action-bar-btn { min-height: 3rem; padding-block: .5rem; }
 }
 @media (max-width: 1023px) and (max-height: 700px) {

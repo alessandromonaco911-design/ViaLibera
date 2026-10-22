@@ -1,10 +1,10 @@
 .loading{height:100dvh;display:grid;place-items:center;font-family:var(--font-mono)}
-.page{height:100dvh;overflow:hidden;background:var(--background);color:var(--foreground);display:flex;flex-direction:column;padding-top:env(safe-area-inset-top)}
+.page{height:var(--app-height,100dvh);overflow:hidden;background:var(--background);color:var(--foreground);display:flex;flex-direction:column;padding-top:var(--safe-top)}
 .header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 20px;border-bottom:2px solid;background:var(--accent-blue);flex-shrink:0}
 .header>span:last-child{font:11px var(--font-mono);text-align:right;max-width:140px}
 .brand{font:bold 16px/.95 var(--font-mono);display:flex;flex-direction:column;align-items:flex-start}
 .brand span{color:var(--accent-blue);background:var(--foreground)}
-.content{width:100%;max-width:480px;margin:auto;min-height:0;display:flex;flex-direction:column;gap:22px;padding:24px 20px max(16px,env(safe-area-inset-bottom))}
+.content{width:100%;max-width:480px;margin:auto;min-height:0;display:flex;flex-direction:column;gap:22px;padding:24px 20px max(16px,var(--safe-bottom))}
 .intro{display:flex;flex-direction:column;gap:12px}
 .icon{border:2px solid;border-radius:16px;flex-shrink:0}
 .intro h1{font-size:32px;line-height:1.08;font-weight:750;letter-spacing:-1px;max-width:340px}
