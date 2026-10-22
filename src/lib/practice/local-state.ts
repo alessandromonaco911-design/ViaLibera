@@ -1,4 +1,5 @@
 import { siteConfig } from "../../config/site";
+import type { PracticeExplanation } from "./types";
 
 /**
  * Local practice state persisted in localStorage (per session).
@@ -12,6 +13,7 @@ export interface VerifiedPracticeResult {
   /** selected answer at verification time */
   selectedAnswer: boolean;
   isCorrect: boolean;
+  explanation?: PracticeExplanation | null;
 }
 
 export interface PersistedPracticeState {

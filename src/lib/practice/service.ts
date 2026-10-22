@@ -7,6 +7,7 @@ import type { DbCandidate } from "../exam/generator";
 import { fetchCandidates } from "../exam/generator";
 import { generatePracticeQuestions, getTopic, PracticeGenerationError } from "./generator";
 import type { AnswerCheckResult, PracticeMode, PracticeResult } from "./types";
+import { getPracticeExplanation } from "./explanations";
 
 /**
  * Practice (allenamento) + mistakes (ripasso errori) session service.
@@ -336,6 +337,8 @@ export async function verifyPracticeAnswer(sessionId: string, input: unknown): P
       answerVerified: examSessionQuestions.answerVerified,
       selectedAnswer: examSessionQuestions.selectedAnswer,
       correctAnswer: questions.correctAnswer,
+      statement: questions.statement,
+      imageRef: questions.imageReference,
     })
     .from(examSessionQuestions)
     .innerJoin(questions, eq(questions.id, examSessionQuestions.questionId))
@@ -352,6 +355,7 @@ export async function verifyPracticeAnswer(sessionId: string, input: unknown): P
         selectedAnswer,
         correctAnswer: q.correctAnswer,
         isCorrect: selectedAnswer === q.correctAnswer,
+        explanation: getPracticeExplanation(q),
       };
     }
     throw new PracticeServiceError("ALREADY_VERIFIED", "risposta già verificata: non può essere modificata");
@@ -374,6 +378,7 @@ export async function verifyPracticeAnswer(sessionId: string, input: unknown): P
     selectedAnswer,
     correctAnswer: q.correctAnswer,
     isCorrect: selectedAnswer === q.correctAnswer,
+    explanation: getPracticeExplanation(q),
   };
 }
 

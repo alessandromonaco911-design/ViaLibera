@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { getPracticeSession, getPracticeSessionQuestions } from "@/lib/practice/service";
 import { getTopic } from "@/lib/practice/generator";
 import { toPublicPracticeQuestion } from "@/lib/practice/payload";
+import { getPracticeExplanation } from "@/lib/practice/explanations";
 import { PracticeRunner } from "@/components/practice/practice-runner";
 
 export const dynamic = "force-dynamic";
@@ -67,6 +68,7 @@ export default async function PracticeSessionPage({ params }: { params: Promise<
         selectedAnswer: r.selectedAnswer,
         verified: r.answerVerified === true,
         isCorrect: r.answerVerified === true ? r.selectedAnswer !== null && r.selectedAnswer === r.correctAnswer : null,
+        explanation: r.answerVerified === true ? getPracticeExplanation(r) : null,
       }))}
     />
   );

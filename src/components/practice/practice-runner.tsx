@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import type { PublicPracticeQuestion } from "@/lib/practice/types";
+import type { PracticeExplanation, PublicPracticeQuestion } from "@/lib/practice/types";
+import { ExplanationSheet } from "./explanation-sheet";
 import {
   loadPersistedPracticeState,
   savePersistedPracticeState,
@@ -27,6 +28,7 @@ export interface PracticeInitialState {
   selectedAnswer: boolean | null;
   verified: boolean;
   isCorrect: boolean | null;
+  explanation?: PracticeExplanation | null;
 }
 
 interface PracticeRunnerProps {
@@ -65,12 +67,7 @@ export function PracticeRunner({
   const [completeOpen, setCompleteOpen] = useState(false);
   const [phase, setPhase] = useState<CheckPhase>("idle");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [justVerifiedId, setJustVerifiedId] = useState<string | null>(null);
-  const feedbackRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (justVerifiedId) feedbackRef.current?.scrollIntoView({ block: "nearest" });
-  }, [justVerifiedId]);
+  const [explanationQuestionId, setExplanationQuestionId] = useState<string | null>(null);
 
   const mountedRef = useRef(false);
   const checkingRef = useRef(false);
@@ -105,7 +102,7 @@ export function PracticeRunner({
         const ver: Record<string, VerifiedPracticeResult> = {};
         for (const s of initialStates) {
           if (s.verified && s.selectedAnswer !== null && s.isCorrect !== null) {
-            ver[s.questionId] = { selectedAnswer: s.selectedAnswer, isCorrect: s.isCorrect };
+            ver[s.questionId] = { selectedAnswer: s.selectedAnswer, isCorrect: s.isCorrect, explanation: s.explanation ?? null };
           }
         }
         for (const [qid, v] of Object.entries(stored.verified ?? {})) {
@@ -119,7 +116,7 @@ export function PracticeRunner({
         const ver: Record<string, VerifiedPracticeResult> = {};
         for (const s of initialStates) {
           if (s.verified && s.selectedAnswer !== null && s.isCorrect !== null) {
-            ver[s.questionId] = { selectedAnswer: s.selectedAnswer, isCorrect: s.isCorrect };
+            ver[s.questionId] = { selectedAnswer: s.selectedAnswer, isCorrect: s.isCorrect, explanation: s.explanation ?? null };
           }
         }
         setVerified(ver);
@@ -175,15 +172,17 @@ export function PracticeRunner({
       const data = (await res.json().catch(() => null)) as {
         isCorrect?: boolean;
         selectedAnswer?: boolean;
+        explanation?: PracticeExplanation | null;
         error?: { message?: string; code?: string };
       } | null;
       if (res.ok && data && typeof data.isCorrect === "boolean") {
         const result: VerifiedPracticeResult = {
           selectedAnswer: typeof data.selectedAnswer === "boolean" ? data.selectedAnswer : value,
           isCorrect: data.isCorrect,
+          explanation: data.explanation ?? null,
         };
         setVerified((prev) => ({ ...prev, [current.id]: result }));
-        setJustVerifiedId(current.id);
+        setExplanationQuestionId(current.id);
         setSelected((prev) => {
           const next = { ...prev };
           delete next[current.id];
@@ -249,7 +248,7 @@ export function PracticeRunner({
   };
 
   // ---- keyboard shortcuts (V/F/Enter/arrows/G/Esc) ----
-  const modalOpen = navigatorOpen || completeOpen || zoomImage !== null;
+  const modalOpen = navigatorOpen || completeOpen || zoomImage !== null || explanationQuestionId !== null;
   const keyHandlerRef = useRef<(e: KeyboardEvent) => void>(() => {});
   useEffect(() => {
     keyHandlerRef.current = (e: KeyboardEvent) => {
@@ -264,7 +263,8 @@ export function PracticeRunner({
       if (modalOpen) {
         if (e.key === "Escape") {
           e.preventDefault();
-          if (navigatorOpen) setNavigatorOpen(false);
+          if (explanationQuestionId) setExplanationQuestionId(null);
+          else if (navigatorOpen) setNavigatorOpen(false);
           else if (zoomImage) setZoomImage(null);
           else if (completeOpen) setCompleteOpen(false);
         }
@@ -399,7 +399,7 @@ export function PracticeRunner({
             </div>
 
             {/* feedback */}
-            <div ref={feedbackRef} aria-live="polite" className="mt-3 sm:mt-4">
+            <div aria-live="polite" className="mt-3 sm:mt-4">
               {currentVerified && (
                 <div
                   className={cn(
@@ -417,8 +417,7 @@ export function PracticeRunner({
                       ? "Corretta"
                       : `Errata — risposta corretta: ${currentVerified.selectedAnswer ? "FALSO" : "VERO"}`}
                   </p>
-                  <p className="mt-2 hidden text-base text-foreground lg:block">Spiegazione non ancora disponibile.</p>
-                  <p className="mt-1 hidden text-sm leading-relaxed text-muted lg:block">La risposta è stata corretta usando il catalogo ufficiale.</p>
+                  <button type="button" className="practice-explanation-trigger" onClick={() => setExplanationQuestionId(current.id)}>Leggi la spiegazione ↑</button>
                 </div>
               )}
               {!currentVerified && checkReady && (
@@ -478,6 +477,12 @@ export function PracticeRunner({
           )}
         </div>
       </div>
+
+      {currentVerified && <ExplanationSheet key={current.id} open={explanationQuestionId === current.id}
+        onClose={() => setExplanationQuestionId(null)}
+        onContinue={() => { setExplanationQuestionId(null); if (isLast) setCompleteOpen(true); else navNext(); }}
+        selectedAnswer={currentVerified.selectedAnswer} isCorrect={currentVerified.isCorrect}
+        explanation={currentVerified.explanation ?? null} position={position} total={totalQuestions} isLast={isLast} />}
 
       {/* navigator drawer */}
       <Drawer open={navigatorOpen} onClose={() => setNavigatorOpen(false)} title={`Domande (${totalQuestions})`}>

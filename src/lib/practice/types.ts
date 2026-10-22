@@ -9,6 +9,14 @@
 
 export type PracticeMode = "practice" | "mistakes";
 
+/** Editorial aid, separate from the ministerial question; revealed after verification. */
+export interface PracticeExplanation {
+  text: string;
+  remember: string;
+  sourceLabel: string;
+  sourceUrl: string;
+}
+
 export interface PublicPracticeImage {
   url: string;
   width: number | null;
@@ -61,6 +69,8 @@ export interface PracticeQuestionState {
   verified: boolean;
   /** present only for verified questions */
   isCorrect: boolean | null;
+  /** Only present for answers already verified by the user. */
+  explanation?: PracticeExplanation | null;
 }
 
 export interface PracticeStateResponse extends PublicPracticePayload {
@@ -74,6 +84,7 @@ export interface AnswerCheckResult {
   selectedAnswer: boolean;
   correctAnswer: boolean;
   isCorrect: boolean;
+  explanation: PracticeExplanation | null;
 }
 
 /** Final practice summary (idempotent). */

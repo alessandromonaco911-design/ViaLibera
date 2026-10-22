@@ -1,0 +1,217 @@
+{
+  "version": 1,
+  "sourceCatalog": "ab-observed-2026-10-22",
+  "entries": {
+    "76ddffd25ba668d1dc00fdf6d4c39ec5b8aff87d83ce6b96cbcf1c5c6296929d": {
+      "status": "verified_sources",
+      "officialQuestionCode": "24198",
+      "statement": "Il simbolo raffigurato è posto su una spia a luce blu",
+      "correctAnswer": true,
+      "imageRef": "436a1bf66e0ad8336d20d711af1cc0e2b8bf41eb870491573af8c01d7a2c3b7b",
+      "text": "Il simbolo identifica i proiettori di profondità, cioè gli abbaglianti. La spia associata è blu: perciò l’affermazione è vera.",
+      "remember": "Simbolo degli abbaglianti: spia blu.",
+      "sourceLabel": "Listato ufficiale",
+      "sourceUrl": "https://www.ilportaledellautomobilista.it/documents/56611/57319/210926_Conseguimento%2BA-B%2Bitaliano.pdf/07091bb8-a16b-4fa1-b921-4fd21fa5b650",
+      "verifiedAt": "2026-10-22",
+      "verification": {
+        "method": "source-comparison",
+        "reviewer": "Codex",
+        "humanReviewed": false,
+        "sourceSnapshotSha256": "fc52aaabda2256eaa711b30a85505316c9f563a9d632d210fa8e0c9aa84bf239",
+        "evidence": [
+          "24197",
+          "24198"
+        ]
+      }
+    },
+    "3079d12fdc683baafc61b4d2852987866b5727f65af0920ed8366cc78de37c21": {
+      "status": "verified_sources",
+      "officialQuestionCode": "23754",
+      "statement": "La sosta è vietata negli spazi riservati allo stazionamento e alla fermata degli autobus, dei filobus e dei veicoli circolanti su rotaia",
+      "correctAnswer": true,
+      "imageRef": null,
+      "text": "La sosta di altri veicoli occuperebbe un’area riservata al servizio pubblico. Il divieto riguarda gli spazi di stazionamento e fermata dei mezzi indicati, quindi la frase è vera.",
+      "remember": "Spazi riservati ai mezzi indicati: sosta vietata.",
+      "sourceLabel": "Listato ufficiale",
+      "sourceUrl": "https://www.ilportaledellautomobilista.it/documents/56611/57319/210926_Conseguimento%2BA-B%2Bitaliano.pdf/07091bb8-a16b-4fa1-b921-4fd21fa5b650",
+      "verifiedAt": "2026-10-22",
+      "verification": {
+        "method": "source-comparison",
+        "reviewer": "Codex",
+        "humanReviewed": false,
+        "sourceSnapshotSha256": "fc52aaabda2256eaa711b30a85505316c9f563a9d632d210fa8e0c9aa84bf239",
+        "evidence": [
+          "23754"
+        ]
+      }
+    },
+    "37ad44c9d0eb3c9a869792938bc9b4dc0ca18c4c9e4d2f3e062e4373ceb4dfe4": {
+      "status": "verified_sources",
+      "officialQuestionCode": "22594",
+      "statement": "In un secondo, si percorrono circa m 14 se si viaggia a 50 km/h",
+      "correctAnswer": true,
+      "imageRef": null,
+      "text": "Per passare da km/h a m/s dividi per 3,6: 50 ÷ 3,6 = 13,89. In un secondo percorri quindi circa 14 metri, come indica la frase.",
+      "remember": "50 km/h: circa 14 metri in un secondo.",
+      "sourceLabel": "Listato ufficiale",
+      "sourceUrl": "https://www.ilportaledellautomobilista.it/documents/56611/57319/210926_Conseguimento%2BA-B%2Bitaliano.pdf/07091bb8-a16b-4fa1-b921-4fd21fa5b650",
+      "verifiedAt": "2026-10-22",
+      "verification": {
+        "method": "source-comparison-and-arithmetic",
+        "reviewer": "Codex",
+        "humanReviewed": false,
+        "sourceSnapshotSha256": "fc52aaabda2256eaa711b30a85505316c9f563a9d632d210fa8e0c9aa84bf239",
+        "evidence": [
+          "22594"
+        ]
+      }
+    },
+    "dad59486968c661d01fc48fd848a9f607d8e7c56680292c4c6cb18ba8060bc2d": {
+      "status": "verified_sources",
+      "officialQuestionCode": "22595",
+      "statement": "In un secondo, si percorrono circa m 28 se si viaggia a 100 km/h",
+      "correctAnswer": true,
+      "imageRef": null,
+      "text": "Per passare da km/h a m/s dividi per 3,6: 100 ÷ 3,6 = 27,78. In un secondo percorri quindi circa 28 metri, come indica la frase.",
+      "remember": "100 km/h: circa 28 metri in un secondo.",
+      "sourceLabel": "Listato ufficiale",
+      "sourceUrl": "https://www.ilportaledellautomobilista.it/documents/56611/57319/210926_Conseguimento%2BA-B%2Bitaliano.pdf/07091bb8-a16b-4fa1-b921-4fd21fa5b650",
+      "verifiedAt": "2026-10-22",
+      "verification": {
+        "method": "source-comparison-and-arithmetic",
+        "reviewer": "Codex",
+        "humanReviewed": false,
+        "sourceSnapshotSha256": "fc52aaabda2256eaa711b30a85505316c9f563a9d632d210fa8e0c9aa84bf239",
+        "evidence": [
+          "22595"
+        ]
+      }
+    },
+    "447feef3b4450b42336d4ac081d3fbaefa9727eb6d68f6de7a2deee04ca6711c": {
+      "status": "verified_sources",
+      "officialQuestionCode": "22596",
+      "statement": "In un secondo, si percorrono circa m 36 se si viaggia a 130 km/h",
+      "correctAnswer": true,
+      "imageRef": null,
+      "text": "Per passare da km/h a m/s dividi per 3,6: 130 ÷ 3,6 = 36,11. In un secondo percorri quindi circa 36 metri, come indica la frase.",
+      "remember": "130 km/h: circa 36 metri in un secondo.",
+      "sourceLabel": "Listato ufficiale",
+      "sourceUrl": "https://www.ilportaledellautomobilista.it/documents/56611/57319/210926_Conseguimento%2BA-B%2Bitaliano.pdf/07091bb8-a16b-4fa1-b921-4fd21fa5b650",
+      "verifiedAt": "2026-10-22",
+      "verification": {
+        "method": "source-comparison-and-arithmetic",
+        "reviewer": "Codex",
+        "humanReviewed": false,
+        "sourceSnapshotSha256": "fc52aaabda2256eaa711b30a85505316c9f563a9d632d210fa8e0c9aa84bf239",
+        "evidence": [
+          "22596"
+        ]
+      }
+    },
+    "b3b61a36952e218a3eb28467392f7943ea39c1313a05bfe7ac40648960c6ab17": {
+      "status": "verified_sources",
+      "officialQuestionCode": "22597",
+      "statement": "In un secondo, si percorrono circa m 42 se si viaggia a 150 km/h",
+      "correctAnswer": true,
+      "imageRef": null,
+      "text": "Per passare da km/h a m/s dividi per 3,6: 150 ÷ 3,6 = 41,67. In un secondo percorri quindi circa 42 metri, come indica la frase.",
+      "remember": "150 km/h: circa 42 metri in un secondo.",
+      "sourceLabel": "Listato ufficiale",
+      "sourceUrl": "https://www.ilportaledellautomobilista.it/documents/56611/57319/210926_Conseguimento%2BA-B%2Bitaliano.pdf/07091bb8-a16b-4fa1-b921-4fd21fa5b650",
+      "verifiedAt": "2026-10-22",
+      "verification": {
+        "method": "source-comparison-and-arithmetic",
+        "reviewer": "Codex",
+        "humanReviewed": false,
+        "sourceSnapshotSha256": "fc52aaabda2256eaa711b30a85505316c9f563a9d632d210fa8e0c9aa84bf239",
+        "evidence": [
+          "22597"
+        ]
+      }
+    },
+    "d7cf9befe4d6844c725cd254f87566bc059c9f360863bef4356a632592a6ff69": {
+      "status": "verified_sources",
+      "officialQuestionCode": "22598",
+      "statement": "In un secondo, si percorrono circa m 20 se si viaggia a 150 km/h",
+      "correctAnswer": false,
+      "imageRef": null,
+      "text": "A 150 km/h percorri 150 ÷ 3,6 = 41,67 metri al secondo: circa 42 metri, non 20. Il valore indicato nella frase è quindi sbagliato.",
+      "remember": "150 km/h: circa 42 metri in un secondo.",
+      "sourceLabel": "Listato ufficiale",
+      "sourceUrl": "https://www.ilportaledellautomobilista.it/documents/56611/57319/210926_Conseguimento%2BA-B%2Bitaliano.pdf/07091bb8-a16b-4fa1-b921-4fd21fa5b650",
+      "verifiedAt": "2026-10-22",
+      "verification": {
+        "method": "source-comparison-and-arithmetic",
+        "reviewer": "Codex",
+        "humanReviewed": false,
+        "sourceSnapshotSha256": "fc52aaabda2256eaa711b30a85505316c9f563a9d632d210fa8e0c9aa84bf239",
+        "evidence": [
+          "22597"
+        ]
+      }
+    },
+    "a2140e13acb35efe26a32f66156432b5e26fa93b65b942c97de00f6bb5b8aa3e": {
+      "status": "verified_sources",
+      "officialQuestionCode": "22599",
+      "statement": "In un secondo, si percorrono circa m 4 se si viaggia a 50 km/h",
+      "correctAnswer": false,
+      "imageRef": null,
+      "text": "A 50 km/h percorri 50 ÷ 3,6 = 13,89 metri al secondo: circa 14 metri, non 4. Il valore indicato nella frase è quindi sbagliato.",
+      "remember": "50 km/h: circa 14 metri in un secondo.",
+      "sourceLabel": "Listato ufficiale",
+      "sourceUrl": "https://www.ilportaledellautomobilista.it/documents/56611/57319/210926_Conseguimento%2BA-B%2Bitaliano.pdf/07091bb8-a16b-4fa1-b921-4fd21fa5b650",
+      "verifiedAt": "2026-10-22",
+      "verification": {
+        "method": "source-comparison-and-arithmetic",
+        "reviewer": "Codex",
+        "humanReviewed": false,
+        "sourceSnapshotSha256": "fc52aaabda2256eaa711b30a85505316c9f563a9d632d210fa8e0c9aa84bf239",
+        "evidence": [
+          "22594"
+        ]
+      }
+    },
+    "b6457bd0fce79cc7df0ab080338dbbc870df31c0ce4744f307966e3981790a16": {
+      "status": "verified_sources",
+      "officialQuestionCode": "22600",
+      "statement": "In un secondo, si percorrono circa m 10 se si viaggia a 100 km/h",
+      "correctAnswer": false,
+      "imageRef": null,
+      "text": "A 100 km/h percorri 100 ÷ 3,6 = 27,78 metri al secondo: circa 28 metri, non 10. Il valore indicato nella frase è quindi sbagliato.",
+      "remember": "100 km/h: circa 28 metri in un secondo.",
+      "sourceLabel": "Listato ufficiale",
+      "sourceUrl": "https://www.ilportaledellautomobilista.it/documents/56611/57319/210926_Conseguimento%2BA-B%2Bitaliano.pdf/07091bb8-a16b-4fa1-b921-4fd21fa5b650",
+      "verifiedAt": "2026-10-22",
+      "verification": {
+        "method": "source-comparison-and-arithmetic",
+        "reviewer": "Codex",
+        "humanReviewed": false,
+        "sourceSnapshotSha256": "fc52aaabda2256eaa711b30a85505316c9f563a9d632d210fa8e0c9aa84bf239",
+        "evidence": [
+          "22595"
+        ]
+      }
+    },
+    "01f3fecd34ce6a9e4c2a2961f02f19bfcfaf4a2790d18f1dafe0da5828b71dff": {
+      "status": "verified_sources",
+      "officialQuestionCode": "22601",
+      "statement": "In un secondo, si percorrono circa m 15 se si viaggia a 130 km/h",
+      "correctAnswer": false,
+      "imageRef": null,
+      "text": "A 130 km/h percorri 130 ÷ 3,6 = 36,11 metri al secondo: circa 36 metri, non 15. Il valore indicato nella frase è quindi sbagliato.",
+      "remember": "130 km/h: circa 36 metri in un secondo.",
+      "sourceLabel": "Listato ufficiale",
+      "sourceUrl": "https://www.ilportaledellautomobilista.it/documents/56611/57319/210926_Conseguimento%2BA-B%2Bitaliano.pdf/07091bb8-a16b-4fa1-b921-4fd21fa5b650",
+      "verifiedAt": "2026-10-22",
+      "verification": {
+        "method": "source-comparison-and-arithmetic",
+        "reviewer": "Codex",
+        "humanReviewed": false,
+        "sourceSnapshotSha256": "fc52aaabda2256eaa711b30a85505316c9f563a9d632d210fa8e0c9aa84bf239",
+        "evidence": [
+          "22596"
+        ]
+      }
+    }
+  }
+}

@@ -1,5 +1,6 @@
 import { siteConfig } from "../../config/site";
 import { mediaUrlFor } from "../exam/payload";
+import { getPracticeExplanation } from "./explanations";
 import type { DbCandidate } from "../exam/generator";
 import type {
   PracticeMode,
@@ -89,6 +90,8 @@ export function toQuestionStates(
     selectedAnswer: boolean | null;
     answerVerified: boolean | null;
     correctAnswer: boolean;
+    statement?: string;
+    imageRef?: string | null;
   }[],
 ): PracticeQuestionState[] {
   return rows.map((r) => ({
@@ -97,5 +100,6 @@ export function toQuestionStates(
     selectedAnswer: r.selectedAnswer,
     verified: r.answerVerified === true,
     isCorrect: r.answerVerified === true ? (r.selectedAnswer ?? false) === r.correctAnswer : null,
+    ...(r.answerVerified === true && r.statement ? { explanation: getPracticeExplanation({ statement: r.statement, correctAnswer: r.correctAnswer, imageRef: r.imageRef ?? null }) } : {}),
   }));
 }

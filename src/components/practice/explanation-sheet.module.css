@@ -1,0 +1,33 @@
+.overlay{position:fixed;inset:0 0 auto;height:var(--app-height,100dvh);z-index:60;display:flex;align-items:flex-end;justify-content:center;isolation:isolate;opacity:0;pointer-events:none;transition:opacity 140ms ease-out}
+.overlay[data-open=true]{opacity:1;pointer-events:auto}
+.backdrop{position:absolute;inset:0;background:#1113}
+.panel{position:relative;width:100%;max-width:560px;max-height:calc(var(--app-height,100dvh) - var(--safe-top) - 12px);padding:16px max(16px,var(--safe-right)) max(16px,var(--safe-bottom)) max(16px,var(--safe-left));border:2px solid var(--foreground);border-bottom:0;border-radius:18px 18px 0 0;background:var(--surface);display:grid;gap:12px;overflow:hidden;transform:translateY(100%);transition:transform 240ms var(--ease-editorial);outline-offset:-4px}
+.overlay[data-open=true] .panel{transform:translateY(0)}
+.heading{display:flex;align-items:center;gap:10px;min-width:0}
+.heading>div{flex:1;min-width:0}
+.heading h2{font-size:20px;line-height:1.2;font-weight:750;letter-spacing:-.3px}
+.resultIcon{width:36px;height:36px;display:grid;place-items:center;border:1.5px solid var(--foreground);border-radius:9px;background:var(--danger-soft);font-size:24px;flex-shrink:0}
+.resultIcon[data-correct=true]{background:var(--success-soft)}
+.solution{font:11px/1.5 var(--font-mono);margin-top:5px;color:var(--muted)}
+.close{width:44px;height:44px;display:grid;place-items:center;flex-shrink:0;font-size:27px;background:transparent;border:0;touch-action:manipulation}
+.reading{min-width:0}
+.explanation{font-size:17px;line-height:1.45;overflow-wrap:anywhere;min-height:2.9em}
+.explanation strong,.remember strong{font-weight:750}
+.remember{padding:10px 12px;border-left:3px solid var(--foreground);background:var(--accent-yellow);min-width:0}
+.remember>span{font:10px var(--font-mono);text-transform:uppercase;letter-spacing:.6px;display:block;margin-bottom:5px}
+.remember p{font-size:14px;line-height:1.4}
+.actions{display:grid;gap:6px;min-width:0}
+.actionRow{display:flex;gap:8px;min-width:0}
+.actionRow .primary{flex:1;min-width:0}
+.source{display:grid;place-items:center;width:48px;min-height:48px;flex-shrink:0;border:1.5px solid var(--foreground);border-radius:7px;background:var(--surface);font-size:23px;color:var(--foreground);text-decoration:none}
+.primary{min-height:50px;border:2px solid var(--foreground);border-radius:7px;background:var(--foreground);color:var(--surface);font-size:15px;font-weight:700;touch-action:manipulation}
+.primary:active,.pagination button:active{transform:translateY(1px)}
+.meta{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0;font:10px/1.4 var(--font-mono);color:var(--muted)}
+.meta a{min-height:32px;display:inline-flex;align-items:center;text-decoration:underline;text-align:right;max-width:60%;overflow-wrap:anywhere}
+.pagination{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:8px;font:12px var(--font-mono)}
+.pagination button{min-width:44px;height:44px;border:1px solid var(--foreground);border-radius:5px;background:var(--surface);font-size:20px}
+.pagination button:disabled{opacity:.3}
+@media(min-width:1024px){.overlay{padding:24px;align-items:center}.panel{border-bottom:2px solid;border-radius:14px;padding:24px;gap:16px}.explanation{font-size:19px}.heading h2{font-size:23px}.remember p{font-size:16px}.meta a{min-height:44px}}
+@media(max-height:700px){.panel{padding-top:12px;gap:9px}.heading h2{font-size:18px}.explanation{font-size:16px;line-height:1.4}.remember{padding:8px 10px}.remember p{font-size:13px}.solution{font-size:10px}.primary{min-height:48px}}
+@media(orientation:landscape) and (max-height:500px){.panel{max-width:900px;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px 16px;padding-top:8px}.heading{grid-column:1/-1}.heading h2{font-size:17px}.heading .close{height:36px}.explanation{font-size:15px;line-height:1.35}.remember{align-self:start}.actions{grid-column:1/-1;grid-template-columns:1fr 1fr;align-items:center}.meta{flex-direction:column;gap:0}.primary{min-height:44px}.pagination{margin-top:4px}.pagination button{height:36px}}
+@media(prefers-reduced-motion:reduce){.overlay,.panel{transition:none}}

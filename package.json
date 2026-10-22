@@ -33,6 +33,8 @@
     "review:gallery": "tsx scripts/review/gallery.ts",
     "review:export": "tsx scripts/review/export.ts",
     "review:import": "tsx --env-file=.env scripts/review/import-external-ai.ts",
+    "explanations:audit": "node scripts/review/audit-explanations.mjs",
+    "explanations:require-complete": "node scripts/review/audit-explanations.mjs --require-complete",
     "data:figure-audit": "tsx scripts/data/figure-audit.ts"
   },
   "dependencies": {
