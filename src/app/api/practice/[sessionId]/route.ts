@@ -40,7 +40,7 @@ export async function GET(_request: Request, ctx: Ctx): Promise<NextResponse<Pra
       id: r.questionId,
       position: r.position,
       statement: r.statement,
-      image: r.imageRef ? { url: `/api/media/${r.imageRef}`, width: r.mediaWidth, height: r.mediaHeight } : null,
+      image: r.imageRef ? { url: `/media/questions/${r.imageRef}.png`, width: r.mediaWidth, height: r.mediaHeight } : null,
       officialQuestionCode: r.officialQuestionCode,
       groupCode: r.groupCode,
       topic: r.topic,

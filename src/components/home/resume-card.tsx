@@ -44,11 +44,11 @@ export function ResumeCard() {
         const answered = Object.keys(s.answers ?? {}).length;
         return (
           <div key={s.sessionId} className="mb-4 border-2 border-foreground bg-accent-blue p-5 shadow-pop">
-            <div className="flex items-center justify-between border-b-2 border-foreground pb-2">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b-2 border-foreground pb-2">
               <h2 className="font-mono text-sm font-semibold uppercase tracking-wide">Simulazione in corso</h2>
               <span className="font-mono text-xs uppercase text-muted">patente {siteConfig.licenseCategory}</span>
             </div>
-            <div className="mt-3 flex gap-6 text-sm">
+            <div className="mt-3 flex flex-wrap gap-4 text-base">
               <span>
                 <span className="block font-mono text-xs uppercase text-muted">Tempo residuo</span>
                 <b className="font-mono tabular-nums">{formatClock(remaining)}</b>
@@ -58,7 +58,7 @@ export function ResumeCard() {
                 <b className="font-mono tabular-nums">{answered} / {siteConfig.exam.totalQuestions}</b>
               </span>
             </div>
-            <div className="mt-4 flex gap-3">
+            <div className="mt-4 grid grid-cols-2 gap-2">
               <Button
                 variant="primary"
                 fullWidth

@@ -7,9 +7,12 @@ import { SiteHeader } from "@/components/ui/site-header";
 import { MarqueeStrip, SectionLabel, StatBlock } from "@/components/ui/editorial";
 import { cn } from "@/lib/utils/cn";
 import { pageShellClass } from "@/components/ui/page-shell";
+import { MobileEntry } from "@/components/mobile/mobile-entry";
+import { activeCatalog } from "@/config/catalog";
 
 export default function Home() {
   return (
+    <MobileEntry initialSection="home">
     <div className="flex min-h-viewport w-full flex-col">
       <SiteHeader />
 
@@ -20,7 +23,7 @@ export default function Home() {
             {/* left: title + CTAs */}
             <div className="motion-enter min-w-0 p-6 sm:p-10">
               <SectionLabel>Esame patente {siteConfig.licenseCategory} · teorico</SectionLabel>
-              <h1 className="mt-4 max-w-full font-mono text-[clamp(2.2rem,5.2vw,4.75rem)] font-semibold leading-[0.95] tracking-tight">
+              <h1 className="mt-4 max-w-full break-words font-mono text-[clamp(2rem,5vw,4.5rem)] font-semibold leading-[1.05] tracking-tight">
                 Preparati
                 <br />
                 all&apos;esame.
@@ -37,7 +40,7 @@ export default function Home() {
                 <StartExamButton />
                 <Link
                   href="/allenamento"
-                  className="editorial-press flex h-12 w-full select-none items-center justify-center gap-2 rounded-md border-2 border-foreground bg-accent-yellow px-6 font-mono text-base font-medium uppercase tracking-wide text-foreground hover:bg-accent-pink"
+                  className="editorial-press flex min-h-14 w-full select-none items-center justify-center gap-2 rounded-md border-2 border-foreground bg-accent-yellow px-4 py-3 text-center font-mono text-base font-medium uppercase leading-snug tracking-wide text-foreground hover:bg-accent-pink"
                 >
                   Allenati per argomento
                   <span aria-hidden className="arrow-nudge">→</span>
@@ -55,8 +58,8 @@ export default function Home() {
               <StatBlock label="Errori massimi" value="3" tone="pink" />
               <StatBlock label="Patente" value="B" tone="white" />
               <StatBlock
-                label="Feedback"
-                value="Immediato"
+                label="In allenamento"
+                value="Subito"
                 tone="green"
                 valueClassName="text-lg sm:text-xl xl:text-2xl"
               />
@@ -87,12 +90,12 @@ export default function Home() {
         </section>
 
         {/* ============ MODE CARDS ============ */}
-        <section className={cn(pageShellClass, "grid gap-4 py-12 md:grid-cols-2")}>
+        <section className={cn(pageShellClass, "grid gap-4 py-12 lg:grid-cols-2")}>
           {/* SIMULAZIONE */}
-          <div className="group editorial-hover motion-enter editorial-delay-1 flex flex-col justify-between border-2 border-foreground bg-accent-blue p-8">
+          <div className="group editorial-hover motion-enter editorial-delay-1 flex min-w-0 flex-col justify-between border-2 border-foreground bg-accent-blue p-6 sm:p-8">
             <div>
               <SectionLabel>Modalità</SectionLabel>
-              <h2 className="mt-2 font-mono text-4xl font-semibold uppercase tracking-tight sm:text-5xl">
+              <h2 className="mt-2 break-words font-mono text-[clamp(2rem,4vw,3rem)] font-semibold uppercase tracking-tight">
                 Simulazione
               </h2>
               <dl className="mt-6 space-y-2 font-mono text-sm uppercase tracking-wide">
@@ -103,7 +106,7 @@ export default function Home() {
             </div>
             <Link
               href="/#inizia"
-              className="editorial-press mt-8 inline-flex h-12 items-center justify-center gap-2 border-2 border-foreground bg-foreground px-6 font-mono text-base font-medium uppercase tracking-wide text-white hover:bg-black"
+              className="editorial-press mt-8 inline-flex min-h-14 items-center justify-center gap-2 border-2 border-foreground bg-foreground px-4 py-3 text-center font-mono text-base font-medium uppercase leading-snug tracking-wide text-white hover:bg-black"
             >
               Vai alla simulazione
               <span aria-hidden className="arrow-nudge">→</span>
@@ -111,10 +114,10 @@ export default function Home() {
           </div>
 
           {/* ALLENAMENTO */}
-          <div className="group editorial-hover motion-enter editorial-delay-2 flex flex-col justify-between border-2 border-foreground bg-accent-yellow p-8">
+          <div className="group editorial-hover motion-enter editorial-delay-2 flex min-w-0 flex-col justify-between border-2 border-foreground bg-accent-yellow p-6 sm:p-8">
             <div>
               <SectionLabel>Modalità</SectionLabel>
-              <h2 className="mt-2 font-mono text-4xl font-semibold uppercase tracking-tight sm:text-5xl">
+              <h2 className="mt-2 break-words font-mono text-[clamp(2rem,4vw,3rem)] font-semibold uppercase tracking-tight">
                 Allenamento
               </h2>
               <dl className="mt-6 space-y-2 font-mono text-sm uppercase tracking-wide">
@@ -125,7 +128,7 @@ export default function Home() {
             </div>
             <Link
               href="/allenamento"
-              className="editorial-press mt-8 inline-flex h-12 items-center justify-center gap-2 border-2 border-foreground bg-foreground px-6 font-mono text-base font-medium uppercase tracking-wide text-white hover:bg-black"
+              className="editorial-press mt-8 inline-flex min-h-14 items-center justify-center gap-2 border-2 border-foreground bg-foreground px-4 py-3 text-center font-mono text-base font-medium uppercase leading-snug tracking-wide text-white hover:bg-black"
             >
               Allenati per argomento
               <span aria-hidden className="arrow-nudge">→</span>
@@ -135,8 +138,9 @@ export default function Home() {
       </main>
 
       <footer className="border-t-2 border-foreground bg-surface py-6 text-center font-mono text-xs uppercase tracking-wide text-muted">
-        {siteConfig.name} · quesiti dal catalogo ufficiale importato · simulazione compatibile con il formato d&apos;esame
+        {siteConfig.name} · listato AB del Portale dell&apos;Automobilista · verificato il {activeCatalog.verifiedAt} · simulazione compatibile con il formato d&apos;esame
       </footer>
     </div>
+    </MobileEntry>
   );
 }

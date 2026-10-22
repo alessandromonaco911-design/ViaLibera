@@ -36,7 +36,7 @@ export function PracticeResumeCard() {
         const errors = verifiedEntries.filter((v) => !v.isCorrect).length;
         return (
           <div key={s.sessionId} className="mb-4 border-2 border-foreground bg-accent-yellow p-5 shadow-pop">
-            <div className="flex items-center justify-between gap-2 border-b-2 border-foreground pb-2">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b-2 border-foreground pb-2">
               <h2 className="font-mono text-sm font-semibold uppercase tracking-wide">
                 {s.mode === "mistakes" ? "Ripasso errori in corso" : "Allenamento in corso"}
               </h2>
@@ -45,7 +45,7 @@ export function PracticeResumeCard() {
             <p className="mt-1 truncate font-mono text-xs text-muted">
               {s.topicName || (s.mode === "mistakes" ? "Ripasso errori" : "Allenamento")}
             </p>
-            <div className="mt-3 flex gap-6 text-sm">
+            <div className="mt-3 flex flex-wrap gap-4 text-base">
               <span>
                 <span className="block font-mono text-xs uppercase text-muted">Verificate</span>
                 <b className="font-mono tabular-nums">
@@ -61,7 +61,7 @@ export function PracticeResumeCard() {
                 <b className="font-mono tabular-nums text-danger">{errors}</b>
               </span>
             </div>
-            <div className="mt-4 flex gap-3">
+            <div className="mt-4 grid grid-cols-2 gap-2">
               <Button
                 variant="primary"
                 fullWidth

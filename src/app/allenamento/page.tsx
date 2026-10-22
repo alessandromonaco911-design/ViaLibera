@@ -7,6 +7,7 @@ import { TopicSearch } from "@/components/practice/topic-search";
 import { SectionLabel } from "@/components/ui/editorial";
 import { cn } from "@/lib/utils/cn";
 import { pageShellClass } from "@/components/ui/page-shell";
+import { MobileEntry } from "@/components/mobile/mobile-entry";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -16,6 +17,7 @@ export default async function AllenamentoPage() {
   const topics = catalogId ? await listPracticeTopics(catalogId) : [];
 
   return (
+    <MobileEntry initialSection="training" topics={topics}>
     <div className="flex min-h-viewport w-full flex-col">
       <SiteHeader mode="Allenamento" />
 
@@ -26,7 +28,7 @@ export default async function AllenamentoPage() {
           <br />
           rispondi subito.
         </h1>
-        <p className="mt-4 max-w-xl text-sm leading-relaxed text-muted sm:text-base">
+        <p className="mt-4 max-w-xl text-base leading-relaxed text-muted">
           Feedback immediato su ogni risposta, nessun limite di tempo, nessuna registrazione.
           {topics.length > 0 && ` ${topics.length} argomenti disponibili.`}
         </p>
@@ -62,5 +64,6 @@ export default async function AllenamentoPage() {
         {siteConfig.name} · allenamento senza limite di tempo · {topics.length} argomenti disponibili
       </footer>
     </div>
+    </MobileEntry>
   );
 }

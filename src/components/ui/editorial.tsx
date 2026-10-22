@@ -66,9 +66,9 @@ export function StatBlock({
     orange: "bg-accent-orange",
   };
   return (
-    <div className={cn("border-2 border-foreground p-4", fills[tone], className)}>
-      <p className="font-mono text-[0.65rem] uppercase tracking-[0.18em] text-foreground">{label}</p>
-      <p className={cn("mt-1 font-mono text-3xl font-semibold leading-none tabular-nums sm:text-4xl", valueClassName)}>{value}</p>
+    <div className={cn("stat-block min-w-0 border-2 border-foreground p-3 sm:p-4", fills[tone], className)}>
+      <p className="font-mono text-xs uppercase leading-relaxed tracking-wider text-foreground">{label}</p>
+      <p className={cn("stat-value mt-2 font-mono font-semibold tabular-nums", valueClassName)}>{value}</p>
     </div>
   );
 }

@@ -3,8 +3,8 @@ import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { eq, and } from "drizzle-orm";
 import { db, sql } from "../../src/lib/db";
-import { mediaAssets, questionCatalogVersions, questionMedia, questions, topics } from "../../src/lib/db/schema";
-import { OFFICIAL_SOURCES } from "../data/sources";
+import { mediaAssets, questionCatalogVersions, questionMedia, questions, topics, sourceFiles } from "../../src/lib/db/schema";
+import { catalogInput } from "./catalog-input";
 
 /**
  * Post-import verification: reconciles three levels
@@ -17,9 +17,7 @@ import { OFFICIAL_SOURCES } from "../data/sources";
 
 const ROOT = process.cwd();
 const CATALOG_ID = process.argv[2] ?? "ab-2025-04-23";
-const SOURCE_ID = "pda-2025-ab-it";
-const LICENSE_CATEGORY = "AB";
-const VERSION_CODE = "2025-04-23";
+const INPUT = catalogInput(CATALOG_ID);
 
 function mulberry32(seed: number) {
   return function () {
@@ -32,7 +30,6 @@ function mulberry32(seed: number) {
 }
 
 async function main() {
-  const src = OFFICIAL_SOURCES.find((s) => s.id === SOURCE_ID)!;
   const pDir = join(ROOT, "data", "processed", CATALOG_ID);
   if (!existsSync(join(pDir, "questions.jsonl"))) {
     throw new Error(`processed output mancante: ${pDir}`);
@@ -44,14 +41,14 @@ async function main() {
   const pg = JSON.parse(await readFile(join(pDir, "groups.json"), "utf-8"));
   const pt = JSON.parse(await readFile(join(pDir, "topics.json"), "utf-8"));
   const pm = JSON.parse(await readFile(join(pDir, "media.json"), "utf-8"));
-  const manifest = JSON.parse(await readFile(join(ROOT, "data", "manifests", `${SOURCE_ID}.json`), "utf-8"));
+  const manifest = JSON.parse(await readFile(INPUT.manifestPath, "utf-8"));
 
   // --- level 3: DB ---
   const catalog = (
     await db
       .select()
       .from(questionCatalogVersions)
-      .where(and(eq(questionCatalogVersions.licenseCategory, LICENSE_CATEGORY), eq(questionCatalogVersions.versionCode, VERSION_CODE)))
+      .where(and(eq(questionCatalogVersions.licenseCategory, INPUT.licenseCategory), eq(questionCatalogVersions.versionCode, INPUT.versionCode)))
       .limit(1)
   )[0];
   if (!catalog) throw new Error("catalogo non presente nel DB: eseguire prima l'import");
@@ -70,7 +67,10 @@ async function main() {
     .from(questions)
     .where(eq(questions.catalogVersionId, catalog.id));
   const dbMedia = await db.select().from(mediaAssets).where(eq(mediaAssets.catalogVersionId, catalog.id));
-  const dbQM = await db.select().from(questionMedia);
+  const dbQM = await db.select({ questionId: questionMedia.questionId }).from(questionMedia)
+    .innerJoin(questions, eq(questions.id, questionMedia.questionId)).where(eq(questions.catalogVersionId, catalog.id));
+  const referencedTopics = dbTopics.filter(topic => dbQuestions.some(question => question.topicId === topic.id));
+  const source = catalog.sourceFileId ? (await db.select().from(sourceFiles).where(eq(sourceFiles.id, catalog.sourceFileId)).limit(1))[0] : null;
   const dbGroupCodes = new Set(dbQuestions.map((q) => q.officialGroupCode));
 
   const dbByCode = new Map(dbQuestions.map((q) => [q.officialQuestionCode, q]));
@@ -95,6 +95,7 @@ async function main() {
       db: 1,
       ok: true,
     },
+    source: { ok: source?.sha256 === manifest.sha256 },
     groups: {
       processed: pg.length,
       db: dbGroupCodes.size,
@@ -102,8 +103,8 @@ async function main() {
     },
     topics: {
       processed: pt.length,
-      db: dbTopics.length,
-      ok: pt.length === dbTopics.length,
+      db: referencedTopics.length,
+      ok: pt.length === referencedTopics.length,
     },
     questions: {
       processed: pq.length,
@@ -151,7 +152,7 @@ async function main() {
   // --- deterministic random spot checks (>= 30) ---
   const rnd = mulberry32(20250423);
   const sample = [...pq].sort(() => rnd() - 0.5).slice(0, 30);
-  const spotChecks = sample.map((q) => {
+  const check = (q: typeof pq[number]) => {
     const dbq = dbByCode.get(q.questionNumber);
     const topic = dbq?.topicId ? dbTopicById.get(dbq.topicId) : undefined;
     return {
@@ -168,22 +169,26 @@ async function main() {
       dbStatement: dbq?.statement,
       expectedStatement: q.statement,
     };
-  });
+  };
+  const spotChecks = sample.map(check);
+  const fullChecks = pq.map(check);
+  const mismatches = fullChecks.filter(s => !Object.values(s.match).every(Boolean));
 
   const spotOk = spotChecks.filter((s) => Object.values(s.match).every(Boolean)).length;
 
   const report = {
     catalogId: CATALOG_ID,
     executedAt: new Date().toISOString(),
-    sourcePdf: { filename: src.localFilename, sha256: manifest.sha256 as string },
+    sourcePdf: { filename: manifest.filename, sha256: manifest.sha256 as string },
     reconciliation,
     spotChecks: { total: spotChecks.length, ok: spotOk, failed: spotChecks.length - spotOk },
     spotMismatches: spotChecks.filter((s) => !Object.values(s.match).every(Boolean)).slice(0, 10),
+    fullChecks: { total: fullChecks.length, failed: mismatches.length, mismatches: mismatches.slice(0, 10) },
     catalogStatus: catalog.status,
     catalogNotProductionReady: catalog.status !== "ready_for_production",
     passed:
       Object.values(reconciliation).every((r) => (r && typeof r === "object" && "ok" in r ? r.ok : true)) &&
-      spotOk === spotChecks.length,
+      spotOk === spotChecks.length && mismatches.length === 0,
   };
 
   const reportDir = join(ROOT, "data", "reports");

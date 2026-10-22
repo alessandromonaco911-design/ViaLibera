@@ -47,7 +47,7 @@ export function PracticeSetup({ topic }: { topic: PracticeTopicSummary }) {
   return (
     <section
       aria-label="Configurazione allenamento"
-      className="border-2 border-foreground bg-accent-yellow p-6 shadow-pop motion-enter editorial-delay-1 sm:p-8"
+      className="min-w-0 border-2 border-foreground bg-accent-yellow p-4 shadow-pop motion-enter editorial-delay-1 sm:p-8"
     >
       <SectionLabel>Allenamento per argomento</SectionLabel>
       <h2 className="mt-1 font-mono text-xl font-semibold uppercase tracking-tight">Numero di domande</h2>
@@ -86,7 +86,7 @@ export function PracticeSetup({ topic }: { topic: PracticeTopicSummary }) {
         </p>
       )}
 
-      <dl className="mt-5 space-y-2 border-2 border-foreground bg-surface p-4 font-mono text-sm">
+      <dl className="mt-5 space-y-3 border-2 border-foreground bg-surface p-3 text-base">
         <div className="flex justify-between gap-3">
           <dt className="uppercase text-muted">Quesiti disponibili</dt>
           <dd className="tabular-nums">{topic.questionCount}</dd>
@@ -109,7 +109,7 @@ export function PracticeSetup({ topic }: { topic: PracticeTopicSummary }) {
         </div>
       </dl>
 
-      <p className="mt-3 font-mono text-xs uppercase tracking-wide text-muted">
+      <p className="mt-4 text-base leading-relaxed text-muted">
         Puoi cambiare risposta finché non premi Verifica.
       </p>
 

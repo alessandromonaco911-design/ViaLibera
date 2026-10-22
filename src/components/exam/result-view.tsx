@@ -88,7 +88,7 @@ export function ResultView({ data }: { data: ResultViewData }) {
   ];
 
   return (
-    <div className={cn(pageShellClass, "pb-16")}>
+    <main className={cn(pageShellClass, "pb-16")}>
       {/* verdict + poster stats */}
       <section className="mt-6 border-2 border-foreground bg-surface shadow-pop motion-enter" aria-live="polite">
         <div
@@ -129,8 +129,8 @@ export function ResultView({ data }: { data: ResultViewData }) {
       </section>
 
       {/* sticky compact summary bar with filters */}
-      <div className="sticky top-0 z-20 -mx-4 mt-6 border-y-2 border-foreground bg-surface px-4 py-2">
-        <div className="flex items-center gap-1 overflow-x-auto">
+      <div className="result-filters mt-6 border-y-2 border-foreground bg-surface py-3">
+        <div className="result-filter-options">
           {filters.map((f) => (
             <button
               key={f.key}
@@ -138,7 +138,7 @@ export function ResultView({ data }: { data: ResultViewData }) {
               onClick={() => changeFilter(f.key)}
               aria-pressed={filter === f.key}
               className={cn(
-                "shrink-0 border-2 border-foreground px-3 py-1.5 font-mono text-xs font-medium uppercase tracking-wide transition-colors",
+                "min-h-12 min-w-0 border-2 border-foreground px-2 py-2 text-center font-mono text-sm font-medium leading-snug transition-colors",
                 filter === f.key ? "bg-foreground text-white" : "bg-surface text-foreground hover:bg-accent-blue",
               )}
             >
@@ -176,7 +176,7 @@ export function ResultView({ data }: { data: ResultViewData }) {
                     >
                       {q.position}
                     </span>
-                    <span className="flex-1 truncate text-sm">{q.statement}</span>
+                    <span className="min-w-0 flex-1 text-base leading-relaxed">{q.statement}</span>
                     <span
                       className="font-mono text-xs font-medium uppercase"
                       aria-label={q.correct ? "Corretta" : q.unanswered ? "Non risposta" : "Errata"}
@@ -191,14 +191,14 @@ export function ResultView({ data }: { data: ResultViewData }) {
               >
                 {q.topic && <span className="font-mono text-xs uppercase tracking-wide text-primary">{q.topic}</span>}
                 {q.imageUrl && (
-                  <div className="mt-2 max-w-[220px]">
-                    <QuestionImage src={q.imageUrl} width={null} height={null} className="w-full border border-foreground object-contain" />
+                  <div className="mt-3">
+                    <QuestionImage src={q.imageUrl} width={null} height={null} className="result-image border border-foreground/30" />
                   </div>
                 )}
-                <p className="mt-2 text-sm leading-relaxed">{q.statement}</p>
-                <dl className="mt-3 space-y-1.5 text-sm">
-                  <div className="flex gap-2">
-                    <dt className="w-32 shrink-0 font-mono text-xs uppercase tracking-wide text-muted">Risposta data</dt>
+                <p className="mt-4 text-base leading-relaxed">{q.statement}</p>
+                <dl className="result-details mt-4">
+                  <div className="min-w-0">
+                    <dt className="font-mono text-sm text-muted">Risposta data</dt>
                     <dd>
                       {q.selectedAnswer === null ? (
                         <span className="font-medium text-danger">Non risposta</span>
@@ -207,16 +207,16 @@ export function ResultView({ data }: { data: ResultViewData }) {
                       )}
                     </dd>
                   </div>
-                  <div className="flex gap-2">
-                    <dt className="w-32 shrink-0 font-mono text-xs uppercase tracking-wide text-muted">Risposta corretta</dt>
+                  <div className="min-w-0">
+                    <dt className="font-mono text-sm text-muted">Risposta corretta</dt>
                     <dd className="font-medium">{q.correctAnswer ? "VERO" : "FALSO"}</dd>
                   </div>
-                  <div className="flex gap-2">
-                    <dt className="w-32 shrink-0 font-mono text-xs uppercase tracking-wide text-muted">Codice</dt>
+                  <div className="min-w-0">
+                    <dt className="font-mono text-sm text-muted">Codice</dt>
                     <dd className="tabular-nums">{q.officialQuestionCode ?? "—"}</dd>
                   </div>
-                  <div className="flex gap-2">
-                    <dt className="w-32 shrink-0 font-mono text-xs uppercase tracking-wide text-muted">Gruppo</dt>
+                  <div className="min-w-0">
+                    <dt className="font-mono text-sm text-muted">Gruppo</dt>
                     <dd>{q.groupCode ?? "—"}</dd>
                   </div>
                 </dl>
@@ -225,6 +225,6 @@ export function ResultView({ data }: { data: ResultViewData }) {
           ))}
         </ul>
       </section>
-    </div>
+    </main>
   );
 }

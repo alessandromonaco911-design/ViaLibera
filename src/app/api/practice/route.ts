@@ -6,6 +6,7 @@ import { createPracticeSession, PracticeServiceError } from "@/lib/practice/serv
 import { buildPublicPracticePayload } from "@/lib/practice/payload";
 import { PracticeGenerationError } from "@/lib/practice/generator";
 import type { PublicPracticePayload } from "@/lib/practice/types";
+import { reserveSessionCreation, withCreationCookie, creationLimitResponse } from "@/lib/security/session-creation";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -50,6 +51,7 @@ export async function POST(request: Request): Promise<NextResponse<PublicPractic
           ? "test"
           : "development";
 
+    const clientId = await reserveSessionCreation(request);
     const catalogId = await getImportedCatalogId();
     if (!catalogId) {
       return NextResponse.json({ error: { code: "CATALOG_NOT_IMPORTED", message: "catalogo ufficiale non importato" } }, { status: 503 });
@@ -75,8 +77,10 @@ export async function POST(request: Request): Promise<NextResponse<PublicPractic
       sourceSessionId: null,
       questions,
     });
-    return NextResponse.json(payload, { status: 201 });
+    return withCreationCookie(NextResponse.json(payload, { status: 201 }), clientId);
   } catch (e) {
+    const limited = creationLimitResponse(e);
+    if (limited) return limited;
     console.error("[practice:create]", e);
     if (e instanceof PracticeGenerationError) {
       return NextResponse.json({ error: { code: "INSUFFICIENT_QUESTIONS", message: e.message } }, { status: 422 });

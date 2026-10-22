@@ -16,8 +16,9 @@ import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Drawer } from "@/components/ui/drawer";
 import { cn } from "@/lib/utils/cn";
-import { pageShellClass } from "@/components/ui/page-shell";
 import { QuestionImage } from "./question-image";
+import { QuizQuestion } from "@/components/exam/quiz-question";
+import { QuizProgress } from "@/components/exam/quiz-progress";
 
 interface ExamRunnerProps {
   sessionId: string;
@@ -50,6 +51,9 @@ export function ExamRunner({ sessionId, version, startedAt, expiresAt, totalQues
   const feedbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const byPosition = useMemo(() => new Map(questions.map((q) => [q.position, q])), [questions]);
+
+  const stageRef = useRef<HTMLElement>(null);
+  useEffect(() => { stageRef.current?.scrollTo({ top: 0 }); }, [position]);
 
   const current = byPosition.get(position);
   const answeredCount = questions.filter((q) => answers[q.id] !== undefined).length;
@@ -270,17 +274,18 @@ export function ExamRunner({ sessionId, version, startedAt, expiresAt, totalQues
   const selected = answers[current.id];
 
   return (
-    <div className={cn(pageShellClass, "grid h-viewport grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)_auto]")}>
+    <div className="quiz-shell">
       {/* header — stable row 1 */}
       <header className="sticky top-0 z-20 border-b-2 border-foreground bg-accent-blue">
-        <div className="flex w-full flex-wrap items-center gap-2 px-4 py-2.5 sm:flex-nowrap sm:gap-3 sm:px-6">
-          <Link href="/" className="flex shrink-0 items-baseline gap-0.5 font-mono text-sm font-semibold tracking-tight">
+        <div className="quiz-header-row flex w-full items-center gap-2 px-4 py-3 sm:gap-3 sm:px-6">
+          <Link href="/" className="flex shrink-0 flex-col items-start gap-0.5 font-mono text-sm font-semibold leading-none tracking-tight sm:flex-row sm:items-baseline">
             <span>VIA</span>
             <span className="bg-foreground px-0.5 text-accent-blue">LIBERA</span>
           </Link>
-          <span className="hidden font-mono text-xs uppercase tracking-wide text-foreground sm:block">
+          <span className="hidden font-mono text-xs uppercase tracking-wide text-foreground sm:block lg:hidden">
             Domanda {position} di {totalQuestions}
           </span>
+          <span className="hidden font-mono text-base uppercase tracking-wide lg:block">Simulazione esame</span>
           <div className="ml-auto flex items-center gap-2">
             <span
               className={cn(
@@ -293,61 +298,25 @@ export function ExamRunner({ sessionId, version, startedAt, expiresAt, totalQues
             >
               {formatClock(remaining ?? 0)}
             </span>
-            <Button variant="secondary" size="sm" onClick={() => setNavigatorOpen(true)} aria-label="Apri navigatore domande" className="quiz-hdr-btn">
-              ☰
+            <Button variant="secondary" size="sm" onClick={() => setNavigatorOpen(true)} aria-label="Apri navigatore domande" className="quiz-hdr-btn w-12 px-0 lg:w-auto lg:px-5">
+              <span className="lg:hidden" aria-hidden>☰</span><span className="hidden lg:inline">Quesiti</span>
             </Button>
             <Button variant="outline" size="sm" onClick={() => setSubmitOpen(true)} className="quiz-hdr-btn">
               Termina
             </Button>
           </div>
         </div>
+        <QuizProgress position={position} answered={questions.map((q) => answers[q.id] !== undefined)} />
       </header>
 
       {/* question body — scrollable stage (stable geometry, action bar row fixed) */}
-      <main className="min-h-0 overflow-y-auto py-6 pb-6 sm:pb-8">
-        <div className="mx-auto w-full">
-          <div key={position} className="motion-scale-in">
-            {current.topic && (
-              <span
-                title={current.topic}
-                className="mb-2 inline-block max-w-full truncate border border-foreground bg-accent-blue px-1.5 py-0.5 font-mono text-[11px] uppercase tracking-wide sm:mb-3 sm:px-2 sm:text-xs"
-              >
-                {current.topic}
-              </span>
-            )}
-
-            <div className="border-2 border-foreground bg-surface p-4 shadow-pop sm:p-9">
-              <p className="font-mono text-[11px] uppercase tracking-wide text-muted sm:text-xs">
-                Domanda {String(position).padStart(2, "0")}
-                {current.officialQuestionCode && <> · Codice {current.officialQuestionCode}</>}
-                {current.groupCode && <> · Gruppo {current.groupCode}</>}
-              </p>
-              <h1 className="mx-auto mt-3 max-w-[74ch] text-[clamp(1.15rem,5vw,1.45rem)] leading-[1.3] text-foreground sm:mt-4 sm:text-[1.6rem] sm:leading-[1.55] 2xl:text-[1.75rem]">{current.statement}</h1>
-
-              {current.image && (
-                <div className="mt-4 border-t-2 border-foreground pt-4 sm:mt-6 sm:pt-6">
-                  <button
-                    type="button"
-                    onClick={() => setZoomImage(current.image!.url)}
-                    className="block w-full border border-foreground bg-surface"
-                    aria-label="Ingrandisci immagine"
-                  >
-                    <QuestionImage
-                      src={current.image.url}
-                      width={current.image.width}
-                      height={current.image.height}
-                      className="mx-auto max-h-[clamp(170px,27dvh,240px)] w-auto object-contain sm:max-h-[480px] 2xl:max-h-[520px]"
-                    />
-                  </button>
-                  <p className="mt-1 text-center font-mono text-[10px] uppercase tracking-wide text-muted sm:text-xs">
-                    Tocca l’immagine per ingrandirla
-                  </p>
-                </div>
-              )}
-            </div>
+      <main ref={stageRef} className="quiz-stage">
+        <div className="quiz-stage-inner mx-auto w-full">
+          <div key={position} className="quiz-frame motion-scale-in">
+            <QuizQuestion question={current} position={position} total={totalQuestions} onZoom={setZoomImage}>
 
             {/* answers — never green/red in simulation */}
-            <div className="mt-4 grid grid-cols-2 gap-2.5 sm:mt-5 sm:gap-4" role="group" aria-label="Risposta">
+            <div className="quiz-answer-options mt-4 grid grid-cols-2 gap-2.5 sm:mt-5 sm:gap-4" role="group" aria-label="Risposta">
               {[true, false].map((val) => {
                 const label = val ? "VERO" : "FALSO";
                 const isSelected = selected === val;
@@ -380,31 +349,33 @@ export function ExamRunner({ sessionId, version, startedAt, expiresAt, totalQues
             </div>
 
             {/* desktop-only shortcut hint */}
-            <p className="mt-2 hidden text-center font-mono text-xs uppercase tracking-wide text-muted sm:block">
+            <p className="quiz-shortcuts mt-2 hidden text-center font-mono text-xs uppercase tracking-wide text-muted sm:block">
               V / F · ← → · M contrassegna · G navigatore
             </p>
+            <p className="hidden text-base leading-relaxed text-muted lg:block">Seleziona una risposta, poi prosegui.</p>
 
             {errorMsg && (
               <div role="alert" className="mt-4 border-2 border-foreground bg-danger-soft p-3 font-mono text-sm text-danger">
                 {errorMsg}
               </div>
             )}
+            </QuizQuestion>
           </div>
         </div>
       </main>
 
       {/* action bar — fixed bottom row of the grid (same y on every question) */}
-      <div className="z-20 border-t-2 border-foreground bg-surface px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 sm:border-y-2 sm:px-0 sm:py-3">
-        <div className="mx-auto flex w-full flex-wrap items-stretch justify-center gap-2 sm:grid sm:grid-cols-[repeat(3,minmax(200px,260px))] sm:justify-center sm:gap-4">
+      <div className="quiz-action-bar">
+        <div className="quiz-actions quiz-actions--exam">
           <Button
             variant="outline"
             size="lg"
             onClick={navPrev}
             disabled={position <= 1}
             aria-label="Domanda precedente"
-            className="action-bar-btn flex-none sm:flex-none sm:min-w-[200px]"
+            className="action-bar-btn quiz-back"
           >
-            ← Indietro
+            <span aria-hidden>←</span><span className="hidden sm:inline lg:hidden">Indietro</span><span className="hidden lg:inline">Precedente</span>
           </Button>
           <Button
             variant="pastel"
@@ -412,10 +383,11 @@ export function ExamRunner({ sessionId, version, startedAt, expiresAt, totalQues
             onClick={() => toggleFlag(current.id)}
             aria-pressed={isFlagged}
             aria-label={isFlagged ? "Togli contrassegno" : "Contrassegna domanda"}
-            className="action-bar-btn flex-none aspect-square w-12 sm:aspect-auto sm:w-auto sm:min-w-[220px]"
+            className="action-bar-btn quiz-flag"
           >
-            <span aria-hidden className="text-lg leading-none">{isFlagged ? "★" : "☆"}</span>
-            <span className="hidden sm:inline">{isFlagged ? "Contrassegnata" : "Contrassegna"}</span>
+            <span aria-hidden className="text-xl leading-none">{isFlagged ? "★" : "☆"}</span>
+            <span className="hidden sm:inline lg:hidden">{isFlagged ? "Contrassegnata" : "Contrassegna"}</span>
+            <span className="hidden lg:inline">{isFlagged ? "Segnata da rivedere" : "Segna da rivedere"}</span>
           </Button>
           <Button
             variant="primary"
@@ -423,16 +395,16 @@ export function ExamRunner({ sessionId, version, startedAt, expiresAt, totalQues
             onClick={navNext}
             disabled={position >= totalQuestions}
             aria-label={position >= totalQuestions ? "Ultima domanda" : "Avanti"}
-            className="action-bar-btn flex-1 sm:flex-none sm:min-w-[200px]"
+            className="action-bar-btn"
           >
-            Avanti →
+            <span className="lg:hidden">Avanti →</span><span className="hidden lg:inline">Successiva →</span>
           </Button>
         </div>
       </div>
 
       {/* navigator drawer */}
       <Drawer open={navigatorOpen} onClose={() => setNavigatorOpen(false)} title={`Domande (${totalQuestions})`}>
-        <div className="grid grid-cols-6 gap-2" role="list" aria-label="Navigatore domande">
+        <div className="grid grid-cols-5 gap-2 sm:grid-cols-6" role="group" aria-label="Navigatore domande">
           {questions.map((q) => {
             const isCurrent = q.position === position;
             const answered = answers[q.id] !== undefined;
@@ -441,12 +413,11 @@ export function ExamRunner({ sessionId, version, startedAt, expiresAt, totalQues
               <button
                 key={q.id}
                 type="button"
-                role="listitem"
                 onClick={() => goTo(q.position)}
                 aria-current={isCurrent ? "true" : undefined}
                 aria-label={`Domanda ${q.position}${answered ? ", risposta data" : ", senza risposta"}${isFlag ? ", contrassegnata" : ""}`}
                 className={cn(
-                  "relative flex h-11 items-center justify-center border-2 border-foreground font-mono text-sm font-medium tabular-nums",
+                  "relative flex min-h-12 items-center justify-center border-2 border-foreground font-mono text-sm font-medium tabular-nums",
                   isCurrent
                     ? "bg-foreground text-white"
                     : answered
@@ -484,7 +455,7 @@ export function ExamRunner({ sessionId, version, startedAt, expiresAt, totalQues
             {errorMsg}
           </p>
         )}
-        <div className="mt-5 flex gap-3">
+        <div className="mt-5 grid gap-3 sm:grid-cols-2">
           <Button variant="outline" fullWidth onClick={() => setSubmitOpen(false)} disabled={phase === "submitting"}>
             Torna alla prova
           </Button>
@@ -501,8 +472,8 @@ export function ExamRunner({ sessionId, version, startedAt, expiresAt, totalQues
 
       {/* image zoom */}
       {zoomImage && (
-        <Dialog open={!!zoomImage} onClose={() => setZoomImage(null)} title="Immagine ingrandita">
-          <QuestionImage src={zoomImage} width={null} height={null} className="mx-auto max-h-[70dvh] w-auto rounded-md object-contain" />
+        <Dialog open={!!zoomImage} onClose={() => setZoomImage(null)} title="Immagine ingrandita" size="image">
+          <QuestionImage src={zoomImage} width={null} height={null} loading="eager" className="quiz-image-zoom" />
         </Dialog>
       )}
     </div>

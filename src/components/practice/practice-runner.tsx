@@ -17,8 +17,9 @@ import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Drawer } from "@/components/ui/drawer";
 import { cn } from "@/lib/utils/cn";
-import { pageShellClass } from "@/components/ui/page-shell";
 import { QuestionImage } from "@/components/exam/question-image";
+import { QuizQuestion } from "@/components/exam/quiz-question";
+import { QuizProgress } from "@/components/exam/quiz-progress";
 
 export interface PracticeInitialState {
   questionId: string;
@@ -64,6 +65,12 @@ export function PracticeRunner({
   const [completeOpen, setCompleteOpen] = useState(false);
   const [phase, setPhase] = useState<CheckPhase>("idle");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [justVerifiedId, setJustVerifiedId] = useState<string | null>(null);
+  const feedbackRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (justVerifiedId) feedbackRef.current?.scrollIntoView({ block: "nearest" });
+  }, [justVerifiedId]);
 
   const mountedRef = useRef(false);
   const checkingRef = useRef(false);
@@ -72,6 +79,9 @@ export function PracticeRunner({
   const [hydrated, setHydrated] = useState(false);
 
   const byPosition = useMemo(() => new Map(questions.map((q) => [q.position, q])), [questions]);
+  const stageRef = useRef<HTMLElement>(null);
+  useEffect(() => { stageRef.current?.scrollTo({ top: 0 }); }, [position]);
+
   const current = byPosition.get(position);
   const answeredCount = questions.filter((q) => verified[q.id] !== undefined).length;
   const uncheckedCount = totalQuestions - answeredCount;
@@ -173,6 +183,7 @@ export function PracticeRunner({
           isCorrect: data.isCorrect,
         };
         setVerified((prev) => ({ ...prev, [current.id]: result }));
+        setJustVerifiedId(current.id);
         setSelected((prev) => {
           const next = { ...prev };
           delete next[current.id];
@@ -320,73 +331,40 @@ export function PracticeRunner({
 
   return (
     <div
-      className={cn(pageShellClass, "grid h-viewport grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)_auto]")}
+      className="quiz-shell"
       data-hydrated={hydrated ? "true" : "false"}
     >
       {/* header — stable row 1 */}
       <header className="sticky top-0 z-20 border-b-2 border-foreground bg-accent-yellow">
-        <div className="flex w-full flex-wrap items-center gap-2 px-4 py-2.5 sm:flex-nowrap sm:gap-3 sm:px-6">
-          <Link href="/" className="flex shrink-0 items-baseline gap-0.5 font-mono text-sm font-semibold tracking-tight">
+        <div className="quiz-header-row flex w-full items-center gap-2 px-4 py-3 sm:gap-3 sm:px-6">
+          <Link href="/" className="flex shrink-0 flex-col items-start gap-0.5 font-mono text-sm font-semibold leading-none tracking-tight sm:flex-row sm:items-baseline">
             <span>VIA</span>
             <span className="bg-foreground px-0.5 text-accent-yellow">LIBERA</span>
           </Link>
-          <span className="hidden truncate font-mono text-xs uppercase tracking-wide text-foreground sm:block">
+          <span className="hidden truncate font-mono text-xs uppercase tracking-wide text-foreground sm:block lg:hidden">
             {mode === "mistakes" ? "Ripasso errori" : "Allenamento"} · {position} di {totalQuestions}
           </span>
+          <span className="hidden font-mono text-base uppercase tracking-wide lg:block">{mode === "mistakes" ? "Ripasso errori" : "Allenamento"}</span>
           <div className="ml-auto flex items-center gap-2">
-            <Button variant="secondary" size="sm" onClick={() => setNavigatorOpen(true)} aria-label="Apri navigatore domande" className="quiz-hdr-btn">
-              ☰
+            <Button variant="secondary" size="sm" onClick={() => setNavigatorOpen(true)} aria-label="Apri navigatore domande" className="quiz-hdr-btn w-12 px-0 lg:w-auto lg:px-5">
+              <span className="lg:hidden" aria-hidden>☰</span><span className="hidden lg:inline">Quesiti</span>
             </Button>
             <Button variant="outline" size="sm" onClick={() => setCompleteOpen(true)} className="quiz-hdr-btn">
               Completa
             </Button>
           </div>
         </div>
+        <QuizProgress position={position} answered={questions.map((q) => verified[q.id] !== undefined)} />
       </header>
 
       {/* question body — scrollable stage (stable geometry, action bar row fixed) */}
-      <main className="min-h-0 overflow-y-auto py-4 pb-6 sm:py-8 sm:pb-8">
-        <div className="mx-auto w-full">
-          <div key={position} className="motion-scale-in">
-            <span
-              title={mode === "mistakes" ? "Ripasso degli errori" : topicName}
-              className="mb-2 inline-flex max-w-full truncate items-center gap-1 border border-foreground bg-accent-blue px-1.5 py-0.5 font-mono text-[11px] uppercase tracking-wide sm:mb-3 sm:px-2 sm:text-xs"
-            >
-              {mode === "mistakes" ? "Ripasso degli errori" : topicName}
-            </span>
-
-            <div className="border-2 border-foreground bg-surface p-4 shadow-pop sm:p-9">
-              <p className="font-mono text-[11px] uppercase tracking-wide text-muted sm:text-xs">
-                Domanda {String(position).padStart(2, "0")}
-                {current.officialQuestionCode && <> · Codice {current.officialQuestionCode}</>}
-                {current.groupCode && <> · Gruppo {current.groupCode}</>}
-              </p>
-              <h1 className="mx-auto mt-3 max-w-[74ch] text-[clamp(1.15rem,5vw,1.45rem)] leading-[1.3] text-foreground sm:mt-4 sm:text-[1.6rem] sm:leading-[1.55] 2xl:text-[1.75rem]">{current.statement}</h1>
-
-              {current.image && (
-                <div className="mt-4 border-t-2 border-foreground pt-4 sm:mt-6 sm:pt-6">
-                  <button
-                    type="button"
-                    onClick={() => setZoomImage(current.image!.url)}
-                    className="block w-full border border-foreground bg-surface"
-                    aria-label="Ingrandisci immagine"
-                  >
-                    <QuestionImage
-                      src={current.image.url}
-                      width={current.image.width}
-                      height={current.image.height}
-                      className="mx-auto max-h-[clamp(170px,27dvh,240px)] w-auto object-contain sm:max-h-[480px] 2xl:max-h-[520px]"
-                    />
-                  </button>
-                  <p className="mt-1 text-center font-mono text-[10px] uppercase tracking-wide text-muted sm:text-xs">
-                    Tocca l’immagine per ingrandirla
-                  </p>
-                </div>
-              )}
-            </div>
+      <main ref={stageRef} className="quiz-stage">
+        <div className="quiz-stage-inner mx-auto w-full">
+          <div key={position} className="quiz-frame motion-scale-in">
+            <QuizQuestion question={current} position={position} total={totalQuestions} onZoom={setZoomImage} emphasize>
 
             {/* answers — green/red ONLY after verification */}
-            <div className="mt-4 grid grid-cols-2 gap-2.5 sm:mt-5 sm:gap-4" role="group" aria-label="Risposta">
+            <div className="quiz-answer-options mt-4 grid grid-cols-2 gap-2.5 sm:mt-5 sm:gap-4" role="group" aria-label="Risposta">
               {[true, false].map((val) => {
                 const label = val ? "VERO" : "FALSO";
                 const isSelected = currentVerified !== undefined ? currentVerified.selectedAnswer === val : selected[current.id] === val;
@@ -421,7 +399,7 @@ export function PracticeRunner({
             </div>
 
             {/* feedback */}
-            <div aria-live="polite" className="mt-3 sm:mt-4">
+            <div ref={feedbackRef} aria-live="polite" className="mt-3 sm:mt-4">
               {currentVerified && (
                 <div
                   className={cn(
@@ -431,7 +409,7 @@ export function PracticeRunner({
                 >
                   <p
                     className={cn(
-                      "font-mono text-sm font-bold uppercase tracking-widest",
+                      "text-base font-semibold leading-relaxed",
                       currentVerified.isCorrect ? "text-success" : "text-danger",
                     )}
                   >
@@ -439,15 +417,15 @@ export function PracticeRunner({
                       ? "Corretta"
                       : `Errata — risposta corretta: ${currentVerified.selectedAnswer ? "FALSO" : "VERO"}`}
                   </p>
-                  <p className="mt-1 text-sm text-foreground">Spiegazione non ancora disponibile.</p>
-                  <p className="mt-0.5 text-xs text-muted">La risposta è stata corretta usando il catalogo ufficiale.</p>
+                  <p className="mt-2 hidden text-base text-foreground lg:block">Spiegazione non ancora disponibile.</p>
+                  <p className="mt-1 hidden text-sm leading-relaxed text-muted lg:block">La risposta è stata corretta usando il catalogo ufficiale.</p>
                 </div>
               )}
               {!currentVerified && checkReady && (
-                <p className="font-mono text-sm uppercase tracking-wide text-muted">Seleziona Verifica risposta per controllare.</p>
+                <p className="text-base leading-relaxed text-muted">Seleziona Verifica risposta per controllare.</p>
               )}
               {!currentVerified && !checkReady && (
-                <p className="font-mono text-sm uppercase tracking-wide text-muted">Seleziona VERO o FALSO per rispondere.</p>
+                <p className="text-base leading-relaxed text-muted">Seleziona VERO o FALSO per rispondere.</p>
               )}
             </div>
 
@@ -456,22 +434,23 @@ export function PracticeRunner({
                 {errorMsg}
               </div>
             )}
+            </QuizQuestion>
           </div>
         </div>
       </main>
 
       {/* action bar — fixed bottom row of the grid (same y on every question) */}
-      <div className="z-20 border-t-2 border-foreground bg-surface px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 sm:border-y-2 sm:px-0 sm:py-3">
-        <div className="mx-auto flex w-full flex-wrap items-stretch justify-center gap-2 sm:gap-4">
+      <div className="quiz-action-bar">
+        <div className="quiz-actions quiz-actions--practice">
           <Button
             variant="outline"
             size="lg"
             onClick={navPrev}
             disabled={position <= 1}
             aria-label="Domanda precedente"
-            className="action-bar-btn flex-none sm:flex-none sm:min-w-[200px]"
+            className="action-bar-btn quiz-back"
           >
-            ← Indietro
+            <span aria-hidden>←</span><span className="hidden sm:inline lg:hidden">Indietro</span><span className="hidden lg:inline">Precedente</span>
           </Button>
           {!currentVerified && (
             <Button
@@ -480,7 +459,7 @@ export function PracticeRunner({
               onClick={() => void verifyCurrent()}
               disabled={!checkReady || phase === "checking"}
               aria-busy={phase === "checking"}
-              className="action-bar-btn flex-1 sm:flex-none sm:min-w-[260px]"
+              className="action-bar-btn"
             >
               {phase === "checking" ? "Verifica…" : "Verifica risposta"}
             </Button>
@@ -491,10 +470,10 @@ export function PracticeRunner({
               size="lg"
               onClick={isLast ? () => setCompleteOpen(true) : navNext}
               disabled={isLast ? false : !canAdvance}
-              className="action-bar-btn flex-1 sm:flex-none sm:min-w-[260px]"
+              className="action-bar-btn"
               aria-label={isLast ? "Completa allenamento" : "Avanti"}
             >
-              {isLast ? "Completa allenamento" : "Avanti →"}
+              {isLast ? "Completa allenamento" : <><span className="lg:hidden">Avanti →</span><span className="hidden lg:inline">Successiva →</span></>}
             </Button>
           )}
         </div>
@@ -502,7 +481,7 @@ export function PracticeRunner({
 
       {/* navigator drawer */}
       <Drawer open={navigatorOpen} onClose={() => setNavigatorOpen(false)} title={`Domande (${totalQuestions})`}>
-        <div className="grid grid-cols-6 gap-2" role="list" aria-label="Navigatore domande">
+        <div className="grid grid-cols-5 gap-2 sm:grid-cols-6" role="group" aria-label="Navigatore domande">
           {questions.map((q) => {
             const isCurrent = q.position === position;
             const v = verified[q.id];
@@ -513,12 +492,11 @@ export function PracticeRunner({
               <button
                 key={q.id}
                 type="button"
-                role="listitem"
                 onClick={() => goTo(q.position)}
                 aria-current={isCurrent ? "true" : undefined}
                 aria-label={`Domanda ${q.position}, ${status}`}
                 className={cn(
-                  "flex h-11 items-center justify-center border-2 border-foreground font-mono text-sm font-medium tabular-nums",
+                  "flex min-h-12 items-center justify-center border-2 border-foreground font-mono text-sm font-medium tabular-nums",
                   isCurrent
                     ? "bg-foreground text-white"
                     : v !== undefined
@@ -551,7 +529,7 @@ export function PracticeRunner({
             ? "1 domanda non verificata sarà considerata senza risposta."
             : `${uncheckedCount} domande non verificate saranno considerate senza risposta.`}
         </p>
-        <div className="mt-5 flex gap-3">
+        <div className="mt-5 grid gap-3 sm:grid-cols-2">
           <Button variant="outline" fullWidth onClick={() => setCompleteOpen(false)}>
             Torna alla prova
           </Button>
@@ -563,8 +541,8 @@ export function PracticeRunner({
 
       {/* image zoom */}
       {zoomImage && (
-        <Dialog open={!!zoomImage} onClose={() => setZoomImage(null)} title="Immagine ingrandita">
-          <QuestionImage src={zoomImage} width={null} height={null} className="mx-auto max-h-[70dvh] w-auto rounded-md object-contain" />
+        <Dialog open={!!zoomImage} onClose={() => setZoomImage(null)} title="Immagine ingrandita" size="image">
+          <QuestionImage src={zoomImage} width={null} height={null} loading="eager" className="quiz-image-zoom" />
         </Dialog>
       )}
     </div>

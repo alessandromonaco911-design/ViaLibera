@@ -278,3 +278,11 @@ export type MediaAsset = typeof mediaAssets.$inferSelect;
 export type QuestionMedia = typeof questionMedia.$inferSelect;
 export type ExamSession = typeof examSessions.$inferSelect;
 export type ExamSessionQuestion = typeof examSessionQuestions.$inferSelect;
+
+/** Shared creation budgets; no IP address or personal data is stored. */
+export const sessionCreationLimits = pgTable("session_creation_limits", {
+  key: text("key").notNull(),
+  windowStart: timestamp("window_start", { withTimezone: true }).notNull(),
+  attempts: integer("attempts").notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+}, t => [primaryKey({ columns: [t.key, t.windowStart] }), index("session_creation_limits_expires_idx").on(t.expiresAt)]);

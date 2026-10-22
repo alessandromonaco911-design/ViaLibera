@@ -3,6 +3,7 @@ import { getExamSession, getSessionQuestions } from "@/lib/exam/session-service"
 import { mediaUrlFor } from "@/lib/exam/payload";
 import { ResultView, type ResultViewData } from "@/components/exam/result-view";
 import { SiteHeader } from "@/components/ui/site-header";
+import { MobileResultEntry } from "@/components/mobile/mobile-results";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -54,11 +55,13 @@ export default async function RisultatoPage({ params }: { params: Promise<{ sess
   };
 
   return (
+    <MobileResultEntry exam={data}>
     <div className="flex min-h-viewport w-full flex-col">
       <SiteHeader mode="Risultato" />
       <div className="flex-1">
         <ResultView data={data} />
       </div>
     </div>
+    </MobileResultEntry>
   );
 }

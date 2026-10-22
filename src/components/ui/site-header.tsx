@@ -31,6 +31,15 @@ export function SiteHeader({ mode }: { mode?: string }) {
   // Esc closes the mobile menu; focus trap while open
   useEffect(() => {
     if (!open) return;
+    menuRef.current?.querySelector<HTMLElement>("a")?.focus();
+    const previousOverflow = document.body.style.overflow;
+    const desktop = window.matchMedia("(min-width: 1024px)");
+    const onDesktop = (event: MediaQueryListEvent) => {
+      if (!event.matches) return;
+      setOpen(false);
+      triggerRef.current?.parentElement?.querySelector<HTMLElement>('a[href="/"]')?.focus();
+    };
+    desktop.addEventListener("change", onDesktop);
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.preventDefault();
@@ -57,7 +66,8 @@ export function SiteHeader({ mode }: { mode?: string }) {
     document.body.style.overflow = "hidden";
     return () => {
       document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = "";
+      desktop.removeEventListener("change", onDesktop);
+      document.body.style.overflow = previousOverflow;
     };
   }, [open]);
 
@@ -65,19 +75,19 @@ export function SiteHeader({ mode }: { mode?: string }) {
 
   return (
     <header className="sticky top-0 z-30 border-b-2 border-foreground bg-accent-blue">
-      <div className="mx-auto flex h-14 w-full max-w-5xl items-center gap-4 px-4 sm:h-16">
+      <div className="mx-auto flex h-16 w-full max-w-6xl items-center gap-4 px-4 sm:px-6">
         <Link href="/" className="flex shrink-0 items-baseline gap-1 font-mono text-lg font-semibold tracking-tight sm:text-xl">
           <span>VIA</span>
           <span className="bg-foreground px-1 text-accent-blue">LIBERA</span>
         </Link>
 
         {mode && (
-          <span className="hidden border-2 border-foreground bg-surface px-2 py-0.5 font-mono text-xs uppercase tracking-wide sm:inline-block">
+          <span className="hidden border-2 border-foreground bg-surface px-2 py-0.5 font-mono text-xs uppercase tracking-wide lg:inline-block">
             {mode}
           </span>
         )}
 
-        <nav className="ml-auto hidden items-center gap-1 sm:flex" aria-label="Navigazione principale">
+        <nav className="ml-auto hidden items-center gap-1 lg:flex" aria-label="Navigazione principale">
           {navItems.map((item) => (
             <Link
               key={item.href}
@@ -100,7 +110,7 @@ export function SiteHeader({ mode }: { mode?: string }) {
           aria-expanded={open}
           aria-controls="site-menu"
           aria-label={open ? "Chiudi menu" : "Apri menu"}
-          className="ml-auto inline-flex h-11 w-11 items-center justify-center border-2 border-foreground bg-surface font-mono sm:hidden"
+          className="ml-auto inline-flex h-12 w-12 items-center justify-center border-2 border-foreground bg-surface font-mono lg:hidden"
         >
           {open ? "✕" : "☰"}
         </button>
@@ -111,7 +121,7 @@ export function SiteHeader({ mode }: { mode?: string }) {
         <div
           id="site-menu"
           ref={menuRef}
-          className="border-t-2 border-foreground bg-surface sm:hidden"
+          className="border-t-2 border-foreground bg-surface lg:hidden"
         >
           <nav aria-label="Navigazione mobile" className="mx-auto flex max-w-5xl flex-col px-4 py-3">
             {navItems.map((item) => (

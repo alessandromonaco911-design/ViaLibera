@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils/cn";
 
 /**
@@ -30,6 +30,7 @@ export function EditorialAccordion({
   const [hoverOpen, setHoverOpen] = useState(false);
   const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isTouch = useRef(false);
+  const contentId = useId();
 
   useEffect(() => {
     // detect coarse pointers once; never enable hover-intent on touch
@@ -67,12 +68,16 @@ export function EditorialAccordion({
       <button
         type="button"
         onClick={onToggle}
-        aria-expanded={open}
-        className="flex w-full items-center gap-3 px-4 py-3 text-left"
+        aria-expanded={expanded}
+        aria-controls={contentId}
+        className="flex min-h-14 w-full items-center gap-3 px-4 py-3 text-left"
       >
         {trigger}
       </button>
       <div
+        id={contentId}
+        aria-hidden={!expanded}
+        inert={!expanded}
         className={cn(
           "grid transition-[grid-template-rows,opacity] motion-safe:duration-[180ms] motion-safe:ease-[cubic-bezier(0.22,1,0.36,1)]",
           expanded ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0",

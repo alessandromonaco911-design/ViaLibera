@@ -5,6 +5,7 @@ import { generateExamQuestions, getImportedCatalogId, isValidSeed, ExamGeneratio
 import { createExamSession } from "@/lib/exam/session-service";
 import { buildPublicPayload } from "@/lib/exam/payload";
 import type { PublicExamPayload } from "@/lib/exam/types";
+import { reserveSessionCreation, withCreationCookie, creationLimitResponse } from "@/lib/security/session-creation";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -41,6 +42,7 @@ export async function POST(request: Request): Promise<NextResponse<PublicExamPay
           ? "test"
           : "development";
 
+    const clientId = await reserveSessionCreation(request);
     const catalogId = await getImportedCatalogId();
     if (!catalogId) {
       return NextResponse.json({ error: { code: "CATALOG_NOT_IMPORTED", message: "catalogo ufficiale non importato" } }, { status: 503 });
@@ -57,8 +59,10 @@ export async function POST(request: Request): Promise<NextResponse<PublicExamPay
       expiresAt: session.expiresAt,
       questions,
     });
-    return NextResponse.json(payload, { status: 201 });
+    return withCreationCookie(NextResponse.json(payload, { status: 201 }), clientId);
   } catch (e) {
+    const limited = creationLimitResponse(e);
+    if (limited) return limited;
     console.error("[exam:create]", e);
     if (e instanceof ExamGenerationError) {
       return NextResponse.json({ error: { code: "INSUFFICIENT_CATALOG", message: e.message } }, { status: 503 });

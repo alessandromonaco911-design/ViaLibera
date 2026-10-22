@@ -464,7 +464,7 @@ export function buildPracticeResult(session: PracticeSessionRow, rows: PracticeQ
       topic: r.topic,
       officialQuestionCode: r.officialQuestionCode,
       groupCode: r.groupCode,
-      image: r.imageRef ? { url: `/api/media/${r.imageRef}`, width: r.mediaWidth, height: r.mediaHeight } : null,
+      image: r.imageRef ? { url: `/media/questions/${r.imageRef}.png`, width: r.mediaWidth, height: r.mediaHeight } : null,
       selectedAnswer: r.selectedAnswer,
       correctAnswer: r.correctAnswer,
       isCorrect: r.answerVerified === true && r.selectedAnswer !== null && r.selectedAnswer === r.correctAnswer,

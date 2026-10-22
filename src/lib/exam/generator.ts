@@ -3,6 +3,7 @@ import { and, eq } from "drizzle-orm";
 import { db } from "../db";
 import { questions, mediaAssets, topics } from "../db/schema";
 import { siteConfig } from "../../config/site";
+import { activeCatalog } from "../../config/catalog";
 import { questionCatalogVersions } from "../db/schema";
 import { isMediaUsable, allowedMediaStatuses, type AppEnvironment } from "../media/policy";
 
@@ -175,12 +176,15 @@ export async function fetchCandidates(catalogId: string): Promise<DbCandidate[]>
   }));
 }
 
-export async function getImportedCatalogId(): Promise<string | null> {
+export async function getImportedCatalogId(catalog: { licenseCategory: string; versionCode: string } = activeCatalog): Promise<string | null> {
   const rows = await db
     .select({ id: questionCatalogVersions.id })
     .from(questionCatalogVersions)
-    .where(eq(questionCatalogVersions.status, "imported"))
-    .orderBy(questionCatalogVersions.importedAt)
+    .where(and(
+      eq(questionCatalogVersions.status, "imported"),
+      eq(questionCatalogVersions.licenseCategory, catalog.licenseCategory),
+      eq(questionCatalogVersions.versionCode, catalog.versionCode),
+    ))
     .limit(1);
   return rows[0]?.id ?? null;
 }

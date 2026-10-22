@@ -1,7 +1,7 @@
 # ViaLibera
 
 Preparazione patente B: simulazioni d'esame e allenamenti per argomento basati sul catalogo
-ufficiale importato (AB 2025-04-23). Nessuna registrazione richiesta.
+AB del Portale dell’Automobilista verificato il 22 ottobre 2026. Nessuna registrazione richiesta.
 
 ## Modalità
 
@@ -19,7 +19,7 @@ Le sessioni usano il campo `mode` di `exam_sessions`:
 - In allenamento compare "Verifica risposta": il risultato è calcolato server-side.
 - L'utente passa alla domanda successiva **solo** tramite "Avanti", il navigatore o la freccia destra
   (in allenamento la freccia avanza solo dopo la verifica).
-- In allenamento **nessun timeout cambia domanda**: le sessioni practice/mistakes non scadono.
+- In allenamento **nessun timeout cambia domanda**: nessun timer durante il quiz; la manutenzione può rimuovere sessioni abbandonate secondo la politica descritta sotto.
 - In simulazione il feedback resta nascosto fino alla consegna.
 
 Non è disponibile alcuna spiegazione generata: quando una domanda non ha una spiegazione
@@ -49,6 +49,30 @@ revisionata non ne viene mostrata nessuna.
 Le soluzioni delle domande non verificate **non sono mai esposte** nei payload GET; la correttezza
 è sempre calcolata server-side. La media policy è centralizzata in `src/lib/media/policy.ts`.
 
+## Catalogo attivo e storico
+
+Le nuove sessioni usano la versione AB `observed-2026-10-22`, configurata in
+`src/config/catalog.ts`: 7.020 quesiti e 407 immagini dal PDF del Portale
+dell'Automobilista verificato il 22 ottobre 2026. La data indica la verifica dello
+snapshot, senza attribuire una decorrenza normativa o garantire il 2027.
+La versione `2025-04-23` resta disponibile per riprendere e correggere le sessioni
+precedenti e ripassarne gli errori. Non vengono cancellati i quesiti storici.
+
+Per importare questo snapshot su un database preparato, dopo un backup:
+
+```bash
+npm run db:import-catalog -- --dry-run ab-observed-2026-10-22
+npm run db:import-catalog -- --apply ab-observed-2026-10-22
+npm run db:verify-import -- ab-observed-2026-10-22
+```
+
+Servono il PDF, il manifest e i derivati verificati della pipeline; non sono
+generati né scaricati durante l'avvio web. Importazione e registrazione della
+fonte avvengono nella stessa transazione. Il verificatore confronta tutti i
+quesiti della versione, oltre a conteggi, provenienza e associazioni immagini.
+Il selettore richiede la versione esatta: un'importazione mancante o incompleta
+non provoca un passaggio silenzioso a un altro catalogo.
+
 ## Persistenza locale
 
 - Simulazione: `vialibera:exam:v1:{sessionId}`
@@ -58,6 +82,9 @@ Il refresh ripristina posizione e risposte; lo stato corrotto o con payload inco
 scartato; localStorage non disponibile non causa crash.
 
 ## Sviluppo
+
+Per build distribuibile, limiti delle nuove sessioni e manutenzione controllata,
+vedere [le istruzioni di pubblicazione](docs/deployment.md).
 
 ```bash
 npm install
@@ -91,6 +118,12 @@ avvia-app.bat --clean   cancella la cache .next prima di avviare
 Nota: in questo ambiente (filesystem lento su E:) il dev server può diventare irresponsivo dopo
 poche richieste; la modalità di default (produzione) è stabile ed è quella consigliata per
 usare l'applicativo.
+
+Il comando `npm run start` ascolta su `127.0.0.1`: aprire http://127.0.0.1:3000/.
+Fermare il server prima di ricompilare la sua build. Dopo l'avvio, `npm run verify:local`
+controlla la homepage e i CSS/JavaScript effettivamente referenziati, intercettando anche
+un processo vecchio che richiede file non più presenti. È possibile controllare un'altra
+porta con `npm run verify:local -- http://127.0.0.1:3210`.
 
 ### Warning su hydration mismatch (solo dev) — risolto
 

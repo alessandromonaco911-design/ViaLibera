@@ -86,15 +86,15 @@ export function PracticeResultView({ result, topicName }: { result: PracticeResu
   ];
 
   return (
-    <div className={cn(pageShellClass, "pb-16")}>
+    <main className={cn(pageShellClass, "pb-16")}>
       {/* summary poster */}
       <section className="mt-6 border-2 border-foreground bg-surface shadow-pop motion-enter" aria-live="polite">
-        <div className="border-b-2 border-foreground bg-accent-yellow p-6 text-center">
+        <div className="border-b-2 border-foreground bg-accent-yellow p-4 text-center sm:p-6">
           <SectionLabel>{result.mode === "mistakes" ? "Ripasso errori" : "Allenamento"}</SectionLabel>
-          <p className="mt-1 font-mono text-[clamp(1.8rem,5vw,3.5rem)] font-bold leading-none tracking-tight">
+          <h1 className="mt-1 font-mono text-[clamp(1.75rem,5vw,3.5rem)] font-bold leading-tight tracking-tight">
             {result.mode === "mistakes" ? "Ripasso completato" : "Allenamento completato"}
-          </p>
-          <p className="mt-2 font-mono text-sm uppercase tracking-wide text-muted">{topicName}</p>
+          </h1>
+          <p className="mt-3 text-base leading-relaxed text-muted">{topicName}</p>
           <p className="mt-2 text-base font-medium">
             Hai risposto correttamente a {result.correctCount} domande su {result.totalQuestions}
           </p>
@@ -135,8 +135,8 @@ export function PracticeResultView({ result, topicName }: { result: PracticeResu
       </section>
 
       {/* filters */}
-      <div className="sticky top-0 z-20 -mx-4 mt-6 border-y-2 border-foreground bg-surface px-4 py-2">
-        <div className="flex items-center gap-1 overflow-x-auto">
+      <div className="result-filters mt-6 border-y-2 border-foreground bg-surface py-3">
+        <div className="result-filter-options">
           {filters.map((f) => (
             <button
               key={f.key}
@@ -144,7 +144,7 @@ export function PracticeResultView({ result, topicName }: { result: PracticeResu
               onClick={() => changeFilter(f.key)}
               aria-pressed={filter === f.key}
               className={cn(
-                "shrink-0 border-2 border-foreground px-3 py-1.5 font-mono text-xs font-medium uppercase tracking-wide transition-colors",
+                "min-h-12 min-w-0 border-2 border-foreground px-2 py-2 text-center font-mono text-sm font-medium leading-snug transition-colors",
                 filter === f.key ? "bg-foreground text-white" : "bg-surface text-foreground hover:bg-accent-blue",
               )}
             >
@@ -172,7 +172,7 @@ export function PracticeResultView({ result, topicName }: { result: PracticeResu
                     >
                       {a.position}
                     </span>
-                    <span className="flex-1 truncate text-sm">{a.statement}</span>
+                    <span className="min-w-0 flex-1 text-base leading-relaxed">{a.statement}</span>
                     <span
                       className="font-mono text-xs font-medium uppercase"
                       aria-label={a.isCorrect ? "Corretta" : a.unanswered ? "Non risposta" : "Errata"}
@@ -186,19 +186,19 @@ export function PracticeResultView({ result, topicName }: { result: PracticeResu
                 }
               >
                 {a.image && (
-                  <div className="mt-2 max-w-[220px]">
+                  <div className="mt-3">
                     <QuestionImage
                       src={a.image.url}
                       width={a.image.width}
                       height={a.image.height}
-                      className="w-full border border-foreground object-contain"
+                      className="result-image border border-foreground/30"
                     />
                   </div>
                 )}
-                <p className="mt-2 text-sm leading-relaxed">{a.statement}</p>
-                <dl className="mt-3 space-y-1.5 text-sm">
-                  <div className="flex gap-2">
-                    <dt className="w-32 shrink-0 font-mono text-xs uppercase tracking-wide text-muted">Risposta data</dt>
+                <p className="mt-4 text-base leading-relaxed">{a.statement}</p>
+                <dl className="result-details mt-4">
+                  <div className="min-w-0">
+                    <dt className="font-mono text-sm text-muted">Risposta data</dt>
                     <dd>
                       {a.unanswered ? (
                         <span className="font-medium text-danger">Non risposta</span>
@@ -207,22 +207,22 @@ export function PracticeResultView({ result, topicName }: { result: PracticeResu
                       )}
                     </dd>
                   </div>
-                  <div className="flex gap-2">
-                    <dt className="w-32 shrink-0 font-mono text-xs uppercase tracking-wide text-muted">Risposta corretta</dt>
+                  <div className="min-w-0">
+                    <dt className="font-mono text-sm text-muted">Risposta corretta</dt>
                     <dd className="font-medium">{a.correctAnswer ? "VERO" : "FALSO"}</dd>
                   </div>
                   {a.topic && (
-                    <div className="flex gap-2">
-                      <dt className="w-32 shrink-0 font-mono text-xs uppercase tracking-wide text-muted">Argomento</dt>
+                    <div className="min-w-0">
+                      <dt className="font-mono text-sm text-muted">Argomento</dt>
                       <dd>{a.topic}</dd>
                     </div>
                   )}
-                  <div className="flex gap-2">
-                    <dt className="w-32 shrink-0 font-mono text-xs uppercase tracking-wide text-muted">Codice</dt>
+                  <div className="min-w-0">
+                    <dt className="font-mono text-sm text-muted">Codice</dt>
                     <dd className="tabular-nums">{a.officialQuestionCode ?? "—"}</dd>
                   </div>
-                  <div className="flex gap-2">
-                    <dt className="w-32 shrink-0 font-mono text-xs uppercase tracking-wide text-muted">Gruppo</dt>
+                  <div className="min-w-0">
+                    <dt className="font-mono text-sm text-muted">Gruppo</dt>
                     <dd>{a.groupCode ?? "—"}</dd>
                   </div>
                 </dl>
@@ -235,6 +235,6 @@ export function PracticeResultView({ result, topicName }: { result: PracticeResu
       <footer className="mt-10 border-t-2 border-foreground py-6 text-center font-mono text-xs uppercase tracking-wide text-muted">
         {siteConfig.name} · allenamento senza limite di tempo
       </footer>
-    </div>
+    </main>
   );
 }

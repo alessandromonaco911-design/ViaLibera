@@ -1,4 +1,5 @@
 import { defineConfig } from "@playwright/test";
+import { randomUUID } from "node:crypto";
 
 const PORT = 3210;
 const BASE_URL = `http://127.0.0.1:${PORT}`;
@@ -40,6 +41,7 @@ export default defineConfig({
     { name: "mobile-small", use: { viewport: { width: 360, height: 640 } } },
   ],
   webServer: {
+    env: { SESSION_CREATION_NAMESPACE: `e2e-${randomUUID()}` },
     command: `npm run start -- -p ${PORT}`,
     url: BASE_URL,
     reuseExistingServer: true,

@@ -18,7 +18,7 @@ export function TopicSearch({ topics }: { topics: PracticeTopicSummary[] }) {
 
   return (
     <section aria-label="Elenco argomenti" className="mt-8">
-      <label htmlFor="topic-search" className="sr-only">
+      <label htmlFor="topic-search" className="mb-2 block text-base font-medium">
         Cerca argomento
       </label>
       <div className="relative max-w-md">
@@ -34,7 +34,7 @@ export function TopicSearch({ topics }: { topics: PracticeTopicSummary[] }) {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Cerca un argomento…"
-          className="editorial-input h-12 w-full border-2 border-foreground bg-surface pl-10 pr-4 font-mono text-sm outline-none"
+          className="editorial-input h-14 w-full border-2 border-foreground bg-surface pl-10 pr-4 text-base outline-none"
         />
       </div>
 
@@ -58,7 +58,7 @@ export function TopicSearch({ topics }: { topics: PracticeTopicSummary[] }) {
               <TopicGlyph code={t.code} name={t.name} />
               <span className="mt-4">
                   <span className="block text-base font-semibold leading-snug text-foreground">{t.name}</span>
-                  <span className="mt-2 block font-mono text-xs uppercase tracking-wide text-muted">
+                  <span className="mt-2 block text-sm leading-relaxed text-muted">
                     {t.questionCount} domande · {t.imageCount} con immagini
                   </span>
                 </span>

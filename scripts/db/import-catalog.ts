@@ -12,8 +12,9 @@ import {
   sourceFiles,
   topics,
 } from "../../src/lib/db/schema";
-import { questionSchema, mediaSchema, groupSchema, topicSchema, type ParsedQuestionInput } from "../data/lib/validation";
+import { questionSchema, mediaSchema, groupSchema, topicSchema, type ParsedQuestionInput, type MediaAssetInput } from "../data/lib/validation";
 import { OFFICIAL_SOURCES } from "../data/sources";
+import { catalogInput } from "./catalog-input";
 
 /**
  * Transactional importer for the official catalog.
@@ -45,6 +46,8 @@ export interface ImportOptions {
   manifestPath?: string | null;
   /** pdf path; null skips pdf existence check (test mode) */
   pdfPath?: string | null;
+  /** Register a verified manifest inside the import transaction, never during dry-run. */
+  registerSource?: boolean;
 }
 
 export interface ImportResult {
@@ -70,6 +73,7 @@ export async function importCatalog(opts: ImportOptions): Promise<ImportResult> 
     manifestPath && existsSync(manifestPath)
       ? (JSON.parse(await readFile(manifestPath, "utf-8")) as { sha256: string; url: string; title: string; publishedAt: string | null; filename: string })
       : null;
+  if (opts.registerSource && !manifest) throw new Error(`manifest sorgente mancante: ${manifestPath}`);
 
   // --- 1. source file verification ---
   const pdfPath = opts.pdfPath ?? join(ROOT, "data", "official", src.localFilename);
@@ -100,7 +104,7 @@ export async function importCatalog(opts: ImportOptions): Promise<ImportResult> 
   });
   const groups = JSON.parse(await readFile(join(pDir, "groups.json"), "utf-8"));
   const topicsOut = JSON.parse(await readFile(join(pDir, "topics.json"), "utf-8"));
-  const mediaOut = JSON.parse(await readFile(join(pDir, "media.json"), "utf-8"));
+  const mediaOut = JSON.parse(await readFile(join(pDir, "media.json"), "utf-8")) as MediaAssetInput[];
   for (const g of groups) groupSchema.parse(g);
   for (const t of topicsOut) topicSchema.parse(t);
   for (const m of mediaOut) mediaSchema.parse(m);
@@ -110,14 +114,18 @@ export async function importCatalog(opts: ImportOptions): Promise<ImportResult> 
   const mediaFiles = existsSync(mediaDir) ? await readdir(mediaDir) : [];
   const missingFiles: string[] = [];
   for (const m of mediaOut) {
-    if (!mediaFiles.some((x) => x.startsWith(m.hash))) missingFiles.push(m.hash.slice(0, 12));
+    const filename = `${m.hash}.${m.ext}`;
+    if (!mediaFiles.includes(filename)) missingFiles.push(m.hash.slice(0, 12));
+    else if (createHash("sha256").update(await readFile(join(mediaDir, filename))).digest("hex") !== m.hash) {
+      throw new Error(`hash media incoerente: ${filename}`);
+    }
   }
 
   // --- 3. DB state ---
   const srcFileRows = manifest
     ? await db.select({ id: sourceFiles.id }).from(sourceFiles).where(eq(sourceFiles.sha256, manifest.sha256)).limit(1)
     : [];
-  const srcFile = srcFileRows[0] ?? null;
+  let srcFile = srcFileRows[0] ?? null;
   const catalogRows = await db
     .select()
     .from(questionCatalogVersions)
@@ -157,7 +165,7 @@ export async function importCatalog(opts: ImportOptions): Promise<ImportResult> 
 
   // FK / integrity checks
   const fkChecks: string[] = [];
-  if (manifest && !srcFile) {
+  if (manifest && !srcFile && !opts.registerSource) {
     fkChecks.push(`source_files: nessuna riga con sha256 ${manifest.sha256.slice(0, 16)}… (eseguire npm run data:audit)`);
   }
   const duplicateCodes = questionsParsed.length - new Set(questionsParsed.map((q) => q.questionNumber)).size;
@@ -263,7 +271,7 @@ export async function importCatalog(opts: ImportOptions): Promise<ImportResult> 
     };
   }
 
-  if (fkChecks.length > 0) {
+  if (fkChecks.length > 0 || rejected.length > 0 || missingFiles.length > 0) {
     return {
       mode: "apply",
       catalogId,
@@ -280,6 +288,15 @@ export async function importCatalog(opts: ImportOptions): Promise<ImportResult> 
   // apply: single transaction
   try {
     await db.transaction(async (tx) => {
+      if (!srcFile && manifest && opts.registerSource) {
+        const inserted = await tx.insert(sourceFiles).values({
+          sourceType: "quiz_listing", sourceUrl: manifest.url, originalFilename: manifest.filename,
+          localPath: pdfPath, mimeType: "application/pdf", sha256: manifest.sha256,
+          publishedAt: manifest.publishedAt ? new Date(manifest.publishedAt) : null,
+          metadata: manifest,
+        }).onConflictDoNothing({ target: sourceFiles.sha256 }).returning({ id: sourceFiles.id });
+        srcFile = inserted[0] ?? (await tx.select({ id: sourceFiles.id }).from(sourceFiles).where(eq(sourceFiles.sha256, manifest.sha256)).limit(1))[0];
+      }
       const tIds = new Map<string, string>();
       for (const t of topicsOut) {
         const ins = await tx
@@ -320,16 +337,13 @@ export async function importCatalog(opts: ImportOptions): Promise<ImportResult> 
           )[0]!.id;
       }
 
-      let qInsert = 0;
-      let qUnchanged = 0;
-      for (const q of questionsParsed) {
+      // Bound parameter counts and network round trips for remote PostgreSQL imports.
+      const questionRows = questionsParsed.map(q => {
         const topicCode = nameToCode.get(q.topic);
         if (!topicCode) throw new Error(`topic mancante per domanda ${q.questionNumber}: "${q.topic.slice(0, 50)}"`);
         const topicId = tIds.get(topicCode);
         if (!topicId) throw new Error(`topicId non risolto per codice ${topicCode}`);
-        const ins = await tx
-          .insert(questions)
-          .values({
+        return {
             catalogVersionId: catalogIdDb,
             officialGroupCode: q.groupCode,
             officialQuestionCode: q.questionNumber,
@@ -347,24 +361,22 @@ export async function importCatalog(opts: ImportOptions): Promise<ImportResult> 
               rowBand: q.rowBand,
               structuralConfidence: q.structuralConfidence,
             },
-          })
+          };
+      });
+      let qInsert = 0;
+      for (let offset = 0; offset < questionRows.length; offset += 500) {
+        const ins = await tx.insert(questions).values(questionRows.slice(offset, offset + 500))
           .onConflictDoNothing({
             target: [questions.catalogVersionId, questions.officialQuestionCode],
           })
           .returning({ id: questions.id });
-        if (ins.length) qInsert++;
-        else qUnchanged++;
+        qInsert += ins.length;
       }
       ops.questionsInsert = qInsert;
-      ops.questionsUnchanged = qUnchanged;
+      ops.questionsUnchanged = questionRows.length - qInsert;
 
       let mInsert = 0;
-      let mUnchanged = 0;
-      const mediaIds = new Map<string, string>();
-      for (const m of mediaOut) {
-        const ins = await tx
-          .insert(mediaAssets)
-          .values({
+      const mediaRows = mediaOut.map(m => ({
             catalogVersionId: catalogIdDb,
             officialReference: m.hash,
             localPath: `data/media/${catalogId}/${m.hash}.${m.ext}`,
@@ -375,53 +387,46 @@ export async function importCatalog(opts: ImportOptions): Promise<ImportResult> 
             sourceFileId: srcFile?.id ?? null,
             verificationStatus: m.verificationStatus,
             verificationMethod: m.verificationMethod,
-            verifiedByType: "automated",
+            verifiedByType: "automated" as const,
             metadata: { minConfidence: m.minConfidence, pageFirstSeen: m.pageFirstSeen, questionCodes: m.questions },
-          })
+          }));
+      for (let offset = 0; offset < mediaRows.length; offset += 500) {
+        const ins = await tx.insert(mediaAssets).values(mediaRows.slice(offset, offset + 500))
           .onConflictDoNothing({ target: [mediaAssets.catalogVersionId, mediaAssets.officialReference] })
           .returning({ id: mediaAssets.id });
-        if (ins.length) mInsert++;
-        else mUnchanged++;
-        const found = (
-          await tx
-            .select({ id: mediaAssets.id })
-            .from(mediaAssets)
-            .where(and(eq(mediaAssets.catalogVersionId, catalogIdDb), eq(mediaAssets.officialReference, m.hash)))
-            .limit(1)
-        )[0];
-        mediaIds.set(m.hash, found!.id);
+        mInsert += ins.length;
       }
       ops.mediaInsert = mInsert;
-      ops.mediaUnchanged = mUnchanged;
+      ops.mediaUnchanged = mediaRows.length - mInsert;
+      const mediaIds = new Map((await tx.select({ id: mediaAssets.id, hash: mediaAssets.officialReference }).from(mediaAssets)
+        .where(eq(mediaAssets.catalogVersionId, catalogIdDb))).map(row => [row.hash, row.id]));
+      const questionIds = new Map((await tx.select({ id: questions.id, code: questions.officialQuestionCode }).from(questions)
+        .where(eq(questions.catalogVersionId, catalogIdDb))).map(row => [row.code, row.id]));
 
       let qmInsert = 0;
-      for (const q of questionsParsed) {
-        if (!q.imageRef) continue;
-        const qRow = (
-          await tx
-            .select({ id: questions.id })
-            .from(questions)
-            .where(and(eq(questions.catalogVersionId, catalogIdDb), eq(questions.officialQuestionCode, q.questionNumber)))
-            .limit(1)
-        )[0];
+      const relations = questionsParsed.flatMap(q => {
+        if (!q.imageRef) return [];
+        const questionId = questionIds.get(q.questionNumber);
         const assetId = mediaIds.get(q.imageRef);
-        if (!qRow || !assetId) {
+        if (!questionId || !assetId) {
           throw new Error(`relation mancante per domanda ${q.questionNumber} (imageRef ${(q.imageRef ?? "").slice(0, 12)})`);
         }
-        const ins = await tx
-          .insert(questionMedia)
-          .values({
-            questionId: qRow.id,
+        return [{
+            questionId,
             mediaAssetId: assetId,
             relationType: "primary",
             confidence: q.structuralConfidence !== null ? String(q.structuralConfidence) : null,
             verifiedManually: false,
-          })
+          }];
+      });
+      for (let offset = 0; offset < relations.length; offset += 500) {
+        const ins = await tx.insert(questionMedia).values(relations.slice(offset, offset + 500))
           .onConflictDoNothing({ target: [questionMedia.questionId, questionMedia.mediaAssetId] })
           .returning();
-        if (ins.length) qmInsert++;
+        qmInsert += ins.length;
       }
       ops.questionMediaInsert = qmInsert;
+      ops.questionMediaUnchanged = relations.length - qmInsert;
 
       for (const code of ["TEST-1", "TEST-2"]) {
         const fake = (await tx.select({ id: topics.id }).from(topics).where(eq(topics.code, code)).limit(1))[0];
@@ -495,7 +500,7 @@ async function main() {
   const mode = args.includes("--apply") ? "apply" : "dry-run";
   const catalogId = args.find((a) => !a.startsWith("--")) ?? DEFAULT_CATALOG_ID;
 
-  const result = await importCatalog({ mode, catalogId });
+  const result = await importCatalog({ mode, ...catalogInput(catalogId) });
   console.log("\n===", result.mode.toUpperCase(), result.ok ? "OK" : "CON ERRORI", "===");
   console.log("counts:", JSON.stringify(result.counts, null, 2));
   console.log("operations:", JSON.stringify(result.operations, null, 2));

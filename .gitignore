@@ -60,3 +60,5 @@ next-env.d.ts
 /data/exports/
 test-output
 playwright-report
+/PROMPT/
+/appunti.txt

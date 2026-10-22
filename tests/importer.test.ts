@@ -1,7 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdir, writeFile, rm } from "node:fs/promises";
+import { mkdir, writeFile, rm, unlink } from "node:fs/promises";
 import { join } from "node:path";
+import { createHash } from "node:crypto";
 import { and, eq, sql as dsql } from "drizzle-orm";
 import { db } from "../src/lib/db";
 import { mediaAssets, questionCatalogVersions, questions, topics } from "../src/lib/db/schema";
@@ -9,7 +10,8 @@ import { importCatalog } from "../scripts/db/import-catalog";
 
 const ROOT = join(__dirname, "..");
 const FIX = join(ROOT, "data", "processed", ".fixture-tests");
-const HASH_A = "a".repeat(64);
+const IMAGE = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jVZkAAAAASUVORK5CYII=", "base64");
+const HASH_A = createHash("sha256").update(IMAGE).digest("hex");
 
 function makeCatalog(valid: boolean) {
   return {
@@ -67,6 +69,7 @@ function makeCatalog(valid: boolean) {
 async function writeFixture(cat: ReturnType<typeof makeCatalog>) {
   await rm(FIX, { recursive: true, force: true });
   await mkdir(FIX, { recursive: true });
+  await writeFile(join(FIX, `${HASH_A}.png`), IMAGE);
   await writeFile(join(FIX, "topics.json"), JSON.stringify(cat.topics));
   await writeFile(join(FIX, "groups.json"), JSON.stringify(cat.groups));
   await writeFile(join(FIX, "media.json"), JSON.stringify(cat.media));
@@ -142,6 +145,13 @@ test("20. transazione annullata in caso di import incompleto", async () => {
 
     // valid fixture: apply must succeed and be idempotent
     await writeFixture(makeCatalog(true));
+    const imagePath = join(FIX, `${HASH_A}.png`);
+    await unlink(imagePath);
+    const missing = await importCatalog({ mode: "apply", catalogId: "zz-fixture", licenseCategory: "ZZ", versionCode: "fixture", pdfPath: null, manifestPath: null, processedDir: FIX, mediaDir: FIX });
+    assert.equal(missing.ok, false, "un file immagine mancante deve bloccare l'importazione");
+    await writeFile(imagePath, "corrupted");
+    await assert.rejects(importCatalog({ mode: "apply", catalogId: "zz-fixture", licenseCategory: "ZZ", versionCode: "fixture", pdfPath: null, manifestPath: null, processedDir: FIX, mediaDir: FIX }), /hash media incoerente/);
+    await writeFile(imagePath, IMAGE);
     const ok1 = await importCatalog({
       mode: "apply",
       catalogId: "zz-fixture",
@@ -185,6 +195,26 @@ test("20. transazione annullata in caso di import incompleto", async () => {
       .from(questions)
       .where(eq(questions.catalogVersionId, c2!.id));
     assert.equal(Number(qCount2[0].c), 2);
+
+    // Exercise several remote-sized batches, including image relations, on isolated fixtures.
+    await cleanupTestCatalog();
+    const large = makeCatalog(true);
+    for (let index = 0; index < 1001; index++) {
+      const code = String(20000 + index);
+      large.questions.push({ ...large.questions[0], questionNumber: code,
+        contentHash: createHash("sha256").update(code).digest("hex") });
+    }
+    await writeFixture(large);
+    const batchOptions = { mode: "apply" as const, catalogId: "zz-fixture", licenseCategory: "ZZ", versionCode: "fixture", pdfPath: null, manifestPath: null, processedDir: FIX, mediaDir: FIX };
+    const batched = await importCatalog(batchOptions);
+    assert.equal(batched.ok, true);
+    assert.equal(batched.operations.questionsInsert, 1003);
+    assert.equal(batched.operations.questionMediaInsert, 1002);
+    const replay = await importCatalog(batchOptions);
+    assert.equal(replay.ok, true);
+    assert.equal(replay.operations.questionsInsert, 0);
+    assert.equal(replay.operations.questionMediaInsert, 0);
+    assert.equal(replay.operations.questionMediaUnchanged, 1002);
   } finally {
     await cleanupTestCatalog();
     await rm(FIX, { recursive: true, force: true });

@@ -37,7 +37,7 @@ test.describe("ViaLibera — flussi esame reali (auto-advance rimosso)", () => {
     await page.goto(`/simulazione/${exam.sessionId}`);
     await expectPosition(page, 1);
     await page.getByRole("button", { name: "Apri navigatore domande" }).click();
-    const cells = page.locator("button[role='listitem']");
+    const cells = page.getByRole("group", { name: "Navigatore domande" }).getByRole("button");
     await expect(cells).toHaveCount(30);
     await page.keyboard.press("Escape");
   });

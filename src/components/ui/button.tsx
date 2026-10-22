@@ -24,9 +24,9 @@ const variantClass: Record<Variant, string> = {
 };
 
 const sizeClass: Record<Size, string> = {
-  sm: "h-9 px-3 text-xs rounded-sm font-mono",
-  md: "h-11 px-5 text-sm rounded-md font-mono uppercase tracking-wide",
-  lg: "h-12 px-6 text-base rounded-md font-mono uppercase tracking-wide",
+  sm: "min-h-12 px-3 py-2 text-sm rounded-sm font-mono",
+  md: "min-h-12 px-4 py-3 text-base rounded-md font-mono uppercase tracking-wide",
+  lg: "min-h-14 px-5 py-3 text-base rounded-md font-mono uppercase tracking-wide",
 };
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
@@ -38,7 +38,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       ref={ref}
       disabled={disabled}
       className={cn(
-        "inline-flex select-none items-center justify-center gap-2 font-medium transition-colors disabled:pointer-events-none disabled:opacity-50",
+        "inline-flex min-w-0 select-none items-center justify-center gap-2 text-center font-medium leading-snug transition-colors disabled:pointer-events-none disabled:opacity-50",
         "editorial-press",
         variantClass[variant],
         sizeClass[size],
