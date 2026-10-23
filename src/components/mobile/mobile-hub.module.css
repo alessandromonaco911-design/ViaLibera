@@ -1,7 +1,7 @@
 
 .app button{font:inherit;color:inherit;cursor:pointer}.app button:disabled{opacity:.35;cursor:default}.app button:focus-visible{outline:3px solid #171717;outline-offset:3px}.app button, .app input{-webkit-tap-highlight-color:transparent}.app svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
 .app{width:min(100%,440px);height:100dvh;display:grid;grid-template-rows:56px minmax(0,1fr) auto;background:var(--paper);overflow:hidden}
-.app header{border-bottom:2px solid;display:flex;align-items:center;justify-content:space-between;padding:0 16px;background:var(--blue)}.app .logo{font:bold 18px monospace;letter-spacing:-.7px}.app .logo span{color:var(--blue);background:var(--ink);padding:1px 3px}.app .preview{font:11px monospace;border:1px solid;padding:4px 6px;background:#fff}
+.app header{border-bottom:2px solid;display:flex;align-items:center;justify-content:space-between;padding:0 16px;background:var(--blue)}.app .logo{display:inline-flex;min-height:44px;align-items:center;text-decoration:none}.app .preview{font:11px monospace;border:1px solid;padding:4px 6px;background:#fff}
 .app .screen{min-height:0;padding:18px 16px 14px;display:flex;flex-direction:column;gap:14px;overflow:hidden;touch-action:pan-y}
 .app .viewport{position:relative;min-height:0;overflow:hidden;isolation:isolate}.app .screen{height:100%;width:100%;background:var(--paper)}.app .snapshot{position:absolute;inset:0;pointer-events:none;user-select:none}.app .moving{will-change:transform}.app button{transition:transform 120ms cubic-bezier(.22,1,.36,1),background-color 160ms ease}.app button:not(:disabled):active{transform:scale(.98)}
 .app .snapshot button.ghostControl:disabled{opacity:1}

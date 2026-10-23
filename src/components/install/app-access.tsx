@@ -2,6 +2,8 @@
 
 import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
 import Link from "next/link";
+import { Brand } from "@/components/brand/brand";
+import { AppIntro } from "@/components/brand/app-intro";
 import styles from "./install.module.css";
 
 type InstallPrompt = Event & {
@@ -55,7 +57,7 @@ export function AppAccess({ children }: { children: ReactNode }) {
   }, [mode]);
   if (mode === "loading") return <div className={styles.loading} role="status">Caricamento ViaLibera…</div>;
   if (mode === "iphone" || mode === "phone") return <InstallGuide />;
-  return <div className="app-viewport" data-home-screen-app={mode === "app" ? "true" : undefined}>{children}</div>;
+  return <div className="app-viewport" data-home-screen-app={mode === "app" ? "true" : undefined}>{mode === "app" ? <AppIntro>{children}</AppIntro> : children}</div>;
 }
 
 export function InstallGuide() {
@@ -98,7 +100,7 @@ export function InstallGuide() {
   }
 
   return <main className={styles.page} data-install-guide>
-    <header className={styles.header}><span className={styles.brand}>VIA<span>LIBERA</span></span><span>LA TUA PATENTE, IN TASCA</span></header>
+    <header className={styles.header}><Brand /><span>LA TUA PATENTE, IN TASCA</span></header>
     <div className={styles.content}>
       <div className={styles.intro}>
         {/* eslint-disable-next-line @next/next/no-img-element -- static app icon, no optimizer required */}

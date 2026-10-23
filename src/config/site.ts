@@ -10,6 +10,7 @@
  */
 
 export const siteConfig = {
+  url: "https://via-libera.vercel.app",
   /** provisional product name */
   name: "ViaLibera",
   tagline: "Preparati all’esame senza perdere tempo.",

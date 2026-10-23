@@ -1,5 +1,7 @@
 "use client";
 
+import { Brand } from "@/components/brand/brand";
+
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -278,9 +280,8 @@ export function ExamRunner({ sessionId, version, startedAt, expiresAt, totalQues
       {/* header — stable row 1 */}
       <header className="sticky top-0 z-20 border-b-2 border-foreground bg-accent-blue">
         <div className="quiz-header-row flex w-full items-center gap-2 px-4 py-3 sm:gap-3 sm:px-6">
-          <Link href="/" className="flex shrink-0 flex-col items-start gap-0.5 font-mono text-sm font-semibold leading-none tracking-tight sm:flex-row sm:items-baseline">
-            <span>VIA</span>
-            <span className="bg-foreground px-0.5 text-accent-blue">LIBERA</span>
+          <Link href="/" aria-label="ViaLibera · Home" className="flex min-h-11 min-w-11 shrink-0 items-center">
+            <Brand compact />
           </Link>
           <span className="hidden font-mono text-xs uppercase tracking-wide text-foreground sm:block lg:hidden">
             Domanda {position} di {totalQuestions}

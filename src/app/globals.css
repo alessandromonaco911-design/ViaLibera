@@ -99,7 +99,7 @@ body {
 @media (max-width: 1023px) {
   .mobile-entry-desktop { display: none; }
   .mobile-entry-loading { height: 100dvh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem; font-family: var(--font-mono); }
-  .mobile-entry-loading span { font-family: var(--font-sans); font-size: 1rem; color: var(--muted); }
+  .mobile-entry-loading > span:last-child { font-family: var(--font-sans); font-size: 1rem; color: var(--muted); }
 }
 
 /* focus visible: hard black outline, never removed */

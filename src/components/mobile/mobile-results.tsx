@@ -1,5 +1,7 @@
 "use client";
 
+import { Brand } from "@/components/brand/brand";
+
 import { useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -62,7 +64,7 @@ function MobileResults({ exam, practice }: Omit<Props, "children">) {
   </div>;
 
   return <div className={styles.app} data-mobile-result>
-    <header><Link className={styles.logo} href="/">VIA<span>LIBERA</span></Link><span className={styles.preview}>RISULTATO</span></header>
+    <header><Link className={styles.logo} aria-label="ViaLibera · Home" href="/"><Brand /></Link><span className={styles.preview}>RISULTATO</span></header>
     <main className={styles.screen}>
       <div className={styles.heading}><h1 className={exam ? exam.passed ? "text-success" : "text-danger" : ""}>{title}</h1></div>
       <section className={`${styles.panel} ${styles.grow}`} aria-label="Riepilogo risultati">

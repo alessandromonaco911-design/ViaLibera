@@ -1,5 +1,7 @@
 "use client";
 
+import { Brand } from "@/components/brand/brand";
+
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { flushSync } from "react-dom";
 import Link from "next/link";
@@ -151,7 +153,7 @@ export function MobileHub({ initialSection, initialTopics, initialTopicId }: {
     </div></>;
   }
   return <div className={styles.app} data-mobile-hub style={{ "--section-index": sections.indexOf(view.section) } as CSSProperties}>
-    <header><Link className={styles.logo} href="/" onClick={event => { event.preventDefault(); go({ section: "home", sessions: false }); }}>VIA<span>LIBERA</span></Link><button className={`${styles.preview} min-h-11`} aria-label="Fonte e versione dei quesiti" onClick={() => setSourceOpen(true)}>PATENTE B ⓘ</button></header>
+    <header><Link className={styles.logo} aria-label="ViaLibera · Home" href="/" onClick={event => { event.preventDefault(); go({ section: "home", sessions: false }); }}><Brand /></Link><button className={`${styles.preview} min-h-11`} aria-label="Fonte e versione dei quesiti" onClick={() => setSourceOpen(true)}>PATENTE B ⓘ</button></header>
     <main ref={viewportRef} className={styles.viewport} aria-label="Contenuto"><div ref={trackRef} className={styles.track}>
       {sections.map(section => <section key={section} className={styles.slide} inert={view.section !== section} aria-hidden={view.section !== section} aria-label={labels[section]}>
         <div className={styles.screen} data-active={view.section === section} data-section={section}>{section === "home" ? home() : section === "training" ? training() : exam()}</div>

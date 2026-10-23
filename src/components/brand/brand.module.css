@@ -1,0 +1,4 @@
+.brand{display:inline-flex;align-items:center;gap:8px;color:#111;white-space:nowrap;line-height:1;font-family:var(--font-geist-sans),sans-serif;font-size:23px;font-weight:800;letter-spacing:-1.1px;vertical-align:middle}
+.brand img{display:block;width:16px;height:36px;flex-shrink:0}
+.wordmark{background:transparent}
+@media(max-width:559px){.brand[data-compact] .wordmark{display:none}.brand[data-compact] img{width:15px;height:34px}}

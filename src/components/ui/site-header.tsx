@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils/cn";
+import { Brand } from "@/components/brand/brand";
 
 /**
  * Editorial site header: compact, black bottom border, accent-blue fill,
@@ -76,9 +77,8 @@ export function SiteHeader({ mode }: { mode?: string }) {
   return (
     <header className="sticky top-0 z-30 border-b-2 border-foreground bg-accent-blue">
       <div className="mx-auto flex h-16 w-full max-w-6xl items-center gap-4 px-4 sm:px-6">
-        <Link href="/" className="flex shrink-0 items-baseline gap-1 font-mono text-lg font-semibold tracking-tight sm:text-xl">
-          <span>VIA</span>
-          <span className="bg-foreground px-1 text-accent-blue">LIBERA</span>
+        <Link href="/" aria-label="ViaLibera · Home" className="flex min-h-11 shrink-0 items-center">
+          <Brand />
         </Link>
 
         {mode && (

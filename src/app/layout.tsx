@@ -15,13 +15,34 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(siteConfig.url),
   title: {
-    default: `${siteConfig.name} — simulazioni patente ${siteConfig.licenseCategory}`,
+    default: `${siteConfig.name} — Quiz patente ${siteConfig.licenseCategory}`,
     template: `%s · ${siteConfig.name}`,
   },
   description: siteConfig.description,
-  appleWebApp: { capable: true, title: siteConfig.name, statusBarStyle: "default" },
-  icons: { apple: "/icons/apple-touch-icon.png" },
+  openGraph: {
+    type: "website", locale: "it_IT", siteName: siteConfig.name, url: siteConfig.url,
+    title: "ViaLibera — Quiz patente B",
+    description: "Allenati per argomento. Prova l’esame. Capisci ogni risposta.",
+    images: [{ url: "/brand/share-v2.png", width: 1200, height: 630, alt: "ViaLibera. La patente. Un quiz alla volta." }],
+  },
+  twitter: {
+    card: "summary_large_image", title: "ViaLibera — Quiz patente B",
+    description: "Allenati per argomento. Prova l’esame. Capisci ogni risposta.",
+    images: [{ url: "/brand/share-v2.png", alt: "ViaLibera. La patente. Un quiz alla volta." }],
+  },
+  appleWebApp: {
+    capable: true, title: siteConfig.name, statusBarStyle: "default",
+    startupImage: [375, 390, 393].flatMap((width, index) => {
+      const height = [812, 844, 852][index];
+      return (["portrait", "landscape"] as const).map(orientation => ({
+        url: `/brand/startup-${width}x${height}-${orientation}.png`,
+        media: `(device-width: ${width}px) and (device-height: ${height}px) and (-webkit-device-pixel-ratio: 3) and (orientation: ${orientation})`,
+      }));
+    }),
+  },
+  icons: { apple: "/icons/apple-touch-icon.png?v=2" },
   robots: {
     index: false,
     follow: false,

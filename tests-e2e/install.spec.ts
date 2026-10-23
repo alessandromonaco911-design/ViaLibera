@@ -94,5 +94,5 @@ test("desktop stays accessible and manifest icons are served", async ({ page, re
     expect(response.status()).toBe(200);
     expect(response.headers()["content-type"]).toContain("image/png");
   }
-  await expect(page.locator('link[rel="apple-touch-icon"]')).toHaveAttribute("href", "/icons/apple-touch-icon.png");
+  await expect(page.locator('link[rel="apple-touch-icon"]')).toHaveAttribute("href", "/icons/apple-touch-icon.png?v=2");
 });
