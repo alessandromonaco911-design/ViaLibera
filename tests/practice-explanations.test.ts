@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import bank from "../src/data/practice-explanations.json";
+import sourceHosts from "../src/data/explanation-source-hosts.json";
 import { explanationKey, getPracticeExplanation } from "../src/lib/practice/explanations";
 import { toQuestionStates } from "../src/lib/practice/payload";
 
@@ -32,6 +33,19 @@ test("all published entries have source evidence, bounded copy and matching bind
     assert.ok(item.remember.length > 0 && item.remember.length <= 120);
     assert.ok(item.verification.evidence.length > 0);
     assert.equal(item.verification.humanReviewed, false);
-    assert.equal(new URL(item.sourceUrl).hostname, "www.ilportaledellautomobilista.it");
+    assert.ok(sourceHosts.includes(new URL(item.sourceUrl).hostname));
+    assert.equal(new URL(item.sourceUrl).protocol, "https:");
   }
+});
+
+test("first-aid explanations distinguish the quiz solution from safe real-world care", () => {
+  const bleeding = Object.values(bank.entries).find(item => item.officialQuestionCode === "24883");
+  const chest = Object.values(bank.entries).find(item => item.officialQuestionCode === "24915");
+  assert.ok(bleeding);
+  assert.ok(chest);
+  assert.equal(bleeding.correctAnswer, false); // Preserve the catalogue, including its discrepancy.
+  assert.match(bleeding.text, /non dare cibi o bevande/i);
+  assert.match(bleeding.sourceUrl, /^https:\/\/cri\.it\//);
+  assert.match(chest.text, /non deve però sigillare/i);
+  assert.match(chest.sourceUrl, /^https:\/\/www\.erc\.edu\//);
 });

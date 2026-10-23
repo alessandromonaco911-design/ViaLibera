@@ -5,6 +5,7 @@ const bank = JSON.parse(await readFile("src/data/practice-explanations.json", "u
 const sourceId = "ab-observed-2026-10-22";
 const rows = (await readFile(`data/processed/${sourceId}/questions.jsonl`, "utf8")).trim().split(/\r?\n/).map(line => JSON.parse(line));
 const manifest = JSON.parse(await readFile("data/manifests/pda-ab-it-observed-2026-10-22.json", "utf8"));
+const sourceHosts = JSON.parse(await readFile("src/data/explanation-source-hosts.json", "utf8"));
 const errors = [];
 const used = new Set();
 const pending = [];
@@ -17,8 +18,11 @@ for (const q of rows) {
     if (entry.statement !== q.statement || entry.correctAnswer !== q.correctAnswer || entry.imageRef !== q.imageRef) errors.push(`Binding ${q.questionNumber}`);
     if (!entry.text?.trim() || entry.text.length > 900 || !entry.remember?.trim() || entry.remember.length > 120) errors.push(`Text bounds ${q.questionNumber}`);
     if (entry.verification?.sourceSnapshotSha256 !== manifest.sha256) errors.push(`Source snapshot ${q.questionNumber}`);
-    const source = new URL(entry.sourceUrl);
-    if (source.protocol !== "https:" || source.hostname !== "www.ilportaledellautomobilista.it") errors.push(`Source URL ${q.questionNumber}`);
+    let source;
+    try { source = new URL(entry.sourceUrl); } catch { errors.push(`Source URL ${q.questionNumber}`); }
+    if (source && (source.protocol !== "https:" || !sourceHosts.includes(source.hostname) || source.username || source.password)) errors.push(`Source URL ${q.questionNumber}`);
+    if (entry.officialQuestionCodes && !entry.officialQuestionCodes.includes(q.questionNumber)) errors.push(`Official alias ${q.questionNumber}`);
+    if (entry.verification?.copySha256 && entry.verification.copySha256 !== createHash("sha256").update(JSON.stringify([entry.text,entry.remember,entry.sourceUrl,entry.sourceLabel])).digest("hex")) errors.push(`Changed reviewed copy ${q.questionNumber}`);
     if (entry.status === "verified_sources" && entry.verifiedAt && entry.verification) verified++;
   }
   if (!entry || entry.status !== "verified_sources") pending.push({

@@ -77,7 +77,11 @@ test("long explanation pages, text-only question, focus trap and final confirmat
   await page.route(`**/api/practice/${session.sessionId}/answer`, async route => {
     const original = await route.fetch();
     const json = await original.json();
-    if (json.explanation) json.explanation.text = Array(5).fill(json.explanation.text).join(" ");
+    if (json.explanation) {
+      json.explanation.text = Array(5).fill(json.explanation.text).join(" ");
+      json.explanation.remember = "Lascia spazio agli utenti vulnerabili e controlla sempre visibilità, condizioni della strada e precedenze prima di agire.";
+      json.explanation.sourceLabel = "Codice della strada · ACI";
+    }
     await route.fulfill({ response: original, json });
   });
   await page.goto(`/allenamento/${session.sessionId}`);
@@ -126,4 +130,44 @@ test("unverified payloads hide explanations; repeated verification keeps the sam
   expect(replay).toEqual(check);
   const after = await (await request.get(`/api/practice/${created.sessionId}`)).json();
   expect(after.states.find((s: { questionId: string }) => s.questionId === row.id).explanation).toEqual(check.explanation);
+});
+
+test("every training category returns a bound explanation after correct and incorrect answers", async ({ playwright }) => {
+  // Twenty-five sequential sessions include remote database round trips.
+  test.setTimeout(240_000);
+  const client = await playwright.request.newContext({ baseURL: "http://127.0.0.1:3210" });
+  const topicsResponse = await client.get("/api/practice/topics");
+  expect(topicsResponse.ok()).toBe(true);
+  const { topics } = await topicsResponse.json();
+  expect(topics).toHaveLength(25);
+  await client.dispose();
+  for (const [index, topic] of topics.entries()) {
+    // New device context keeps each category independent of the per-device creation budget.
+    const request = await playwright.request.newContext({ baseURL: "http://127.0.0.1:3210" });
+    try {
+      const response = await request.post("/api/practice", { data: { topicId: topic.id, questionCount: 10, seed: 123 } });
+      expect(response.status(), topic.name).toBe(201);
+      const session = await response.json(); owned.push(session.sessionId);
+      const question = session.questions[0];
+      expect(question).not.toHaveProperty("explanation");
+      expect(question).not.toHaveProperty("correctAnswer");
+      const [row] = await db()`select correct_answer from questions where id=${question.id}`;
+      const correct = index % 2 === 0;
+      const checked = await (await request.post(`/api/practice/${session.sessionId}/answer`, { data: { questionId: question.id, selectedAnswer: correct ? row.correct_answer : !row.correct_answer } })).json();
+      expect(checked.isCorrect, topic.name).toBe(correct);
+      expect(checked.explanation?.text.length, topic.name).toBeGreaterThan(30);
+      expect(checked.explanation.text).not.toContain("in preparazione");
+      expect(checked.explanation.remember.length).toBeGreaterThan(0);
+      expect(checked.explanation.sourceUrl).toMatch(/^https:\/\//);
+      const resumedResponse = await request.get(`/api/practice/${session.sessionId}`);
+      expect(resumedResponse.ok(), topic.name).toBe(true);
+      const resumed = await resumedResponse.json();
+      const verifiedState = resumed.states.find((state: {questionId: string}) => state.questionId === question.id);
+      expect(verifiedState, topic.name).toBeDefined();
+      expect(verifiedState.explanation).toEqual(checked.explanation);
+      expect(resumed.states.filter((state: {questionId: string}) => state.questionId !== question.id).every((state: Record<string, unknown>) => !Object.hasOwn(state, "explanation"))).toBe(true);
+    } finally {
+      await request.dispose();
+    }
+  }
 });

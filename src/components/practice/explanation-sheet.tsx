@@ -39,7 +39,7 @@ export function ExplanationSheet({ open, onClose, onContinue, isCorrect, selecte
   const ref = useModalFocus(open, onClose);
   const [page, setPage] = useState(0);
   const limit = useSyncExternalStore(subscribeSize, readingLimit, () => 175);
-  const pages = explanationPages(explanation?.text ?? "La soluzione è verificata sul catalogo ufficiale. La spiegazione di questo quesito è in preparazione.", limit);
+  const pages = explanationPages(explanation?.text ?? "La soluzione è verificata nel catalogo della sessione. Per questa versione del quesito non è disponibile una spiegazione.", limit);
   const index = Math.min(page, pages.length - 1);
   const solution = isCorrect ? selectedAnswer : !selectedAnswer;
   return createPortal(<div className={styles.overlay} data-open={open} aria-hidden={!open} inert={!open}>
