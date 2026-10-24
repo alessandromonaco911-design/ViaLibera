@@ -32,7 +32,6 @@ test("iPhone 15: explanations, focus, safe areas, long copy and last question st
   // Simulate iPhone 15 safe insets separately from screen size. Edge cannot render native iOS chrome.
   await page.addStyleTag({ content: ":root{--safe-top:59px;--safe-bottom:34px}" });
   await page.getByRole("button", { name: "FALSO", exact: true }).click();
-  await page.getByRole("button", { name: "Verifica risposta", exact: true }).click();
   const sheet = page.getByRole("dialog", { name: "Risposta errata" });
   await expect(sheet).toBeVisible();
   await expect(sheet).toContainText("abbaglianti");
@@ -88,7 +87,6 @@ test("long explanation pages, text-only question, focus trap and final confirmat
   await page.locator('[data-hydrated="true"]').waitFor();
   await page.addStyleTag({ content: ":root{--safe-top:59px;--safe-bottom:34px}" });
   await page.getByRole("button", { name: "VERO", exact: true }).click();
-  await page.getByRole("button", { name: "Verifica risposta", exact: true }).click();
   let sheet = page.getByRole("dialog", { name: "Risposta corretta" });
   await expect(sheet).toBeVisible();
   await expect(sheet.getByRole("button", { name: "Parte successiva" })).toBeEnabled();
@@ -107,7 +105,6 @@ test("long explanation pages, text-only question, focus trap and final confirmat
   await page.getByRole("button", { name: "Apri navigatore domande" }).click();
   await page.getByRole("button", { name: /^Domanda 10,/ }).click();
   await page.getByRole("button", { name: "VERO", exact: true }).click();
-  await page.getByRole("button", { name: "Verifica risposta", exact: true }).click();
   sheet = page.getByRole("dialog", { name: /Risposta (corretta|errata)/ });
   await expect(sheet).toBeVisible();
   await sheet.getByRole("button", { name: "Ho capito, completa" }).click();

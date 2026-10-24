@@ -1,10 +1,10 @@
 import { createHash } from "node:crypto";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, sql, or, isNull, inArray } from "drizzle-orm";
 import { db } from "../db";
-import { questions, topics } from "../db/schema";
+import { questions, topics, mediaAssets } from "../db/schema";
 import { siteConfig } from "../../config/site";
 import { fetchCandidates, type DbCandidate } from "../exam/generator";
-import { isMediaUsable } from "../media/policy";
+import { isMediaUsable, MEDIA_STATUSES } from "../media/policy";
 
 /**
  * Practice (allenamento) question generator.
@@ -88,9 +88,10 @@ export async function generatePracticeQuestions(input: {
   topicId: string;
   seed: number;
   total: number;
+  excludeIds?: string[];
 }): Promise<{ questions: DbCandidate[]; topic: { id: string; code: string; name: string } }> {
   const topic = await getTopic(input.topicId);
-  const all = await fetchCandidates(input.catalogId);
+  const all = await fetchCandidates(input.catalogId, input.topicId);
   const inTopic = all.filter((q) => q.topicId === input.topicId);
 
   // media policy is enforced by the shared candidate fetch (usable check happens
@@ -98,7 +99,8 @@ export async function generatePracticeQuestions(input: {
   // rejected/missing/ambiguous assets are never selected.
   const usable = inTopic.filter((q) => (q.imageRef ? isMediaUsable(q.mediaStatus) : true));
 
-  const { selected } = selectPracticeQuestions(usable, {
+  const fresh = input.excludeIds ? usable.filter(q => !input.excludeIds!.includes(q.id)) : usable;
+  const { selected } = selectPracticeQuestions(fresh.length >= input.total ? fresh : usable, {
     seed: input.seed,
     total: input.total,
     maxPerGroup: siteConfig.selection.practiceMaxPerGroup,
@@ -131,27 +133,11 @@ export async function listPracticeTopics(catalogId: string): Promise<
     })
     .from(topics)
     .innerJoin(questions, and(eq(questions.topicId, topics.id), eq(questions.status, "imported")))
-    .where(eq(questions.catalogVersionId, catalogId))
+    .leftJoin(mediaAssets, and(eq(mediaAssets.sha256, questions.imageReference), eq(mediaAssets.catalogVersionId, questions.catalogVersionId)))
+    .where(and(eq(questions.catalogVersionId, catalogId), or(isNull(questions.imageReference), inArray(mediaAssets.verificationStatus, MEDIA_STATUSES.filter(status=>isMediaUsable(status))))))
     .groupBy(topics.id, topics.code, topics.name)
     .orderBy(topics.name);
 
-  // media usability filter: count only questions whose referenced asset is usable
-  const all = await fetchCandidates(catalogId);
-  const usableIds = new Set(
-    all.filter((q) => (q.imageRef ? isMediaUsable(q.mediaStatus) : true)).map((q) => q.id),
-  );
-  return rows
-    .filter((r) => r.questionCount > 0)
-    .map((r) => {
-      // per-topic usable counts require the candidate scan above (single pass)
-      const usableOfTopic = all.filter((q) => q.topicId === r.id && usableIds.has(q.id));
-      return {
-        id: r.id,
-        code: r.code,
-        name: r.name,
-        questionCount: usableOfTopic.length,
-        imageCount: usableOfTopic.filter((q) => q.imageRef).length,
-      };
-    })
-    .filter((r) => r.questionCount > 0);
+  // Aggregate in PostgreSQL: the category page no longer downloads every statement.
+  return rows.filter(row=>row.questionCount>0);
 }

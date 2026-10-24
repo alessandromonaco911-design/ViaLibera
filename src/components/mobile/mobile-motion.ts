@@ -43,6 +43,9 @@ export function createMobileMotion({ viewport, track, snapshotClass, view, commi
   function go(next: MobileView) {
     if (busy()) return;
     const current = view();
+    if (next.section === "progress" && current.section === "progress" && next.progressDetail !== current.progressDetail) {
+      clean(); commit(next); focusHeading(); return;
+    }
     if (next.section === current.section && next.group === current.group && next.topicId === current.topicId && next.page === current.page && next.sessions === current.sessions) {
       queued = null; if (next.count !== current.count) commit(next); return;
     }

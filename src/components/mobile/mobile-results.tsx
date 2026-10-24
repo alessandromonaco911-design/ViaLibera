@@ -77,7 +77,8 @@ function MobileResults({ exam, practice }: Omit<Props, "children">) {
         {error && <p className={styles.errorBox} role="alert">{error}</p>}
         <div className={styles.bottomAction} style={{ display: "grid", gap: "8px" }}>
           <button className={styles.primary} onClick={() => inspect("all")}>Rivedi risposte<MobileIcon name="arrow"/></button>
-          {practice && practice.errorCount > 0 && <button className={styles.primary} onClick={() => void mistakes()} disabled={busy}>{busy ? "Preparazione…" : "Ripassa gli errori"}</button>}
+          {practice && !practice.continuous && practice.errorCount > 0 && <button className={styles.primary} onClick={() => void mistakes()} disabled={busy}>{busy ? "Preparazione…" : "Ripassa gli errori"}</button>}
+          {practice?.continuous && <Link className={styles.primary} href="/progressi">I tuoi progressi →</Link>}
         </div>
       </section>
     </main>

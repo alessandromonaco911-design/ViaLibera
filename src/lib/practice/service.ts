@@ -113,8 +113,8 @@ export interface PracticeQuestionRow {
   mediaHeight: number | null;
 }
 
-export async function getPracticeSessionQuestions(sessionId: string): Promise<PracticeQuestionRow[]> {
-  const rows = await db
+export async function getPracticeSessionQuestions(sessionId: string, connection: Pick<typeof db, "select"> = db): Promise<PracticeQuestionRow[]> {
+  const rows = await connection
     .select({
       sessionQuestionId: examSessionQuestions.id,
       questionId: examSessionQuestions.questionId,
@@ -158,6 +158,7 @@ export interface CreatePracticeInput {
   questionCount: number;
   seed: number;
   environment?: string;
+  continuous?: boolean;
 }
 
 /** Create an untimed practice session for one topic (10/20/30 questions). */
@@ -190,7 +191,7 @@ export async function createPracticeSession(input: CreatePracticeInput): Promise
         environment: input.environment ?? (process.env.NODE_ENV === "production" ? "production" : "development"),
         topicId: input.topicId,
         feedbackMode: "immediate",
-        requestedQuestionCount: input.questionCount,
+        requestedQuestionCount: input.continuous ? 0 : input.questionCount,
         practiceStatus: "in_progress",
         totalQuestions: input.questionCount,
         allowedErrors: 0,
@@ -309,6 +310,7 @@ export async function createMistakesSession(input: {
 export const answerSchema = z.object({
   questionId: z.string().uuid(),
   selectedAnswer: z.boolean(),
+  seed: z.number().int().optional(),
 });
 
 /**
@@ -323,19 +325,22 @@ export async function verifyPracticeAnswer(sessionId: string, input: unknown): P
   }
   const { questionId, selectedAnswer } = parsed.data;
 
-  const session = await getPracticeSession(sessionId);
+  return db.transaction(async tx => {
+  const [session] = await tx.select().from(examSessions).where(eq(examSessions.id, sessionId)).for("update");
   if (!session) throw new PracticeServiceError("SESSION_NOT_FOUND", "sessione inesistente");
   assertPracticeMode(session);
+  if (session.requestedQuestionCount === 0 && parsed.data.seed !== session.selectionSeed) throw new PracticeServiceError("INVALID_PAYLOAD", "Il blocco di domande è cambiato. Ricarica la pagina.");
   if (session.status !== "in_progress" && session.practiceStatus !== "in_progress") {
     throw new PracticeServiceError("SESSION_COMPLETED", "sessione già completata");
   }
 
-  const row = await db
+  const row = await tx
     .select({
       sessionQuestionId: examSessionQuestions.id,
       questionId: examSessionQuestions.questionId,
       answerVerified: examSessionQuestions.answerVerified,
       selectedAnswer: examSessionQuestions.selectedAnswer,
+      verifiedAt: examSessionQuestions.verifiedAt,
       correctAnswer: questions.correctAnswer,
       statement: questions.statement,
       imageRef: questions.imageReference,
@@ -351,6 +356,8 @@ export async function verifyPracticeAnswer(sessionId: string, input: unknown): P
     // idempotent replay of the SAME verified answer is allowed; any other change is blocked
     if (q.selectedAnswer === selectedAnswer) {
       return {
+        attemptId: q.sessionQuestionId,
+        verifiedAt: q.verifiedAt?.toISOString(),
         questionId,
         selectedAnswer,
         correctAnswer: q.correctAnswer,
@@ -362,7 +369,7 @@ export async function verifyPracticeAnswer(sessionId: string, input: unknown): P
   }
 
   const now = new Date();
-  await db
+  await tx
     .update(examSessionQuestions)
     .set({
       selectedAnswer,
@@ -374,12 +381,40 @@ export async function verifyPracticeAnswer(sessionId: string, input: unknown): P
     .where(eq(examSessionQuestions.id, q.sessionQuestionId));
 
   return {
+    attemptId: q.sessionQuestionId,
+    verifiedAt: now.toISOString(),
     questionId,
     selectedAnswer,
     correctAnswer: q.correctAnswer,
     isCorrect: selectedAnswer === q.correctAnswer,
     explanation: getPracticeExplanation(q),
   };
+  });
+}
+
+/** One continuous session retains only the current ten questions, not an unbounded log. */
+export async function advanceContinuousPractice(sessionId: string, expectedSeed: number): Promise<void> {
+  const initial = await getPracticeSession(sessionId);
+  if (!initial) throw new PracticeServiceError("SESSION_NOT_FOUND", "sessione inesistente");
+  assertPracticeMode(initial);
+  if (initial.requestedQuestionCount !== 0 || !initial.topicId) throw new PracticeServiceError("INVALID_PAYLOAD", "Questa sessione non è continua.");
+  if (initial.status !== "in_progress") throw new PracticeServiceError("SESSION_COMPLETED", "sessione completata");
+  if (initial.selectionSeed !== expectedSeed) return; // replay after a lost response
+  const previous = await getPracticeSessionQuestions(sessionId);
+  if (previous.some(row => !row.answerVerified)) throw new PracticeServiceError("INVALID_PAYLOAD", "Rispondi alle domande ancora senza risposta prima di continuare.");
+  const nextSeed = expectedSeed >= siteConfig.selection.seedMax ? siteConfig.selection.seedMin : expectedSeed + 1;
+  const generated = await generatePracticeQuestions({catalogId:initial.catalogVersionId,topicId:initial.topicId,seed:nextSeed,total:10,excludeIds:previous.map(row=>row.questionId)});
+  await db.transaction(async tx => {
+    const [session] = await tx.select().from(examSessions).where(eq(examSessions.id,sessionId)).for("update");
+    if (!session || session.status !== "in_progress") throw new PracticeServiceError("SESSION_COMPLETED", "sessione completata");
+    if (session.selectionSeed !== expectedSeed) return;
+    const rows = await getPracticeSessionQuestions(sessionId, tx);
+    if (rows.some(row=>!row.answerVerified)) throw new PracticeServiceError("INVALID_PAYLOAD", "Rispondi alle domande ancora senza risposta prima di continuare.");
+    const counts = computePracticeSummary(rows);
+    await tx.delete(examSessionQuestions).where(eq(examSessionQuestions.sessionId,sessionId));
+    await tx.insert(examSessionQuestions).values(generated.questions.map((question,index)=>({sessionId,questionId:question.id,position:index+1,flagged:false})));
+    await tx.update(examSessions).set({selectionSeed:nextSeed,totalQuestions:10,correctCount:(session.correctCount??0)+counts.correctCount,errorCount:(session.errorCount??0)+counts.errorCount,updatedAt:new Date()}).where(eq(examSessions.id,sessionId));
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -407,18 +442,24 @@ export function computePracticeSummary(
 
 /** Idempotent completion: already-completed sessions return the stored result. */
 export async function completePracticeSession(sessionId: string): Promise<PracticeResult> {
-  const session = await getPracticeSession(sessionId);
+  return db.transaction(async tx => {
+  const [session] = await tx.select().from(examSessions).where(eq(examSessions.id, sessionId)).for("update");
   if (!session) throw new PracticeServiceError("SESSION_NOT_FOUND", "sessione inesistente");
   assertPracticeMode(session);
 
-  const rows = await getPracticeSessionQuestions(sessionId);
+  const rows = await getPracticeSessionQuestions(sessionId, tx);
   if (session.status === "completed" && session.practiceStatus === "completed") {
     return buildPracticeResult(session, rows);
   }
 
   const counts = computePracticeSummary(rows);
+  if (session.requestedQuestionCount === 0) {
+    counts.correctCount += session.correctCount ?? 0;
+    counts.errorCount += session.errorCount ?? 0;
+    counts.unansweredCount = 0;
+  }
   const now = new Date();
-  await db
+  await tx
     .update(examSessions)
     .set({
       status: "completed",
@@ -433,19 +474,21 @@ export async function completePracticeSession(sessionId: string): Promise<Practi
     })
     .where(eq(examSessions.id, sessionId));
 
-  const updated = await getPracticeSession(sessionId);
-  return buildPracticeResult(updated ?? session, rows);
+  return buildPracticeResult({ ...session, status:"completed",practiceStatus:"completed",completedAt:now,submittedAt:now,...counts }, rows);
+  });
 }
 
 /** Pure summary builder (used for both fresh completion and idempotent replay). */
 export function buildPracticeResult(session: PracticeSessionRow, rows: PracticeQuestionRow[]): PracticeResult {
-  const counts = computePracticeSummary(rows);
+  const continuous = session.requestedQuestionCount === 0;
+  const counts = continuous && session.status === "completed" ? {correctCount:session.correctCount??0,errorCount:session.errorCount??0,unansweredCount:0} : computePracticeSummary(rows);
   const answered = counts.correctCount + counts.errorCount;
   const percentage = answered > 0 ? Math.round((counts.correctCount / answered) * 100) : 0;
   const end = session.completedAt ?? session.submittedAt ?? new Date();
   const timeUsedSeconds = Math.max(0, Math.round((end.getTime() - session.startedAt.getTime()) / 1000));
 
   return {
+    continuous,
     sessionId: session.id,
     mode: (session.mode as PracticeMode) ?? "practice",
     topic: {
@@ -455,14 +498,14 @@ export function buildPracticeResult(session: PracticeSessionRow, rows: PracticeQ
       questionCount: session.totalQuestions,
       imageCount: 0,
     },
-    totalQuestions: session.totalQuestions,
+    totalQuestions: continuous ? counts.correctCount + counts.errorCount : session.totalQuestions,
     correctCount: counts.correctCount,
     errorCount: counts.errorCount,
     unansweredCount: counts.unansweredCount,
     percentage,
     timeUsedSeconds,
     completedAt: (session.completedAt ?? session.submittedAt ?? new Date()).toISOString(),
-    answers: rows.map((r) => ({
+    answers: rows.filter(r => !continuous || r.answerVerified).map((r) => ({
       questionId: r.questionId,
       position: r.position,
       statement: r.statement,

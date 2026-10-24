@@ -63,7 +63,7 @@ export function ExplanationSheet({ open, onClose, onContinue, isCorrect, selecte
       <div className={styles.actions}>
         <div className={styles.actionRow}><button type="button" className={styles.primary} onClick={onContinue}>{isLast ? "Ho capito, completa →" : "Ho capito, avanti →"}</button>
           {explanation && <a className={styles.source} href={explanation.sourceUrl} target="_blank" rel="noreferrer" aria-label={`Apri fonte: ${explanation.sourceLabel}`} title={explanation.sourceLabel}>↗</a>}</div>
-        <div className={styles.meta}><span>Allenamento · {position} / {total}</span>{explanation && <span>Fonte: {explanation.sourceLabel}</span>}</div>
+        <div className={styles.meta}><span>Allenamento · {position}{total ? ` / ${total}` : " · senza limite"}</span>{explanation && <span>Fonte: {explanation.sourceLabel}</span>}</div>
       </div>
     </section>
   </div>, document.body);

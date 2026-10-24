@@ -53,16 +53,21 @@ export default async function PracticeSessionPage({ params }: { params: Promise<
 
   return (
     <PracticeRunner
+      key={session.id}
       sessionId={session.id}
       version={1}
       mode={session.mode as "practice" | "mistakes"}
       topicName={topic.name}
+      continuous={session.requestedQuestionCount === 0}
+      answeredBefore={session.requestedQuestionCount === 0 ? (session.correctCount??0)+(session.errorCount??0) : 0}
       totalQuestions={session.totalQuestions}
       startedAt={session.startedAt.toISOString()}
       seed={session.selectionSeed}
       sourceSessionId={session.sourceSessionId}
       questions={questions}
       initialStates={rows.map((r) => ({
+        attemptId: r.answerVerified ? r.sessionQuestionId : undefined,
+        verifiedAt: r.verifiedAt?.toISOString(),
         questionId: r.questionId,
         position: r.position,
         selectedAnswer: r.selectedAnswer,

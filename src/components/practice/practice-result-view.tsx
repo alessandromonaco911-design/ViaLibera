@@ -53,7 +53,7 @@ export function PracticeResultView({ result, topicName }: { result: PracticeResu
     router.replace(`/allenamento/${result.sessionId}/risultato?filter=${FILTER_PARAM[f]}`);
   };
 
-  const hasErrors = result.errorCount > 0;
+  const hasErrors = result.errorCount > 0 && !result.continuous;
 
   async function ripassaErrori() {
     if (mistakesBusy) return;
@@ -156,6 +156,7 @@ export function PracticeResultView({ result, topicName }: { result: PracticeResu
 
       {/* question list */}
       <section className="mt-4" aria-label="Dettaglio domande">
+        {result.continuous && <p className="mb-4 text-base text-muted">Il riepilogo copre tutto l’allenamento. Qui trovi le risposte dell’ultimo blocco; i tuoi progressi conservano anche i precedenti.</p>}
         <ul className="space-y-2">
           {filtered.map((a) => (
             <li key={a.questionId} className={cn("border-2 border-foreground bg-surface", a.unanswered ? "" : !a.isCorrect && "border-l-8 border-l-danger")}>

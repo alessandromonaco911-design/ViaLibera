@@ -541,3 +541,4 @@ body {
   .quiz-flag[aria-pressed="false"] { background: var(--surface); }
   .quiz-action-bar .action-bar-btn:last-child { background: var(--accent-blue); color: var(--foreground); }
 }
+.practice-action-hint{display:flex;align-items:center;justify-content:center;padding:0 8px;font-size:14px;color:var(--muted);text-align:center}

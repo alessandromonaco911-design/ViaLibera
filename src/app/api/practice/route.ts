@@ -14,6 +14,7 @@ export const dynamic = "force-dynamic";
 const createSchema = z.object({
   topicId: z.string().uuid(),
   questionCount: z.number().int().min(1).max(30),
+  continuous: z.boolean().optional().default(false),
   seed: z.number().int().min(siteConfig.selection.seedMin).max(siteConfig.selection.seedMax).optional(),
   /** only honored outside production; production always tags 'production' */
   environment: z.enum(["development", "test"]).optional(),
@@ -60,7 +61,8 @@ export async function POST(request: Request): Promise<NextResponse<PublicPractic
     const { session, questions, topic } = await createPracticeSession({
       catalogVersionId: catalogId,
       topicId: parsed.data.topicId,
-      questionCount: parsed.data.questionCount,
+      questionCount: parsed.data.continuous ? 10 : parsed.data.questionCount,
+      continuous: parsed.data.continuous,
       seed,
       environment,
     });
@@ -70,7 +72,8 @@ export async function POST(request: Request): Promise<NextResponse<PublicPractic
       mode: "practice",
       status: "in_progress",
       topic,
-      requestedQuestionCount: parsed.data.questionCount,
+      requestedQuestionCount: session.requestedQuestionCount ?? parsed.data.questionCount,
+      continuous: parsed.data.continuous,
       totalQuestions: session.totalQuestions,
       startedAt: session.startedAt,
       seed,

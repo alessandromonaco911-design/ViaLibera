@@ -21,6 +21,7 @@ export function SiteHeader({ mode }: { mode?: string }) {
     { href: "/", label: "Home" },
     { href: "/#inizia", label: "Simulazione" },
     { href: "/allenamento", label: "Allenamento" },
+    { href: "/progressi", label: "Progressi" },
   ];
 
   const isActive = (href: string) => {

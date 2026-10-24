@@ -10,14 +10,15 @@ import { Dialog } from "@/components/ui/dialog";
 import { siteConfig } from "@/config/site";
 import { activeCatalog } from "@/config/catalog";
 import type { PracticeTopicSummary } from "@/lib/practice/types";
-import { groupPracticeTopics, topicTitle } from "@/lib/practice/topic-navigation";
+import { groupPracticeTopics, topicTitle, topicGroupHints } from "@/lib/practice/topic-navigation";
 import { MobileIcon } from "./mobile-icon";
 import { createMobileMotion } from "./mobile-motion";
 import { mobileViewUrl, readMobileView, sections, type MobileSection, type MobileView } from "./mobile-view-state";
 import { useResumeSessions, type ResumeSession } from "./use-resume-sessions";
 import styles from "./mobile-hub.module.css";
+import { ProgressPanel } from "@/components/progress/progress-panel";
 
-const labels = { home: "Home", training: "Allenamento", exam: "Prova d’esame" };
+const labels = { home: "Home", training: "Allenamento", exam: "Esame", progress: "Progressi" };
 const subscribeHeight = () => window.innerHeight < 700 ? 4 : 6;
 
 export function MobileHub({ initialSection, initialTopics, initialTopicId }: {
@@ -74,13 +75,13 @@ export function MobileHub({ initialSection, initialTopics, initialTopicId }: {
 
   const go = (changes: Partial<MobileView>) => motion.current?.go({ ...viewRef.current, ...changes });
   const retry = () => { setLoadStatus("loading"); setReloadKey(key => key + 1); };
-  async function start(mode: "exam" | "practice") {
-    if (startingRef.current || mode === "practice" && (!topic || topic.questionCount < view.count)) return;
+  async function start(mode: "exam" | "practice", chosenTopic = topic, count = view.count) {
+    if (startingRef.current || mode === "practice" && (!chosenTopic || chosenTopic.questionCount < (count || 10))) return;
     motion.current?.reset(); startingRef.current = true; setStarting(true); setError(null);
     try {
       const response = await fetch(mode === "exam" ? "/api/exams" : "/api/practice", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(mode === "exam" ? {} : { topicId: topic!.id, questionCount: view.count }),
+        body: JSON.stringify(mode === "exam" ? {} : { topicId: chosenTopic!.id, questionCount: count || 10, continuous: count === 0 }),
       });
       const data = await response.json() as { sessionId?: string; error?: { code?: string; message?: string } };
       if (!response.ok || !data.sessionId) {
@@ -124,24 +125,25 @@ export function MobileHub({ initialSection, initialTopics, initialTopicId }: {
         <div className={styles.setupIcon} style={{ background: `var(--${group?.tone ?? "yellow"})` }}><MobileIcon name={group?.icon ?? "training"} topicCode={topic.code}/></div>
         <div className={styles.titleRow}><h1>{topicTitle(topic)}</h1><button aria-label="Descrizione completa dell’argomento" className={styles.infoButton} onClick={() => setDescriptionOpen(true)}><MobileIcon name="info"/></button></div>
         <div className={styles.summaryLine}><span>Quesiti disponibili</span><span>{topic.questionCount}</span></div>
-        <p className={styles.countLabel}>Quante domande?</p>
+        <p className={styles.countLabel}>Scegli come allenarti</p>
+        <button className={styles.continuous} aria-pressed={view.count === 0} onClick={() => go({count:0})} disabled={starting}><span aria-hidden="true">∞</span><span><strong>Senza limite</strong><small>Ti fermi quando vuoi</small></span><span aria-hidden="true">{view.count === 0 ? "✓" : "○"}</span></button>
         <div className={styles.counts} role="group" aria-label="Numero di domande">{siteConfig.practice.questionCounts.map(n => <button key={n} aria-label={`${n} domande`} aria-pressed={view.count === n} disabled={starting || topic.questionCount < n} onClick={() => go({ count: n })}>{n}</button>)}</div>
-        <p className={styles.muted}>Correzione dopo ogni risposta.</p>
+        <p className={styles.muted}>Tocca Vero o Falso: la spiegazione si apre subito.</p>
         {error && <p className={styles.errorBox} role="alert">{error}</p>}
         {topic.questionCount < 10 && <p className={styles.errorBox}>Servono almeno 10 quesiti per iniziare.</p>}
-        <div className={styles.bottomAction}><button className={styles.primary} onClick={() => void start("practice")} disabled={starting || topic.questionCount < view.count} aria-busy={starting}>{starting ? "Preparazione…" : "Inizia allenamento"}<MobileIcon name="arrow"/></button></div>
+        <div className={styles.bottomAction}><button className={styles.primary} onClick={() => void start("practice")} disabled={starting || topic.questionCount < (view.count || 10)} aria-busy={starting}>{starting ? "Preparazione…" : "Inizia allenamento"}<MobileIcon name="arrow"/></button></div>
       </section></>;
     if (group) {
       const pages = Math.ceil(group.topics.length / pageSize), page = Math.min(view.page, pages - 1), shown = group.topics.slice(page * pageSize, (page + 1) * pageSize);
       return <>{back("Macroargomenti", { group: null, page: 0 })}<div className={styles.heading}><h1>{group.title}</h1><p className={styles.muted}>Scegli una categoria</p></div>
-        <div className={styles.categoryList} style={{ "--rows": shown.length } as CSSProperties}>{shown.map(item => <button key={item.id} className={styles.category} onClick={() => go({ topicId: item.id, group: group.id, count: 10 })}>
+        <div className={styles.categoryList} style={{ "--rows": shown.length } as CSSProperties}>{shown.map(item => <button key={item.id} className={styles.category} onClick={() => go({ topicId: item.id, group: group.id, count: 0 })}>
           <span className={styles.macroIcon} style={{ background: `var(--${group.tone})` }}><MobileIcon name={group.icon} topicCode={item.code}/></span>
           <span className={styles.text}><strong>{topicTitle(item)}</strong><small>{item.questionCount} domande</small></span><MobileIcon name="chevron"/>
         </button>)}</div>{pager(page, pages)}</>;
     }
     return <><div className={styles.heading}><h1>Allenamento</h1><p className={styles.muted}>Da quale argomento partiamo?</p></div>
       <div className={styles.macroGrid}>{groups.map(item => <button key={item.id} className={styles.macro} style={{ background: `var(--${item.tone})` }} onClick={() => go({ group: item.id, page: 0 })}>
-        <span className={styles.macroIcon}><MobileIcon name={item.icon}/></span><span><strong>{item.title}</strong><small>{item.topics.length} categorie</small></span>{item.id === "licence" && <span className={styles.next}><MobileIcon name="chevron"/></span>}
+        <span className={styles.macroIcon}><MobileIcon name={item.icon}/></span><span><strong>{item.title}</strong><small>{topicGroupHints[item.id] ?? "Scegli un argomento"}</small></span>{item.id === "licence" && <span className={styles.next}><MobileIcon name="chevron"/></span>}
       </button>)}</div><p className={styles.hint}>Scegli un macroargomento per vedere le categorie</p></>;
   }
   function exam(): ReactNode {
@@ -156,10 +158,10 @@ export function MobileHub({ initialSection, initialTopics, initialTopicId }: {
     <header><Link className={styles.logo} aria-label="ViaLibera · Home" href="/" onClick={event => { event.preventDefault(); go({ section: "home", sessions: false }); }}><Brand /></Link><button className={`${styles.preview} min-h-11`} aria-label="Fonte e versione dei quesiti" onClick={() => setSourceOpen(true)}>PATENTE B ⓘ</button></header>
     <main ref={viewportRef} className={styles.viewport} aria-label="Contenuto"><div ref={trackRef} className={styles.track}>
       {sections.map(section => <section key={section} className={styles.slide} inert={view.section !== section} aria-hidden={view.section !== section} aria-label={labels[section]}>
-        <div className={styles.screen} data-active={view.section === section} data-section={section}>{section === "home" ? home() : section === "training" ? training() : exam()}</div>
+        <div className={styles.screen} data-active={view.section === section} data-section={section}>{section === "home" ? home() : section === "training" ? training() : section === "exam" ? exam() : <ProgressPanel active={view.section === "progress"} topics={topics} detail={view.progressDetail} busy={starting} error={error} onErrorClear={()=>setError(null)} onDetail={progressDetail => go({ progressDetail })} onTrain={topicId => { if (topicId) void start("practice", topics.find(t=>t.id===topicId), 10); else go({section:"training",topicId:null,group:null,page:0}); }}/>}</div>
       </section>)}
     </div></main>
-    <nav aria-label="Sezioni" style={{ "--tab-index": sections.indexOf(view.section) } as CSSProperties}>{sections.map(section => <button key={section} aria-current={view.section === section ? "page" : undefined} disabled={starting} onClick={() => go({ section })}><MobileIcon name={section}/><span>{labels[section]}</span></button>)}</nav>
+    <nav aria-label="Sezioni" style={{ "--tab-index": sections.indexOf(view.section) } as CSSProperties}>{sections.map(section => <button key={section} aria-current={view.section === section ? "page" : undefined} disabled={starting} onClick={() => go({ section, ...(section === "progress" ? {progressDetail:"overview" as const} : {}) })}><MobileIcon name={section}/><span>{labels[section]}</span></button>)}</nav>
     <Dialog open={descriptionOpen} onClose={() => setDescriptionOpen(false)} title="Descrizione completa">{topic && <p className="text-base leading-relaxed">{topic.name}</p>}</Dialog>
     <Dialog open={sourceOpen} onClose={() => setSourceOpen(false)} title="Fonte dei quesiti">
       <p className="text-base leading-relaxed">{activeCatalog.questionCount.toLocaleString("it-IT")} quesiti dal listato AB del Portale dell’Automobilista, verificato il {activeCatalog.verifiedAt}.</p>

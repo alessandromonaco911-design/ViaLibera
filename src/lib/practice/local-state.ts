@@ -17,6 +17,7 @@ export interface VerifiedPracticeResult {
 }
 
 export interface PersistedPracticeState {
+  seed?: number;
   sessionId: string;
   /** 0 = practice, 1 = mistakes */
   mode: "practice" | "mistakes";
@@ -85,6 +86,7 @@ export function parsePersistedPracticeState(raw: string | null): PersistedPracti
     if (v.selected !== undefined && (typeof v.selected !== "object" || v.selected === null)) return null;
     if (v.verified !== undefined && (typeof v.verified !== "object" || v.verified === null)) return null;
     return {
+      seed: typeof v.seed === "number" ? v.seed : undefined,
       sessionId: v.sessionId,
       mode: v.mode === "mistakes" ? "mistakes" : "practice",
       topicId: typeof v.topicId === "string" ? v.topicId : "",

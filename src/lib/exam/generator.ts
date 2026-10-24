@@ -131,7 +131,7 @@ export interface DbCandidate extends QuestionCandidate {
  * Fetch active candidates of the current imported catalog, joining the
  * verification status / path of the referenced media asset and the topic name.
  */
-export async function fetchCandidates(catalogId: string): Promise<DbCandidate[]> {
+export async function fetchCandidates(catalogId: string, topicId?: string): Promise<DbCandidate[]> {
   const rows = await db
     .select({
       id: questions.id,
@@ -157,7 +157,7 @@ export async function fetchCandidates(catalogId: string): Promise<DbCandidate[]>
         eq(mediaAssets.catalogVersionId, questions.catalogVersionId),
       ),
     )
-    .where(and(eq(questions.catalogVersionId, catalogId), eq(questions.status, "imported")));
+    .where(and(eq(questions.catalogVersionId, catalogId), eq(questions.status, "imported"), topicId ? eq(questions.topicId, topicId) : undefined));
 
   return rows.map((r) => ({
     id: r.id,

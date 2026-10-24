@@ -1,4 +1,8 @@
 import type { PracticeTopicSummary } from "./types";
+export const topicGroupHints: Record<string, string> = {
+  signals: "Pericolo, divieto e semafori", road: "Precedenze, manovre e sosta", car: "Luci, manutenzione e viaggio",
+  safety: "Protezioni e primo soccorso", licence: "Documenti e assicurazione",
+};
 
 export const topicGroups = [
   { id: "signals", title: "Segnali", tone: "yellow", icon: "signals", codes: ["4056", "4149", "4185", "4193", "4236", "4266", "4326", "4348", "4373"] },

@@ -47,6 +47,8 @@ export async function GET(_request: Request, ctx: Ctx): Promise<NextResponse<Pra
     }));
 
     const base = {
+      continuous: session.requestedQuestionCount === 0,
+      answeredBefore: session.requestedQuestionCount === 0 ? (session.correctCount ?? 0) + (session.errorCount ?? 0) : 0,
       sessionId: session.id,
       version: siteConfig.payloadVersion,
       mode: (session.mode as "practice" | "mistakes") ?? "practice",

@@ -43,12 +43,14 @@ export interface PracticeTopicSummary {
 }
 
 export interface PublicPracticePayload {
+  continuous?: boolean;
+  answeredBefore?: number;
   sessionId: string;
   version: number;
   mode: PracticeMode;
   status: "in_progress" | "completed";
   topic: PracticeTopicSummary;
-  /** how many questions the user asked for (10/20/30) */
+  /** 10/20/30 for a fixed series; 0 identifies a continuous session. */
   requestedQuestionCount: number;
   totalQuestions: number;
   /** true for practice modes (no timer, no expiry) */
@@ -62,6 +64,8 @@ export interface PublicPracticePayload {
 
 /** Per-question state returned by GET (verification state, no hidden solutions). */
 export interface PracticeQuestionState {
+  attemptId?: string;
+  verifiedAt?: string;
   questionId: string;
   position: number;
   selectedAnswer: boolean | null;
@@ -80,6 +84,8 @@ export interface PracticeStateResponse extends PublicPracticePayload {
 
 /** Single-answer verification result (the ONLY place a solution is revealed). */
 export interface AnswerCheckResult {
+  attemptId?: string;
+  verifiedAt?: string;
   questionId: string;
   selectedAnswer: boolean;
   correctAnswer: boolean;
@@ -89,6 +95,7 @@ export interface AnswerCheckResult {
 
 /** Final practice summary (idempotent). */
 export interface PracticeResult {
+  continuous?: boolean;
   sessionId: string;
   mode: PracticeMode;
   topic: PracticeTopicSummary;

@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils/cn";
 import { pageShellClass } from "@/components/ui/page-shell";
 import { siteConfig } from "@/config/site";
 import { MobileEntry } from "@/components/mobile/mobile-entry";
+import { topicTitle as shortTopicTitle } from "@/lib/practice/topic-navigation";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -19,7 +20,7 @@ export default async function AllenamentoTopicPage({ params }: { params: Promise
   const topics = catalogId ? await listPracticeTopics(catalogId) : [];
   const topic = topics.find((t) => t.id === topicId);
   if (!topic) notFound();
-  const topicTitle = topic.name.split(";")[0];
+  const topicTitle = shortTopicTitle(topic);
 
   return (
     <MobileEntry initialSection="training" topics={topics} initialTopicId={topicId}>

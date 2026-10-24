@@ -55,8 +55,10 @@ export function buildPublicPracticePayload(input: {
   seed: number;
   sourceSessionId: string | null;
   questions: DbCandidate[];
+  continuous?: boolean;
 }): PublicPracticePayload {
   return {
+    ...(input.continuous ? {continuous:true} : {}),
     sessionId: input.sessionId,
     version: siteConfig.payloadVersion,
     mode: input.mode,
@@ -85,6 +87,8 @@ export function buildPublicPracticePayload(input: {
  */
 export function toQuestionStates(
   rows: {
+    sessionQuestionId?: string;
+    verifiedAt?: Date | null;
     questionId: string;
     position: number;
     selectedAnswer: boolean | null;
@@ -95,6 +99,8 @@ export function toQuestionStates(
   }[],
 ): PracticeQuestionState[] {
   return rows.map((r) => ({
+    ...(r.answerVerified === true && r.sessionQuestionId ? { attemptId:r.sessionQuestionId } : {}),
+    ...(r.answerVerified === true && r.verifiedAt ? { verifiedAt:r.verifiedAt.toISOString() } : {}),
     questionId: r.questionId,
     position: r.position,
     selectedAnswer: r.selectedAnswer,

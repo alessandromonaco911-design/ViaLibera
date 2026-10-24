@@ -213,7 +213,7 @@ export const examSessions = pgTable(
     sourceSessionId: uuid("source_session_id").references((): AnyPgColumn => examSessions.id, { onDelete: "set null" }),
     /** immediate (practice/mistakes) | deferred (simulation) */
     feedbackMode: text("feedback_mode"),
-    /** practice/mistakes: number of questions the user asked for */
+    /** practice/mistakes: requested count; 0 means bounded-window continuous practice. */
     requestedQuestionCount: integer("requested_question_count"),
     /** practice/mistakes: in_progress | completed | abandoned */
     practiceStatus: text("practice_status"),

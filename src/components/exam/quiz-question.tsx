@@ -28,7 +28,7 @@ export function QuizQuestion({ question, position, total, onZoom, children, emph
     <div ref={layoutRef} className="quiz-layout" data-has-image={!!question.image}>
     <article className="quiz-question border-2 border-foreground bg-surface shadow-pop">
       <div className="quiz-position font-mono text-sm font-medium text-muted">
-        <p>Domanda {position} di {total}</p>
+        <p>Domanda {position}{total ? ` di ${total}` : " · senza limite"}</p>
         <button type="button" onClick={() => setInfoOpen(true)} aria-label="Informazioni sul quesito" className="quiz-info-button">ⓘ</button>
       </div>
       <h1 ref={titleRef} className="quiz-statement mt-3" id="quiz-statement">{emphasize

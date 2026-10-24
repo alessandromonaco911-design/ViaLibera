@@ -1,6 +1,8 @@
 "use client";
 
 import { Brand } from "@/components/brand/brand";
+import { recordProgressAnswers } from "@/lib/progress/storage";
+import type { ExamResult } from "@/lib/exam/types";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
@@ -125,6 +127,11 @@ export function ExamRunner({ sessionId, version, startedAt, expiresAt, totalQues
           body: JSON.stringify(body),
         });
         if (res.ok) {
+          const { result } = await res.json() as { result: ExamResult };
+          await recordProgressAnswers(result.answers.filter(answer=>!answer.unanswered).map(answer=>{
+            const question = questions.find(item=>item.id===answer.questionId);
+            return {id:`exam:${sessionId}:${answer.questionId}`,question:question?.officialQuestionCode??answer.questionId,topic:question?.topic??"Altri argomenti",correct:answer.correct,at:result.completedAt};
+          }),{id:sessionId,passed:result.passed,errors:result.errorCount,at:result.completedAt});
           submittedRef.current = true;
           clearPersistedState(localStorage, sessionId);
           unregisterSession(localStorage, sessionId);

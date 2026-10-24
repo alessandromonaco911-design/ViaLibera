@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
 
 const shapes: Record<string, ReactNode> = {
+  progress: <><path d="M4 20V12h3v8M11 20V7h3v13M18 20V3h3v17"/></>,
+  target: <><circle cx="11" cy="13" r="9"/><circle cx="11" cy="13" r="5"/><path d="m11 13 10-10M16 3h5v5"/></>,
   home: <><path d="m3 10 9-7 9 7v10H3Z"/><path d="M9 20v-7h6v7"/></>,
   training: <><path d="m12 3 10 5-10 5L2 8Z"/><path d="M6 10v7l6 4 6-4v-7M22 8v9"/></>,
   exam: <><rect x="5" y="4" width="14" height="18" rx="2"/><path d="M9 2h6v4H9zM9 11h6M9 15h6M9 19h3"/></>,

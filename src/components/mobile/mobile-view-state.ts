@@ -1,21 +1,24 @@
-export const sections = ["home", "training", "exam"] as const;
+export const sections = ["home", "training", "exam", "progress"] as const;
 export type MobileSection = typeof sections[number];
 export interface MobileView {
   section: MobileSection; group: string | null; topicId: string | null; page: number; count: number; sessions: boolean;
+  progressDetail?: "overview" | "weak" | "achievements";
 }
 
 export function readMobileView(fallback: MobileSection, topicId?: string): MobileView {
   const url = new URL(window.location.href);
-  const section: MobileSection = url.pathname.startsWith("/allenamento") ? "training" : url.searchParams.get("sezione") === "esame" || url.hash === "#inizia" ? "exam" : url.pathname === "/" ? "home" : fallback;
+  const section: MobileSection = url.pathname === "/progressi" ? "progress" : url.pathname.startsWith("/allenamento") ? "training" : url.searchParams.get("sezione") === "esame" || url.hash === "#inizia" ? "exam" : url.pathname === "/" ? "home" : fallback;
   const count = Number(url.searchParams.get("domande"));
   const page = Number(url.searchParams.get("pagina"));
   return { section, group: url.searchParams.get("gruppo"), topicId: url.pathname.startsWith("/allenamento/argomento/") ? url.pathname.match(/^\/allenamento\/argomento\/([^/]+)$/)?.[1] ?? topicId ?? null : null,
-    page: Number.isFinite(page) ? Math.max(0, Math.floor(page) - 1) : 0, count: [10, 20, 30].includes(count) ? count : 10,
+    page: Number.isFinite(page) ? Math.max(0, Math.floor(page) - 1) : 0, count: [0, 10, 20, 30].includes(count) ? count : 0,
+    progressDetail: url.searchParams.get("vista") === "ripasso" ? "weak" : url.searchParams.get("vista") === "traguardi" ? "achievements" : "overview",
     sessions: section === "home" && url.searchParams.get("sessioni") === "1" };
 }
 
 export function mobileViewUrl(view: MobileView): string {
   if (view.section === "home") return view.sessions ? "/?sessioni=1" : "/";
+  if (view.section === "progress") return "/progressi" + (view.progressDetail && view.progressDetail !== "overview" ? `?vista=${view.progressDetail === "weak" ? "ripasso" : "traguardi"}` : "");
   if (view.section === "exam") return "/?sezione=esame";
   const query = new URLSearchParams();
   if (view.group) query.set("gruppo", view.group);

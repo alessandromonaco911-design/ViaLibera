@@ -5,7 +5,8 @@ import { Brand } from "@/components/brand/brand";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import type { PracticeExplanation, PublicPracticeQuestion } from "@/lib/practice/types";
+import type { PracticeExplanation, PublicPracticeQuestion, PracticeStateResponse } from "@/lib/practice/types";
+import { recordProgressAnswers } from "@/lib/progress/storage";
 import { ExplanationSheet } from "./explanation-sheet";
 import {
   loadPersistedPracticeState,
@@ -25,6 +26,8 @@ import { QuizQuestion } from "@/components/exam/quiz-question";
 import { QuizProgress } from "@/components/exam/quiz-progress";
 
 export interface PracticeInitialState {
+  attemptId?: string;
+  verifiedAt?: string;
   questionId: string;
   position: number;
   selectedAnswer: boolean | null;
@@ -34,6 +37,8 @@ export interface PracticeInitialState {
 }
 
 interface PracticeRunnerProps {
+  continuous?: boolean;
+  answeredBefore?: number;
   sessionId: string;
   version: number;
   mode: "practice" | "mistakes";
@@ -53,12 +58,17 @@ export function PracticeRunner({
   version,
   mode,
   topicName,
-  totalQuestions,
+  totalQuestions: initialTotal,
   startedAt,
-  questions,
-  initialStates,
+  questions: initialQuestions,
+  initialStates: serverStates,
+  seed: initialSeed,
+  continuous = false,
+  answeredBefore: initialBefore = 0,
 }: PracticeRunnerProps) {
   const router = useRouter();
+  const [batch, setBatch] = useState(() => ({questions:initialQuestions,initialStates:serverStates,totalQuestions:initialTotal,seed:initialSeed,answeredBefore:initialBefore}));
+  const {questions,initialStates,totalQuestions,seed,answeredBefore} = batch;
   const [position, setPosition] = useState(1);
   /** selected answers (not yet verified) */
   const [selected, setSelected] = useState<Record<string, boolean>>({});
@@ -89,7 +99,7 @@ export function PracticeRunner({
   useEffect(() => {
     const t = setTimeout(() => {
       const stored = loadPersistedPracticeState(localStorage, sessionId);
-      if (stored && stored.payloadVersion === version) {
+      if (stored && stored.payloadVersion === version && (stored.seed === seed || !continuous && stored.seed === undefined)) {
         if (stored.currentPosition >= 1 && stored.currentPosition <= totalQuestions) {
           setPosition(stored.currentPosition);
         }
@@ -126,14 +136,20 @@ export function PracticeRunner({
       mountedRef.current = true;
       setHydrated(true);
       registerPracticeSession(localStorage, sessionId);
+      const recovered = initialStates.filter(state=>state.verified && state.attemptId && typeof state.isCorrect === "boolean").map(state=>{
+        const question = questions.find(item=>item.id===state.questionId);
+        return {id:state.attemptId!,question:question?.officialQuestionCode??state.questionId,topic:question?.topic??topicName,correct:state.isCorrect!,at:state.verifiedAt??startedAt};
+      });
+      if (recovered.length) void recordProgressAnswers(recovered);
     }, 0);
     return () => clearTimeout(t);
-  }, [sessionId, version, totalQuestions, initialStates]);
+  }, [sessionId, version, totalQuestions, initialStates, seed, continuous, questions, topicName, startedAt]);
 
   // ---- persist (only after mount) ----
   useEffect(() => {
     if (!mountedRef.current) return;
     const state: PersistedPracticeState = {
+      seed,
       sessionId,
       mode,
       topicId: "",
@@ -141,25 +157,26 @@ export function PracticeRunner({
       currentPosition: position,
       selected,
       verified,
-      requestedQuestionCount: totalQuestions,
+      requestedQuestionCount: continuous ? 0 : totalQuestions,
       totalQuestions,
       startedAt,
       lastSavedAt: new Date().toISOString(),
       payloadVersion: version,
     };
     savePersistedPracticeState(localStorage, state);
-  }, [position, selected, verified, sessionId, mode, topicName, totalQuestions, startedAt, version]);
+  }, [position, selected, verified, sessionId, mode, topicName, totalQuestions, startedAt, version, seed, continuous]);
 
   // ---- interactions ----
   const selectAnswer = (qid: string, value: boolean) => {
-    if (phase === "checking" || verified[qid] !== undefined) return; // locked after verify
+    if (phase === "checking" || checkingRef.current || completingRef.current || verified[qid] !== undefined) return;
     setSelected((prev) => ({ ...prev, [qid]: value }));
     setErrorMsg(null);
+    void verifyCurrent(value);
   };
 
-  const verifyCurrent = async () => {
+  const verifyCurrent = async (answer?: boolean) => {
     if (!current) return;
-    const value = selected[current.id];
+    const value = answer ?? selected[current.id];
     if (value === undefined || verified[current.id] !== undefined) return; // nothing selected or already verified
     if (checkingRef.current) return;
     checkingRef.current = true;
@@ -169,10 +186,12 @@ export function PracticeRunner({
       const res = await fetch(`/api/practice/${sessionId}/answer`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ questionId: current.id, selectedAnswer: value }),
+        body: JSON.stringify({ questionId: current.id, selectedAnswer: value, seed }),
       });
       const data = (await res.json().catch(() => null)) as {
         isCorrect?: boolean;
+        attemptId?: string;
+        verifiedAt?: string;
         selectedAnswer?: boolean;
         explanation?: PracticeExplanation | null;
         error?: { message?: string; code?: string };
@@ -191,6 +210,7 @@ export function PracticeRunner({
           return next;
         });
         setPhase("idle");
+        void recordProgressAnswers([{id:data.attemptId ?? `${sessionId}:${seed}:${current.id}`,question:current.officialQuestionCode ?? current.id,topic:current.topic ?? topicName,correct:data.isCorrect,at:data.verifiedAt ?? new Date().toISOString()}]).then(saved=>{ if (!saved) setErrorMsg("Risposta verificata. Qui però non riesco a salvare i progressi."); });
         return;
       }
       setErrorMsg(data?.error?.message ?? "Verifica non riuscita. Riprova.");
@@ -204,7 +224,25 @@ export function PracticeRunner({
     }
   };
 
+  const nextBatch = async () => {
+    if (checkingRef.current || completingRef.current) return;
+    const unanswered = questions.find(question=>verified[question.id] === undefined);
+    if (unanswered) { setPosition(unanswered.position); return; }
+    completingRef.current = true; setPhase("checking"); setErrorMsg(null);
+    try {
+      const response = await fetch(`/api/practice/${sessionId}/next`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({seed})});
+      const data = await response.json() as PracticeStateResponse & {error?:{message?:string}};
+      if (!response.ok || !Array.isArray(data.questions)) throw new Error(data.error?.message ?? "Riprova a caricare le prossime domande.");
+      clearPersistedPracticeState(localStorage,sessionId);
+      setPosition(1); setSelected({}); setVerified({});
+      setBatch({questions:data.questions,initialStates:data.states,totalQuestions:data.totalQuestions,seed:data.seed,answeredBefore:data.answeredBefore??answeredBefore+totalQuestions});
+      setPhase("idle");
+    } catch(reason) { setErrorMsg(reason instanceof Error ? reason.message : "Connessione non disponibile. Riprova.");setPhase("error"); }
+    finally { completingRef.current = false; }
+  };
+
   const goTo = (pos: number) => {
+    if (checkingRef.current || completingRef.current) return;
     if (pos >= 1 && pos <= totalQuestions) {
       setPosition(pos);
       setNavigatorOpen(false);
@@ -222,6 +260,7 @@ export function PracticeRunner({
   };
 
   const navPrev = () => {
+    if (checkingRef.current || completingRef.current) return;
     if (position > 1) {
       setPosition(position - 1);
       setErrorMsg(null);
@@ -292,9 +331,9 @@ export function PracticeRunner({
           }
           break;
         case "ArrowRight":
-          if (verified[current.id] !== undefined && position < totalQuestions) {
+          if (verified[current.id] !== undefined && (position < totalQuestions || continuous)) {
             e.preventDefault();
-            navNext();
+            if (position >= totalQuestions && continuous) void nextBatch(); else navNext();
           }
           break;
         case "ArrowLeft":
@@ -343,7 +382,7 @@ export function PracticeRunner({
             <Brand compact />
           </Link>
           <span className="hidden truncate font-mono text-xs uppercase tracking-wide text-foreground sm:block lg:hidden">
-            {mode === "mistakes" ? "Ripasso errori" : "Allenamento"} · {position} di {totalQuestions}
+            {mode === "mistakes" ? "Ripasso errori" : "Allenamento"} · {continuous ? `${answeredBefore + position} · senza limite` : `${position} di ${totalQuestions}`}
           </span>
           <span className="hidden font-mono text-base uppercase tracking-wide lg:block">{mode === "mistakes" ? "Ripasso errori" : "Allenamento"}</span>
           <div className="ml-auto flex items-center gap-2">
@@ -351,18 +390,18 @@ export function PracticeRunner({
               <span className="lg:hidden" aria-hidden>☰</span><span className="hidden lg:inline">Quesiti</span>
             </Button>
             <Button variant="outline" size="sm" onClick={() => setCompleteOpen(true)} className="quiz-hdr-btn">
-              Completa
+              {continuous ? "Termina" : "Completa"}
             </Button>
           </div>
         </div>
-        <QuizProgress position={position} answered={questions.map((q) => verified[q.id] !== undefined)} />
+        <QuizProgress position={position} answered={questions.map((q) => verified[q.id] !== undefined)} continuousOffset={continuous ? answeredBefore : undefined} />
       </header>
 
       {/* question body — scrollable stage (stable geometry, action bar row fixed) */}
       <main ref={stageRef} className="quiz-stage">
         <div className="quiz-stage-inner mx-auto w-full">
           <div key={position} className="quiz-frame motion-scale-in">
-            <QuizQuestion question={current} position={position} total={totalQuestions} onZoom={setZoomImage} emphasize>
+            <QuizQuestion question={current} position={continuous ? answeredBefore + position : position} total={continuous ? 0 : totalQuestions} onZoom={setZoomImage} emphasize>
 
             {/* answers — green/red ONLY after verification */}
             <div className="quiz-answer-options mt-4 grid grid-cols-2 gap-2.5 sm:mt-5 sm:gap-4" role="group" aria-label="Risposta">
@@ -422,7 +461,7 @@ export function PracticeRunner({
                 </div>
               )}
               {!currentVerified && checkReady && (
-                <p className="text-base leading-relaxed text-muted">Seleziona Verifica risposta per controllare.</p>
+                <p className="text-base leading-relaxed text-muted">{phase === "checking" ? "Verifica in corso…" : "La risposta è conservata. Riprova la verifica."}</p>
               )}
               {!currentVerified && !checkReady && (
                 <p className="text-base leading-relaxed text-muted">Seleziona VERO o FALSO per rispondere.</p>
@@ -446,34 +485,34 @@ export function PracticeRunner({
             variant="outline"
             size="lg"
             onClick={navPrev}
-            disabled={position <= 1}
+            disabled={position <= 1 || phase === "checking"}
             aria-label="Domanda precedente"
             className="action-bar-btn quiz-back"
           >
             <span aria-hidden>←</span><span className="hidden sm:inline lg:hidden">Indietro</span><span className="hidden lg:inline">Precedente</span>
           </Button>
-          {!currentVerified && (
+          {!currentVerified && phase !== "error" && <p className="practice-action-hint" role="status">{phase === "checking" ? "Verifica della risposta…" : "Tocca Vero o Falso"}</p>}
+          {!currentVerified && phase === "error" && (
             <Button
               variant="primary"
               size="lg"
               onClick={() => void verifyCurrent()}
-              disabled={!checkReady || phase === "checking"}
-              aria-busy={phase === "checking"}
+              disabled={!checkReady}
               className="action-bar-btn"
             >
-              {phase === "checking" ? "Verifica…" : "Verifica risposta"}
+              Riprova la risposta
             </Button>
           )}
           {currentVerified && (
             <Button
               variant="primary"
               size="lg"
-              onClick={isLast ? () => setCompleteOpen(true) : navNext}
-              disabled={isLast ? false : !canAdvance}
+              onClick={isLast ? continuous ? () => void nextBatch() : () => setCompleteOpen(true) : navNext}
+              disabled={phase === "checking" || (isLast ? false : !canAdvance)}
               className="action-bar-btn"
-              aria-label={isLast ? "Completa allenamento" : "Avanti"}
+              aria-label={isLast && !continuous ? "Completa allenamento" : "Avanti"}
             >
-              {isLast ? "Completa allenamento" : <><span className="lg:hidden">Avanti →</span><span className="hidden lg:inline">Successiva →</span></>}
+              {phase === "checking" ? "Caricamento…" : isLast && !continuous ? "Completa allenamento" : <><span className="lg:hidden">Avanti →</span><span className="hidden lg:inline">Successiva →</span></>}
             </Button>
           )}
         </div>
@@ -481,12 +520,12 @@ export function PracticeRunner({
 
       {currentVerified && <ExplanationSheet key={current.id} open={explanationQuestionId === current.id}
         onClose={() => setExplanationQuestionId(null)}
-        onContinue={() => { setExplanationQuestionId(null); if (isLast) setCompleteOpen(true); else navNext(); }}
+        onContinue={() => { setExplanationQuestionId(null); if (isLast) { if (continuous) void nextBatch(); else setCompleteOpen(true); } else navNext(); }}
         selectedAnswer={currentVerified.selectedAnswer} isCorrect={currentVerified.isCorrect}
-        explanation={currentVerified.explanation ?? null} position={position} total={totalQuestions} isLast={isLast} />}
+        explanation={currentVerified.explanation ?? null} position={continuous ? answeredBefore + position : position} total={continuous ? 0 : totalQuestions} isLast={isLast && !continuous} />}
 
       {/* navigator drawer */}
-      <Drawer open={navigatorOpen} onClose={() => setNavigatorOpen(false)} title={`Domande (${totalQuestions})`}>
+      <Drawer open={navigatorOpen} onClose={() => setNavigatorOpen(false)} title={continuous ? "Domande" : `Domande (${totalQuestions})`}>
         <div className="grid grid-cols-5 gap-2 sm:grid-cols-6" role="group" aria-label="Navigatore domande">
           {questions.map((q) => {
             const isCurrent = q.position === position;
@@ -500,7 +539,7 @@ export function PracticeRunner({
                 type="button"
                 onClick={() => goTo(q.position)}
                 aria-current={isCurrent ? "true" : undefined}
-                aria-label={`Domanda ${q.position}, ${status}`}
+                aria-label={`Domanda ${continuous ? answeredBefore + q.position : q.position}, ${status}`}
                 className={cn(
                   "flex min-h-12 items-center justify-center border-2 border-foreground font-mono text-sm font-medium tabular-nums",
                   isCurrent
@@ -514,7 +553,7 @@ export function PracticeRunner({
                         : "bg-surface text-foreground",
                 )}
               >
-                {q.position}
+                {continuous ? answeredBefore + q.position : q.position}
               </button>
             );
           })}
@@ -529,9 +568,9 @@ export function PracticeRunner({
       </Drawer>
 
       {/* completion confirmation */}
-      <Dialog open={completeOpen} onClose={() => setCompleteOpen(false)} title="Completare l’allenamento?" busy={phase === "checking"}>
+      <Dialog open={completeOpen} onClose={() => setCompleteOpen(false)} title={continuous ? "Terminare l’allenamento?" : "Completare l’allenamento?"} busy={phase === "checking"}>
         <p className="font-mono text-sm text-muted">
-          {uncheckedCount === 1
+          {continuous ? "Puoi fermarti qui. Le domande non ancora affrontate non contano come errori. I progressi restano su questo dispositivo." : uncheckedCount === 1
             ? "1 domanda non verificata sarà considerata senza risposta."
             : `${uncheckedCount} domande non verificate saranno considerate senza risposta.`}
         </p>
