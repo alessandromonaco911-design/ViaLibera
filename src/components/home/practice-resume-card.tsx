@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTaskTransition } from "@/components/ui/task-transition";
 import {
   listInProgressPractice,
   clearPersistedPracticeState,
@@ -13,6 +14,7 @@ import { Button } from "@/components/ui/button";
 /** Homepage card: resume an in-progress practice session (separate from exam). */
 export function PracticeResumeCard() {
   const router = useRouter();
+  const task = useTaskTransition();
   const [sessions, setSessions] = useState<PersistedPracticeState[] | null>(null);
 
   useEffect(() => {
@@ -65,7 +67,7 @@ export function PracticeResumeCard() {
               <Button
                 variant="primary"
                 fullWidth
-                onClick={() => router.push(`/allenamento/${s.sessionId}`)}
+                onClick={() => { task.begin("practice"); router.push(`/allenamento/${s.sessionId}`); }}
               >
                 Continua
               </Button>

@@ -9,6 +9,9 @@
 .resultIcon{width:36px;height:36px;display:grid;place-items:center;border:1.5px solid var(--foreground);border-radius:9px;background:var(--danger-soft);font-size:24px;flex-shrink:0}
 .resultIcon[data-correct=true]{background:var(--success-soft)}
 .resultIcon[data-correct=pending]{background:var(--accent-blue)}
+.pending i{position:relative;overflow:hidden}.pending i::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,#1112,transparent);transform:translateX(-100%);animation:verification-sheen 1.2s linear infinite}.pending i:nth-of-type(2)::after{animation-delay:100ms}.pending i:nth-of-type(3)::after{animation-delay:200ms}
+@keyframes verification-sheen{to{transform:translateX(100%)}}
+@media(prefers-reduced-motion:reduce){.pending i::after{animation:none;opacity:0}}
 .pending{display:grid;gap:10px;min-height:90px}.pending>span{font-size:14px;color:var(--muted)}.pending i{height:12px;border-radius:4px;background:var(--background);animation:pending-pulse 1.3s ease-in-out 180ms infinite both}.pending i:last-child{width:65%}.primary:disabled{opacity:.5;cursor:wait}
 @keyframes pending-pulse{50%{opacity:.4}}
 @media(prefers-reduced-motion:reduce){.pending i{animation:none}}

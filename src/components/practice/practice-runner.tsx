@@ -25,6 +25,7 @@ import { QuestionImage } from "@/components/exam/question-image";
 import { QuizQuestion } from "@/components/exam/quiz-question";
 import { QuizProgress } from "@/components/exam/quiz-progress";
 import { useUpcomingImages } from "@/components/exam/use-upcoming-images";
+import { useTaskArrival, useTaskTransition } from "@/components/ui/task-transition";
 
 export interface PracticeInitialState {
   attemptId?: string;
@@ -68,6 +69,8 @@ export function PracticeRunner({
   answeredBefore: initialBefore = 0,
 }: PracticeRunnerProps) {
   const router = useRouter();
+  const task = useTaskTransition();
+  useTaskArrival();
   const [batch, setBatch] = useState(() => ({questions:initialQuestions,initialStates:serverStates,totalQuestions:initialTotal,seed:initialSeed,answeredBefore:initialBefore}));
   const {questions,initialStates,totalQuestions,seed,answeredBefore} = batch;
   const [position, setPosition] = useState(1);
@@ -233,7 +236,7 @@ export function PracticeRunner({
     if (checkingRef.current || completingRef.current) return;
     const unanswered = questions.find(question=>verified[question.id] === undefined);
     if (unanswered) { setPosition(unanswered.position); return; }
-    completingRef.current = true; setPhase("checking"); setErrorMsg(null);
+    completingRef.current = true; setPhase("checking"); setErrorMsg(null); task.begin("next");
     try {
       const response = await fetch(`/api/practice/${sessionId}/next`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({seed})});
       const data = await response.json() as PracticeStateResponse & {error?:{message?:string}};
@@ -243,7 +246,7 @@ export function PracticeRunner({
       setBatch({questions:data.questions,initialStates:data.states,totalQuestions:data.totalQuestions,seed:data.seed,answeredBefore:data.answeredBefore??answeredBefore+totalQuestions});
       setPhase("idle");
     } catch(reason) { setErrorMsg(reason instanceof Error ? reason.message : "Connessione non disponibile. Riprova.");setPhase("error"); }
-    finally { completingRef.current = false; }
+    finally { task.finish(); completingRef.current = false; }
   };
 
   const goTo = (pos: number) => {
@@ -276,12 +279,15 @@ export function PracticeRunner({
     if (completingRef.current) return;
     completingRef.current = true;
     setErrorMsg(null);
+    task.begin("result");
+    setCompleteOpen(false);
     try {
       const res = await fetch(`/api/practice/${sessionId}/complete`, { method: "POST" });
       const data = (await res.json().catch(() => null)) as { error?: { message?: string } } | null;
       if (!res.ok) {
         setErrorMsg(data?.error?.message ?? "Impossibile completare l'allenamento. Riprova.");
         completingRef.current = false;
+        task.finish();
         return;
       }
       clearPersistedPracticeState(localStorage, sessionId);
@@ -289,6 +295,7 @@ export function PracticeRunner({
       router.push(`/allenamento/${sessionId}/risultato`);
     } catch {
       setErrorMsg("Errore di rete. Riprova.");
+      task.finish();
       completingRef.current = false;
     }
   };

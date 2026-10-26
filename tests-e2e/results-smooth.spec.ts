@@ -22,10 +22,13 @@ test("results show complete questions and both answers immediately; only the lis
   for(const [index,row] of rows.slice(0,2).entries()) {
     const response=await page.request.post(`/api/practice/${created.sessionId}/answer`,{data:{questionId:row.id,selectedAnswer:index===0?row.correct_answer:!row.correct_answer,seed:1750}});expect(response.status()).toBe(200);
   }
-  expect((await page.request.post(`/api/practice/${created.sessionId}/complete`)).status()).toBe(200);
+  const completed=await page.request.post(`/api/practice/${created.sessionId}/complete`);expect(completed.status()).toBe(200);
+  const result=await completed.json();expect(result.answers.every((answer:{explanation:{text:string}|null})=>!!answer.explanation?.text)).toBe(true);
   await page.goto(`/allenamento/${created.sessionId}/risultato`);
   const list=page.getByRole("region",{name:"Domande e risposte"});
   await expect(list.locator("li")).toHaveCount(10);await expect(list.locator("li").first()).toContainText("La tua risposta");
+  await expect(list.getByRole("complementary",{name:"Spiegazione della risposta"})).toHaveCount(10);
+  await expect(list.locator("li").first().getByRole("complementary")).toContainText(result.answers[0].explanation.text);
   await expect(list.locator("li").first()).toContainText("Soluzione");
   await expect(page.getByRole("button",{name:"Rivedi risposte"})).toHaveCount(0);
   for(const size of [{width:320,height:568},{width:360,height:640},{width:393,height:852},{width:852,height:393}]) {
@@ -93,6 +96,7 @@ test("exam review separates wrong answers from unanswered questions",async({brow
   const submitted=await page.request.post(`/api/exams/${created.sessionId}/submit`,{data:{version:created.version,answers:created.questions.map((q:{id:string},i:number)=>({questionId:q.id,selectedAnswer:i===0?!first.correct_answer:null})),flagged:[]}});
   expect(submitted.status()).toBe(200);await page.goto(`/simulazione/${created.sessionId}/risultato`);
   await expect(page.getByRole("heading",{name:"Esame da riprovare"})).toBeVisible();
+  await expect(page.getByRole("region",{name:"Domande e risposte"}).getByRole("complementary")).toHaveCount(30);
   await page.getByRole("button",{name:"Errate 1",exact:true}).click();await expect(page.getByRole("region",{name:"Domande e risposte"}).locator("li")).toHaveCount(1);
   await page.getByRole("button",{name:"Saltate 29",exact:true}).click();await expect(page.getByRole("region",{name:"Domande e risposte"}).locator("li")).toHaveCount(29);
   await expect(page.getByText("30 errori totali su 3 ammessi, incluse le non risposte.",{exact:true})).toBeVisible();await context.close();

@@ -1,3 +1,6 @@
+"use client";
+import { useTaskArrival } from "./task-transition";
+
 export default function Loading() {
   return (
     <div className="mx-auto flex min-h-viewport w-full max-w-lg flex-col items-center justify-center px-4 text-center">
@@ -21,6 +24,7 @@ export function LoadingCard({ label = "Caricamento…" }: { label?: string }) {
 
 /** Page-level error fallback with retry. */
 export function ErrorCard({ reset, message }: { reset: () => void; message: string }) {
+  useTaskArrival();
   return (
     <div className="mx-auto flex min-h-viewport w-full max-w-lg flex-col items-center justify-center px-4 text-center">
       <div className="w-full border-2 border-foreground bg-surface p-8 shadow-pop motion-scale-in">

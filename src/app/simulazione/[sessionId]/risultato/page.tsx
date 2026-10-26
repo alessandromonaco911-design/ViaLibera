@@ -4,6 +4,7 @@ import { mediaUrlFor } from "@/lib/exam/payload";
 import { ResultView, type ResultViewData } from "@/components/exam/result-view";
 import { SiteHeader } from "@/components/ui/site-header";
 import { MobileResultEntry } from "@/components/mobile/mobile-results";
+import { getPracticeExplanation } from "@/lib/practice/explanations";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -40,6 +41,7 @@ export default async function RisultatoPage({ params }: { params: Promise<{ sess
       return Math.max(0, Math.round((end.getTime() - session.startedAt.getTime()) / 1000));
     })(),
     questions: rows.map((r) => ({
+      explanation: getPracticeExplanation(r),
       position: r.position,
       questionId: r.questionId,
       officialQuestionCode: r.officialQuestionCode,

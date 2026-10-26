@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTaskTransition } from "@/components/ui/task-transition";
 import {
   listInProgressSessions,
   clearPersistedState,
@@ -15,6 +16,7 @@ import { Button } from "@/components/ui/button";
 /** Homepage card: resume an in-progress anonymous exam session. Editorial. */
 export function ResumeCard() {
   const router = useRouter();
+  const task = useTaskTransition();
   const [sessions, setSessions] = useState<PersistedExamState[] | null>(null);
   const [nowMs, setNowMs] = useState(0);
 
@@ -62,7 +64,7 @@ export function ResumeCard() {
               <Button
                 variant="primary"
                 fullWidth
-                onClick={() => router.push(`/simulazione/${s.sessionId}`)}
+                onClick={() => { task.begin("exam"); router.push(`/simulazione/${s.sessionId}`); }}
               >
                 Continua
               </Button>

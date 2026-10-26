@@ -24,6 +24,7 @@ import { QuestionImage } from "./question-image";
 import { QuizQuestion } from "@/components/exam/quiz-question";
 import { QuizProgress } from "@/components/exam/quiz-progress";
 import { useUpcomingImages } from "./use-upcoming-images";
+import { useTaskArrival, useTaskTransition } from "@/components/ui/task-transition";
 
 interface ExamRunnerProps {
   sessionId: string;
@@ -39,6 +40,8 @@ type SubmitPhase = "idle" | "submitting" | "done" | "error";
 
 export function ExamRunner({ sessionId, version, startedAt, expiresAt, totalQuestions, questions }: ExamRunnerProps) {
   const router = useRouter();
+  const { begin: beginTask, finish: finishTask } = useTaskTransition();
+  useTaskArrival();
   const [position, setPosition] = useState(1);
   const [answers, setAnswers] = useState<Record<string, boolean>>({});
   const [flagged, setFlagged] = useState<string[]>([]);
@@ -114,6 +117,8 @@ export function ExamRunner({ sessionId, version, startedAt, expiresAt, totalQues
       submittingRef.current = true;
       setPhase("submitting");
       setErrorMsg(null);
+      beginTask("result");
+      setSubmitOpen(false);
       try {
         const body = {
           version,
@@ -159,10 +164,11 @@ export function ExamRunner({ sessionId, version, startedAt, expiresAt, totalQues
         setErrorMsg("Errore di rete durante la consegna. Le risposte sono conservate: riprova.");
         setPhase("error");
       } finally {
+        if (!submittedRef.current) finishTask();
         submittingRef.current = false;
       }
     },
-    [questions, sessionId, version, router],
+    [questions, sessionId, version, router, beginTask, finishTask],
   );
 
   // ---- auto submit on expiry ----

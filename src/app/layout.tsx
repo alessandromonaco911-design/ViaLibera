@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { siteConfig } from "@/config/site";
 import { AppAccess } from "@/components/install/app-access";
+import { TaskTransitionProvider } from "@/components/ui/task-transition";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -67,7 +68,7 @@ export default function RootLayout({
   return (
     <html lang="it" className={`${geistSans.variable} ${geistMono.variable} h-full`}>
       <body className="min-h-viewport bg-background font-sans text-foreground antialiased">
-        <AppAccess>{children}</AppAccess>
+        <AppAccess><TaskTransitionProvider>{children}</TaskTransitionProvider></AppAccess>
       </body>
     </html>
   );

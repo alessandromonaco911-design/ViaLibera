@@ -17,6 +17,13 @@ complessiva. Non viene creata altra cronologia sul database.
 - Il pannello spiegazione si apre al tocco Vero/Falso in stato neutro. Non rivela
   soluzione o esito prima della risposta del server. Poi aggiorna lo stesso pannello.
   In caso di errore conserva la scelta e mantiene il normale tentativo di ripetizione.
+- Avvio, ripresa, ripasso, nuovo blocco e consegna sono accompagnati da un'unica
+  superficie con la macchinina: rimane montata durante la richiesta API e durante
+  l'apertura della destinazione. Viene scoperto il contenuto solo quando il suo
+  componente reale è montato, con una dissolvenza di 150 ms e interazioni subito
+  disponibili. Nessun tempo minimo di permanenza o percentuale inventata.
+  Errori e il comando Mostra la pagina possono chiuderla; non annullano richieste
+  già inviate. I loop si fermano a pagina nascosta e con movimento ridotto.
 - I segnaposto animati rispettano la preferenza di movimento ridotto; non vengono
   aggiunte attese minime, finte percentuali o completamenti ottimistici.
 - Le prossime due figure del quiz vengono precaricate e decodificate a priorità
@@ -26,9 +33,18 @@ complessiva. Non viene creata altra cronologia sul database.
 - Le letture indipendenti di domande e argomento nell'allenamento avvengono in
   parallelo dopo la validazione della sessione.
 
-Le prime tre misure migliorano la continuità percepita; le ultime tre eliminano
-o anticipano lavoro reale. Non promettono assenza di latenza su una rete lenta.
+Le misure visive migliorano la continuità percepita; immagini anticipate, filtri
+locali e letture parallele eliminano o anticipano lavoro reale. Non promettono
+assenza di latenza su una rete lenta.
 Nessuna dipendenza, migrazione o chiamata AI aggiunta.
+
+## Spiegazioni nei risultati
+
+Un pannello già aperto sotto le risposte mostra il testo verificato, il promemoria
+e la fonte. La banca rimane sul server: viene trasmessa soltanto la spiegazione
+dei quesiti della sessione completata, anche per domande saltate. Il risultato
+dell'esame viene arricchito dopo il controllo dello stato finale. Se il testo
+non corrisponde alla versione del quesito, compare il fallback esplicito.
 
 ## Verifica
 
@@ -39,5 +55,9 @@ saltate. Gli altri scenari mirati verificano spiegazioni, progressi e installazi
 I test di geometria attendono due frame dopo il cambio viewport affinché l'evento
 visualViewport e le container query abbiano assunto le nuove dimensioni.
 
-Verifica del 26 ottobre 2026: 20 scenari browser mirati superati, build di
-produzione, TypeScript e lint. Test database nello schema temporaneo dedicato.
+Verifica del 26 ottobre 2026: 31 test di servizio e spiegazioni e 23 scenari browser
+mirati superati; build di produzione, TypeScript e lint riusciti. La superficie
+animata è verificata trattenendo separatamente risposta API e risposta RSC, con
+controllo del movimento effettivo, modalità ridotta, viewport e recupero da errore.
+La banca è presente nei chunk server e assente nei chunk client. Test database
+nello schema temporaneo dedicato.

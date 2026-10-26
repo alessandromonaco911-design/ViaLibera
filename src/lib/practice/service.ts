@@ -506,6 +506,7 @@ export function buildPracticeResult(session: PracticeSessionRow, rows: PracticeQ
     timeUsedSeconds,
     completedAt: (session.completedAt ?? session.submittedAt ?? new Date()).toISOString(),
     answers: rows.filter(r => !continuous || r.answerVerified).map((r) => ({
+      explanation: session.status === "completed" || session.practiceStatus === "completed" ? getPracticeExplanation(r) : null,
       questionId: r.questionId,
       position: r.position,
       statement: r.statement,

@@ -10,6 +10,8 @@ import { EditorialAccordion } from "@/components/ui/editorial-accordion";
 import { cn } from "@/lib/utils/cn";
 import { pageShellClass } from "@/components/ui/page-shell";
 import type { PracticeResult } from "@/lib/practice/types";
+import { ResultExplanation } from "./result-explanation";
+import { useTaskTransition } from "@/components/ui/task-transition";
 
 type Filter = "all" | "correct" | "errors" | "unanswered";
 
@@ -25,6 +27,7 @@ function formatClock(ms: number): string {
 /** Final practice summary: no "SUPERATO/NON SUPERATO" (it's not an exam). */
 export function PracticeResultView({ result, topicName }: { result: PracticeResult; topicName: string }) {
   const router = useRouter();
+  const task = useTaskTransition();
   const params = useSearchParams();
   const initial = (params.get("filter") as Filter | null) ?? "all";
   const [filter, setFilter] = useState<Filter>(initial === "correct" || initial === "errors" || initial === "unanswered" ? initial : "all");
@@ -59,6 +62,7 @@ export function PracticeResultView({ result, topicName }: { result: PracticeResu
     if (mistakesBusy) return;
     setMistakesBusy(true);
     setMistakesError(null);
+    task.begin("review");
     try {
       const res = await fetch("/api/practice/mistakes", {
         method: "POST",
@@ -69,10 +73,12 @@ export function PracticeResultView({ result, topicName }: { result: PracticeResu
       if (!res.ok || !data?.sessionId) {
         setMistakesError(data?.error?.message ?? "Impossibile avviare il ripasso degli errori.");
         setMistakesBusy(false);
+        task.finish();
         return;
       }
       router.push(`/allenamento/${data.sessionId}`);
     } catch {
+      task.finish();
       setMistakesError("Errore di rete. Riprova.");
       setMistakesBusy(false);
     }
@@ -227,6 +233,7 @@ export function PracticeResultView({ result, topicName }: { result: PracticeResu
                     <dd>{a.groupCode ?? "—"}</dd>
                   </div>
                 </dl>
+                <ResultExplanation explanation={a.explanation}/>
               </EditorialAccordion>
             </li>
           ))}

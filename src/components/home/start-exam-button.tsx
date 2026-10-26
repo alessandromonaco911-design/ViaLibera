@@ -3,9 +3,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { useTaskTransition } from "@/components/ui/task-transition";
 
 export function StartExamButton() {
   const router = useRouter();
+  const task = useTaskTransition();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -13,6 +15,7 @@ export function StartExamButton() {
     if (busy) return;
     setBusy(true);
     setError(null);
+    task.begin("exam");
     try {
       const res = await fetch("/api/exams", {
         method: "POST",
@@ -23,10 +26,12 @@ export function StartExamButton() {
       if (!res.ok || !data?.sessionId) {
         setError(data?.error?.message ?? "Impossibile avviare la simulazione. Riprova.");
         setBusy(false);
+        task.finish();
         return;
       }
       router.push(`/simulazione/${data.sessionId}`);
     } catch {
+      task.finish();
       setError("Errore di rete. Verifica la connessione e riprova.");
       setBusy(false);
     }

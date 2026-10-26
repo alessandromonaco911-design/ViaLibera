@@ -5,20 +5,23 @@ import { siteConfig } from "@/config/site";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils/cn";
 import type { PracticeTopicSummary } from "@/lib/practice/types";
+import { useTaskTransition } from "@/components/ui/task-transition";
 
 /** Continuous by default; a short fixed series remains an explicit alternative. */
 export function PracticeSetup({ topic }: { topic: PracticeTopicSummary }) {
   const router = useRouter();
+  const task = useTaskTransition();
   const [count, setCount] = useState(0);
   const [busy, setBusy] = useState(false), [error, setError] = useState<string | null>(null);
   async function start() {
     if (busy) return; setBusy(true); setError(null);
+    task.begin("practice");
     try {
       const response = await fetch("/api/practice", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({topicId:topic.id,questionCount:count || 10,continuous:count === 0}) });
       const result = await response.json();
       if (!response.ok || !result.sessionId) throw new Error(result.error?.message ?? "Impossibile avviare il quiz.");
       router.push(`/allenamento/${result.sessionId}`);
-    } catch(reason) { setError(reason instanceof Error ? reason.message : "Connessione non disponibile. Riprova."); setBusy(false); }
+    } catch(reason) { task.finish(); setError(reason instanceof Error ? reason.message : "Connessione non disponibile. Riprova."); setBusy(false); }
   }
   return <section aria-label="Configurazione allenamento" className="min-w-0 border-2 border-foreground bg-surface p-5 sm:p-8">
     <h2 className="text-2xl font-bold">Come vuoi allenarti?</h2>

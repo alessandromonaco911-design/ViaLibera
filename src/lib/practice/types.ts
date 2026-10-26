@@ -112,6 +112,7 @@ export interface PracticeResult {
 }
 
 export interface PracticeResultAnswer {
+  explanation?: PracticeExplanation | null;
   questionId: string;
   position: number;
   statement: string;

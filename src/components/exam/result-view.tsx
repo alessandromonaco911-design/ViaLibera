@@ -9,12 +9,15 @@ import { StatBlock, SectionLabel } from "@/components/ui/editorial";
 import { EditorialAccordion } from "@/components/ui/editorial-accordion";
 import { cn } from "@/lib/utils/cn";
 import { pageShellClass } from "@/components/ui/page-shell";
+import type { PracticeExplanation } from "@/lib/practice/types";
+import { ResultExplanation } from "@/components/practice/result-explanation";
 
 type Filter = "all" | "errors" | "unanswered";
 
 const FILTER_PARAM: Record<Filter, string> = { all: "all", errors: "errors", unanswered: "unanswered" };
 
 export interface ResultQuestionDetail {
+  explanation?: PracticeExplanation | null;
   position: number;
   questionId: string;
   officialQuestionCode: string | null;
@@ -220,6 +223,7 @@ export function ResultView({ data }: { data: ResultViewData }) {
                     <dd>{q.groupCode ?? "—"}</dd>
                   </div>
                 </dl>
+                <ResultExplanation explanation={q.explanation}/>
               </EditorialAccordion>
             </li>
           ))}

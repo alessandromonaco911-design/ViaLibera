@@ -11,16 +11,20 @@ import { useMobileLayout } from "./use-mobile-layout";
 import { MobileIcon } from "./mobile-icon";
 import styles from "./mobile-hub.module.css";
 import r from "./mobile-results.module.css";
+import { ResultExplanation } from "@/components/practice/result-explanation";
+import { useTaskArrival, useTaskTransition } from "@/components/ui/task-transition";
 
 type Props = { children: ReactNode; exam?: ResultViewData; practice?: PracticeResult };
 type Filter = "all" | "correct" | "errors" | "unanswered";
 export function MobileResultEntry(props: Props) {
+  useTaskArrival();
   const mobile = useMobileLayout();
   if (!mobile) return <div className="mobile-entry-desktop">{props.children}</div>;
   return <MobileResults exam={props.exam} practice={props.practice}/>;
 }
 function MobileResults({ exam, practice }: Omit<Props, "children">) {
   const router = useRouter();
+  const task = useTaskTransition();
   const [filter, setFilter] = useState<Filter>("all");
   const [zoom, setZoom] = useState<string | null>(null);
   const [busy, setBusy] = useState(false), [error, setError] = useState<string | null>(null);
@@ -35,12 +39,13 @@ function MobileResults({ exam, practice }: Omit<Props, "children">) {
   async function mistakes() {
     if (starting.current) return;
     starting.current = true; setBusy(true); setError(null);
+    task.begin("review");
     try {
       const response = await fetch("/api/practice/mistakes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sourceSessionId: data.sessionId }) });
       const payload = await response.json() as { sessionId?: string; error?: { message?: string } };
       if (!response.ok || !payload.sessionId) throw new Error(payload.error?.message ?? "Non riesco ad avviare il ripasso. Riprova tra poco.");
       router.push(`/allenamento/${payload.sessionId}`);
-    } catch (reason) { starting.current = false; setBusy(false); setError(reason instanceof Error ? reason.message : "Connessione non disponibile. Riprova."); }
+    } catch (reason) { task.finish(); starting.current = false; setBusy(false); setError(reason instanceof Error ? reason.message : "Connessione non disponibile. Riprova."); }
   }
   return <div className={styles.app} data-mobile-result>
     <header><Link className={styles.logo} aria-label="ViaLibera · Home" href="/"><Brand /></Link><span className={styles.preview}>RISULTATO</span></header>
@@ -57,6 +62,7 @@ function MobileResults({ exam, practice }: Omit<Props, "children">) {
             <div className={r.questionTop}><span>Domanda {q.position}</span><strong>{q.unanswered ? "— Non risposta" : q.correct ? "✓ Esatta" : "✕ Errata"}</strong></div>
             <div className={r.statement}><p>{q.statement}</p>{q.image && <button className={r.thumbnail} aria-label={`Ingrandisci immagine domanda ${q.position}`} onClick={()=>setZoom(q.image!.url)}><QuestionImage {...q.image} src={q.image.url}/></button>}</div>
             <dl className={r.answers}><div><dt>La tua risposta</dt><dd>{q.unanswered ? "Non data" : q.selectedAnswer ? "VERO" : "FALSO"}</dd></div><div><dt>Soluzione</dt><dd>{q.correctAnswer ? "VERO" : "FALSO"}</dd></div></dl>
+            <ResultExplanation explanation={q.explanation}/>
           </li>)}</ol> : <div className={r.empty} role="status"><strong>{filter === "errors" ? "Nessuna risposta errata." : filter === "unanswered" ? "Nessuna domanda saltata." : "Nessuna risposta in questa categoria."}</strong><button onClick={()=>inspect("all")}>Mostra tutte le risposte</button></div>}
         </div>
       </div>

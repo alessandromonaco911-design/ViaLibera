@@ -17,6 +17,7 @@ import { mobileViewUrl, readMobileView, sections, type MobileSection, type Mobil
 import { useResumeSessions, type ResumeSession } from "./use-resume-sessions";
 import styles from "./mobile-hub.module.css";
 import { ProgressPanel } from "@/components/progress/progress-panel";
+import { useTaskTransition } from "@/components/ui/task-transition";
 
 const labels = { home: "Home", training: "Allenamento", exam: "Esame", progress: "Progressi" };
 const subscribeHeight = () => window.innerHeight < 700 ? 4 : 6;
@@ -25,6 +26,7 @@ export function MobileHub({ initialSection, initialTopics, initialTopicId }: {
   initialSection: MobileSection; initialTopics?: PracticeTopicSummary[]; initialTopicId?: string;
 }) {
   const router = useRouter();
+  const task = useTaskTransition();
   const [view, setView] = useState(() => readMobileView(initialSection, initialTopicId));
   const viewRef = useRef(view);
   const [topics, setTopics] = useState(initialTopics ?? []);
@@ -78,6 +80,7 @@ export function MobileHub({ initialSection, initialTopics, initialTopicId }: {
   async function start(mode: "exam" | "practice", chosenTopic = topic, count = view.count) {
     if (startingRef.current || mode === "practice" && (!chosenTopic || chosenTopic.questionCount < (count || 10))) return;
     motion.current?.reset(); startingRef.current = true; setStarting(true); setError(null);
+    task.begin(mode);
     try {
       const response = await fetch(mode === "exam" ? "/api/exams" : "/api/practice", {
         method: "POST", headers: { "Content-Type": "application/json" },
@@ -86,10 +89,10 @@ export function MobileHub({ initialSection, initialTopics, initialTopicId }: {
       const data = await response.json() as { sessionId?: string; error?: { code?: string; message?: string } };
       if (!response.ok || !data.sessionId) {
         setError(data.error?.code === "RATE_LIMITED" ? data.error.message ?? "Troppi nuovi quiz. Riprova tra qualche minuto." : data.error?.code === "INSUFFICIENT_QUESTIONS" ? "Non ci sono abbastanza domande. Scegli un numero inferiore." : "Non riesco ad avviare il quiz. Riprova tra poco.");
-        startingRef.current = false; setStarting(false); return;
+        task.finish(); startingRef.current = false; setStarting(false); return;
       }
       router.push(`/${mode === "exam" ? "simulazione" : "allenamento"}/${data.sessionId}`);
-    } catch { setError("Connessione non disponibile. Riprova: le tue sessioni restano salvate."); startingRef.current = false; setStarting(false); }
+    } catch { task.finish(); setError("Connessione non disponibile. Riprova: le tue sessioni restano salvate."); startingRef.current = false; setStarting(false); }
   }
   const back = (label: string, changes: Partial<MobileView>) => <button className={styles.back} onClick={() => go(changes)} disabled={starting}><MobileIcon name="back"/>{label}</button>;
   const pager = (page: number, pages: number) => <div className={styles.pager}>
@@ -106,7 +109,7 @@ export function MobileHub({ initialSection, initialTopics, initialTopicId }: {
       return <>{back("Home", { sessions: false, page: 0 })}<div className={styles.heading}><h1>Riprendi da qui</h1></div>
         {sessions.length ? <div className={styles.categoryList} style={{ "--rows": Math.min(4, sessions.length - page * 4) } as CSSProperties}>
           {sessions.slice(page * 4, page * 4 + 4).map(session => <div className={styles.resumeRow} key={session.id}>
-            <Link href={session.href} prefetch={false}><strong>{session.title}</strong><span>{session.progress} · Continua →</span></Link>
+            <Link href={session.href} prefetch={false} onNavigate={()=>task.begin(session.type)}><strong>{session.title}</strong><span>{session.progress} · Continua →</span></Link>
             <button className={styles.deleteButton} aria-label={`Abbandona ${session.title}`} onClick={() => setDiscarding(session)}><MobileIcon name="delete"/></button>
           </div>)}
         </div> : <div className={styles.status}><p>Nessuna sessione da riprendere.</p><button className={styles.primary} onClick={() => go({ sessions: false, section: "training" })}>Scegli un argomento</button></div>}
@@ -158,7 +161,7 @@ export function MobileHub({ initialSection, initialTopics, initialTopicId }: {
     <header><Link className={styles.logo} aria-label="ViaLibera · Home" href="/" onClick={event => { event.preventDefault(); go({ section: "home", sessions: false }); }}><Brand /></Link><button className={`${styles.preview} min-h-11`} aria-label="Fonte e versione dei quesiti" onClick={() => setSourceOpen(true)}>PATENTE B ⓘ</button></header>
     <main ref={viewportRef} className={styles.viewport} aria-label="Contenuto"><div ref={trackRef} className={styles.track}>
       {sections.map(section => <section key={section} className={styles.slide} inert={view.section !== section} aria-hidden={view.section !== section} aria-label={labels[section]}>
-        <div className={styles.screen} data-active={view.section === section} data-section={section}>{section === "home" ? home() : section === "training" ? training() : section === "exam" ? exam() : <ProgressPanel active={view.section === "progress"} topics={topics} detail={view.progressDetail} busy={starting} error={error} onErrorClear={()=>setError(null)} onDetail={progressDetail => go({ progressDetail })} onTrain={topicId => { if (topicId) void start("practice", topics.find(t=>t.id===topicId), 10); else go({section:"training",topicId:null,group:null,page:0}); }}/>}</div>
+        <div className={styles.screen} data-active={view.section === section} data-section={section}>{section === "home" ? home() : section === "training" ? training() : section === "exam" ? exam() : <ProgressPanel active={view.section === "progress"} topics={topics} detail={view.progressDetail} busy={starting} error={view.section === "progress" ? error : null} onErrorClear={()=>setError(null)} onDetail={progressDetail => go({ progressDetail })} onTrain={topicId => { if (topicId) void start("practice", topics.find(t=>t.id===topicId), 10); else go({section:"training",topicId:null,group:null,page:0}); }}/>}</div>
       </section>)}
     </div></main>
     <nav aria-label="Sezioni" style={{ "--tab-index": sections.indexOf(view.section) } as CSSProperties}>{sections.map(section => <button key={section} aria-current={view.section === section ? "page" : undefined} disabled={starting} onClick={() => go({ section, ...(section === "progress" ? {progressDetail:"overview" as const} : {}) })}><MobileIcon name={section}/><span>{labels[section]}</span></button>)}</nav>
