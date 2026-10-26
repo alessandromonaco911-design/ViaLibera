@@ -50,7 +50,7 @@ export function PracticeResultView({ result, topicName }: { result: PracticeResu
   const changeFilter = (f: Filter) => {
     setFilter(f);
     setOpen(new Set());
-    router.replace(`/allenamento/${result.sessionId}/risultato?filter=${FILTER_PARAM[f]}`);
+    window.history.replaceState(null, "", `/allenamento/${result.sessionId}/risultato?filter=${FILTER_PARAM[f]}`);
   };
 
   const hasErrors = result.errorCount > 0 && !result.continuous;

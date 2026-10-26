@@ -1,5 +1,5 @@
-import { LoadingCard } from "@/components/ui/loading";
+import { PageSkeleton } from "@/components/ui/page-skeleton";
 
 export default function RisultatoLoading() {
-  return <LoadingCard label="Caricamento risultato" />;
+  return <PageSkeleton kind="result" />;
 }

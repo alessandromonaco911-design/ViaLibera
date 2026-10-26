@@ -23,6 +23,7 @@ import { cn } from "@/lib/utils/cn";
 import { QuestionImage } from "./question-image";
 import { QuizQuestion } from "@/components/exam/quiz-question";
 import { QuizProgress } from "@/components/exam/quiz-progress";
+import { useUpcomingImages } from "./use-upcoming-images";
 
 interface ExamRunnerProps {
   sessionId: string;
@@ -60,6 +61,7 @@ export function ExamRunner({ sessionId, version, startedAt, expiresAt, totalQues
   useEffect(() => { stageRef.current?.scrollTo({ top: 0 }); }, [position]);
 
   const current = byPosition.get(position);
+  useUpcomingImages(questions, position);
   const answeredCount = questions.filter((q) => answers[q.id] !== undefined).length;
 
   // ---- restore from localStorage (post-mount, deferred one macrotask) ----

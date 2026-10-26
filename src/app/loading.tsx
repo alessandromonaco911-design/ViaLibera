@@ -1,5 +1,5 @@
-import { LoadingCard } from "@/components/ui/loading";
+import { PageSkeleton } from "@/components/ui/page-skeleton";
 
 export default function HomeLoading() {
-  return <LoadingCard label="Caricamento" />;
+  return <PageSkeleton />;
 }

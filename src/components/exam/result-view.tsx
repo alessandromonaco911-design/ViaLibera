@@ -72,7 +72,7 @@ export function ResultView({ data }: { data: ResultViewData }) {
   const changeFilter = (f: Filter) => {
     setFilter(f);
     setOpen(new Set());
-    router.replace(`/simulazione/${data.sessionId}/risultato?filter=${FILTER_PARAM[f]}`);
+    window.history.replaceState(null, "", `/simulazione/${data.sessionId}/risultato?filter=${FILTER_PARAM[f]}`);
   };
 
   const scrollToFirstError = () => {

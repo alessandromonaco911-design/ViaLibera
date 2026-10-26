@@ -9,6 +9,7 @@ import { loadProgress, progressChanged } from "@/lib/progress/storage";
 import { MobileIcon } from "@/components/mobile/mobile-icon";
 import styles from "./progress-panel.module.css";
 import { Dialog } from "@/components/ui/dialog";
+import { ContentPlaceholder } from "@/components/ui/content-placeholder";
 
 export type ProgressDetail = "overview" | "weak" | "achievements";
 function ProgressContent({ active = true, topics, detail = "overview", onDetail, onTrain }: {
@@ -34,7 +35,7 @@ function ProgressContent({ active = true, topics, detail = "overview", onDetail,
   const label = (name: string) => { const topic = resolve(name); return topic ? topicTitle(topic) : name.split(";")[0]; };
   const train = (name?: string) => onTrain(name ? resolve(name)?.id : undefined);
   if (unavailable) return <div className={styles.root}><h1>I tuoi progressi</h1><div className={styles.empty}><h2>Qui non riesco a salvare i progressi.</h2><p>Controlla che il browser consenta i dati del sito. Puoi comunque continuare i quiz.</p><button className={styles.primary} onClick={() => setRetry(value => value + 1)}>Riprova</button><button className={styles.row} onClick={() => onTrain()}>Vai all’allenamento →</button></div></div>;
-  if (!data) return <div className={styles.root} role="status"><h1>I tuoi progressi</h1><p>Caricamento progressi…</p></div>;
+  if (!data) return <div className={styles.root}><h1>I tuoi progressi</h1><ContentPlaceholder label="Lettura dei progressi"/></div>;
   const unique = Object.keys(data.questions).length;
   if (!data.answered) return <div className={styles.root} data-progress-empty><h1>I tuoi progressi</h1><div className={styles.empty}><MobileIcon name="training"/><h2>Il tuo percorso parte da qui.</h2><p>Rispondi a 10 domande: inizieremo a conoscere i tuoi punti forti.</p><button className={styles.primary} onClick={() => onTrain()}>Inizia allenamento <MobileIcon name="arrow"/></button></div><p className={styles.local}>Salvati su questo dispositivo. Nessun account.</p></div>;
   const weak = weakTopics(data).filter(item => resolve(item.topic));

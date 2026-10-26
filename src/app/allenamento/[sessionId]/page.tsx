@@ -27,7 +27,10 @@ export default async function PracticeSessionPage({ params }: { params: Promise<
     redirect(`/allenamento/${sessionId}/risultato`);
   }
 
-  const rows = await getPracticeSessionQuestions(sessionId);
+  const [rows, topic] = await Promise.all([
+    getPracticeSessionQuestions(sessionId),
+    session.topicId ? getTopic(session.topicId) : Promise.resolve({ id: "", code: "", name: "" }),
+  ]);
   const questions = rows.map((r) =>
     toPublicPracticeQuestion(
       {
@@ -49,7 +52,6 @@ export default async function PracticeSessionPage({ params }: { params: Promise<
     ),
   );
 
-  const topic = session.topicId ? await getTopic(session.topicId) : { id: "", code: "", name: "" };
 
   return (
     <PracticeRunner

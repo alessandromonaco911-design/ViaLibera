@@ -59,6 +59,8 @@ test("progress matches the approved overview, opens normal details, fits phones 
   for(const size of[{width:320,height:568},{width:360,height:640},{width:393,height:852},{width:852,height:393}]){
     await page.setViewportSize(size);
     await page.addStyleTag({content:`:root{--safe-top:${size.width===393?59:0}px;--safe-bottom:${size.width===393?34:0}px}`});
+    // Container queries settle at the next rendering opportunity after rotation.
+    await page.evaluate(()=>new Promise<void>(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve()))));
     const bounds=await page.locator('[data-section="progress"] [data-progress-overview]').evaluate(el=>{
       const area=el.getBoundingClientRect();const bad=[...el.querySelectorAll("button,p,strong,b,h1")].filter(node=>{const r=node.getBoundingClientRect();return r.width>0&&(r.bottom>area.bottom+1||r.top<area.top-1||r.left<0||r.right>innerWidth+1);}).map(node=>node.textContent);
       return{bad,scroll:document.documentElement.scrollHeight-innerHeight};

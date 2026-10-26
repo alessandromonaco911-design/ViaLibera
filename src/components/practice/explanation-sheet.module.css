@@ -8,6 +8,10 @@
 .heading h2{font-size:20px;line-height:1.2;font-weight:750;letter-spacing:-.3px}
 .resultIcon{width:36px;height:36px;display:grid;place-items:center;border:1.5px solid var(--foreground);border-radius:9px;background:var(--danger-soft);font-size:24px;flex-shrink:0}
 .resultIcon[data-correct=true]{background:var(--success-soft)}
+.resultIcon[data-correct=pending]{background:var(--accent-blue)}
+.pending{display:grid;gap:10px;min-height:90px}.pending>span{font-size:14px;color:var(--muted)}.pending i{height:12px;border-radius:4px;background:var(--background);animation:pending-pulse 1.3s ease-in-out 180ms infinite both}.pending i:last-child{width:65%}.primary:disabled{opacity:.5;cursor:wait}
+@keyframes pending-pulse{50%{opacity:.4}}
+@media(prefers-reduced-motion:reduce){.pending i{animation:none}}
 .solution{font:11px/1.5 var(--font-mono);margin-top:5px;color:var(--muted)}
 .close{width:44px;height:44px;display:grid;place-items:center;flex-shrink:0;font-size:27px;background:transparent;border:0;touch-action:manipulation}
 .reading{min-width:0}

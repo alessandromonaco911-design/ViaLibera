@@ -90,9 +90,9 @@ test("long explanation pages, text-only question, focus trap and final confirmat
   let sheet = page.getByRole("dialog", { name: "Risposta corretta" });
   await expect(sheet).toBeVisible();
   await expect(sheet.getByRole("button", { name: "Parte successiva" })).toBeEnabled();
-  const text = await sheet.locator('[aria-live="polite"]').innerText();
+  const text = await sheet.locator('p[aria-live="polite"]').innerText();
   await sheet.getByRole("button", { name: "Parte successiva" }).click();
-  await expect(sheet.locator('[aria-live="polite"]')).not.toHaveText(text);
+  await expect(sheet.locator('p[aria-live="polite"]')).not.toHaveText(text);
   const bounds = await sheet.evaluate(el => ({ top: el.getBoundingClientRect().top, bottom: el.getBoundingClientRect().bottom, height: innerHeight, overflow: el.scrollHeight - el.clientHeight }));
   expect(bounds.top).toBeGreaterThanOrEqual(59);
   expect(bounds.bottom).toBeLessThanOrEqual(bounds.height);

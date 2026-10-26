@@ -24,6 +24,7 @@ import { cn } from "@/lib/utils/cn";
 import { QuestionImage } from "@/components/exam/question-image";
 import { QuizQuestion } from "@/components/exam/quiz-question";
 import { QuizProgress } from "@/components/exam/quiz-progress";
+import { useUpcomingImages } from "@/components/exam/use-upcoming-images";
 
 export interface PracticeInitialState {
   attemptId?: string;
@@ -92,6 +93,7 @@ export function PracticeRunner({
   useEffect(() => { stageRef.current?.scrollTo({ top: 0 }); }, [position]);
 
   const current = byPosition.get(position);
+  useUpcomingImages(questions, position);
   const answeredCount = questions.filter((q) => verified[q.id] !== undefined).length;
   const uncheckedCount = totalQuestions - answeredCount;
 
@@ -181,6 +183,7 @@ export function PracticeRunner({
     if (checkingRef.current) return;
     checkingRef.current = true;
     setPhase("checking");
+    setExplanationQuestionId(current.id);
     setErrorMsg(null);
     try {
       const res = await fetch(`/api/practice/${sessionId}/answer`, {
@@ -214,10 +217,12 @@ export function PracticeRunner({
         return;
       }
       setErrorMsg(data?.error?.message ?? "Verifica non riuscita. Riprova.");
+      setExplanationQuestionId(null);
       setPhase("error");
     } catch {
       // network failure: keep the selection, allow retry
       setErrorMsg("Errore di rete durante la verifica. La risposta è conservata: riprova.");
+      setExplanationQuestionId(null);
       setPhase("error");
     } finally {
       checkingRef.current = false;
@@ -518,11 +523,12 @@ export function PracticeRunner({
         </div>
       </div>
 
-      {currentVerified && <ExplanationSheet key={current.id} open={explanationQuestionId === current.id}
+      {(currentVerified || explanationQuestionId === current.id && phase === "checking") && <ExplanationSheet key={current.id} open={explanationQuestionId === current.id}
+        pending={!currentVerified}
         onClose={() => setExplanationQuestionId(null)}
         onContinue={() => { setExplanationQuestionId(null); if (isLast) { if (continuous) void nextBatch(); else setCompleteOpen(true); } else navNext(); }}
-        selectedAnswer={currentVerified.selectedAnswer} isCorrect={currentVerified.isCorrect}
-        explanation={currentVerified.explanation ?? null} position={continuous ? answeredBefore + position : position} total={continuous ? 0 : totalQuestions} isLast={isLast && !continuous} />}
+        selectedAnswer={currentVerified?.selectedAnswer ?? selected[current.id] ?? false} isCorrect={currentVerified?.isCorrect ?? false}
+        explanation={currentVerified?.explanation ?? null} position={continuous ? answeredBefore + position : position} total={continuous ? 0 : totalQuestions} isLast={isLast && !continuous} />}
 
       {/* navigator drawer */}
       <Drawer open={navigatorOpen} onClose={() => setNavigatorOpen(false)} title={continuous ? "Domande" : `Domande (${totalQuestions})`}>

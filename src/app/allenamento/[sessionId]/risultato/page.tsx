@@ -27,9 +27,11 @@ export default async function PracticeResultPage({ params }: { params: Promise<{
     redirect(`/allenamento/${sessionId}`);
   }
 
-  const rows = await getPracticeSessionQuestions(sessionId);
+  const [rows, topic] = await Promise.all([
+    getPracticeSessionQuestions(sessionId),
+    session.topicId ? getTopic(session.topicId).catch(() => ({ id: "", code: "", name: "" })) : Promise.resolve({ id: "", code: "", name: "" }),
+  ]);
   const result = buildPracticeResult(session, rows);
-  const topic = session.topicId ? await getTopic(session.topicId).catch(() => ({ id: "", code: "", name: "" })) : { id: "", code: "", name: "" };
 
   return (
     <MobileResultEntry practice={result}>

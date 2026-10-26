@@ -30,7 +30,8 @@ function Emphasis({ text }: { text: string }) {
 const subscribeSize = (update: () => void) => { window.addEventListener("resize", update); return () => window.removeEventListener("resize", update); };
 const readingLimit = () => window.innerHeight < 700 && window.innerWidth < 560 ? 96 : 175;
 
-export function ExplanationSheet({ open, onClose, onContinue, isCorrect, selectedAnswer, explanation, position, total, isLast }: {
+export function ExplanationSheet({ open, onClose, onContinue, isCorrect, selectedAnswer, explanation, position, total, isLast, pending = false }: {
+  pending?: boolean;
   open: boolean; onClose: () => void; onContinue: () => void;
   isCorrect: boolean; selectedAnswer: boolean; explanation: PracticeExplanation | null;
   position: number; total: number; isLast: boolean;
@@ -46,14 +47,14 @@ export function ExplanationSheet({ open, onClose, onContinue, isCorrect, selecte
     <div className={styles.backdrop} aria-hidden="true" onClick={onClose} />
     <section className={styles.panel} ref={ref} role="dialog" aria-modal="true" aria-labelledby={title} tabIndex={-1} data-explanation-sheet>
       <header className={styles.heading}>
-        <span className={styles.resultIcon} data-correct={isCorrect} aria-hidden="true">{isCorrect ? "✓" : "×"}</span>
-        <div><h2 id={title}>{isCorrect ? "Risposta corretta" : "Risposta errata"}</h2>
-          <p className={styles.solution}>Hai risposto {selectedAnswer ? "VERO" : "FALSO"} · Soluzione {solution ? "VERO" : "FALSO"}</p></div>
+        <span className={styles.resultIcon} data-correct={pending ? "pending" : isCorrect} aria-hidden="true">{pending ? "…" : isCorrect ? "✓" : "×"}</span>
+        <div><h2 id={title} aria-live="polite">{pending ? "Verifica della risposta" : isCorrect ? "Risposta corretta" : "Risposta errata"}</h2>
+          <p className={styles.solution}>Hai risposto {selectedAnswer ? "VERO" : "FALSO"}{!pending && ` · Soluzione ${solution ? "VERO" : "FALSO"}`}</p></div>
         <button type="button" className={styles.close} onClick={onClose} aria-label="Rivedi la domanda">×</button>
       </header>
       <div className={styles.reading}>
-        <p className={styles.explanation} aria-live="polite"><Emphasis text={pages[index]} /></p>
-        {pages.length > 1 && <div className={styles.pagination} aria-label="Pagine della spiegazione">
+        {pending ? <div className={styles.pending} role="status"><span>Stiamo verificando la tua risposta…</span><i/><i/><i/></div> : <p className={styles.explanation} aria-live="polite"><Emphasis text={pages[index]} /></p>}
+        {!pending && pages.length > 1 && <div className={styles.pagination} aria-label="Pagine della spiegazione">
           <button type="button" onClick={() => setPage(index - 1)} disabled={index === 0} aria-label="Parte precedente">←</button>
           <span>{index + 1} / {pages.length}</span>
           <button type="button" onClick={() => setPage(index + 1)} disabled={index === pages.length - 1} aria-label="Parte successiva">→</button>
@@ -61,7 +62,7 @@ export function ExplanationSheet({ open, onClose, onContinue, isCorrect, selecte
       </div>
       {explanation?.remember && <div className={styles.remember}><span>Da ricordare</span><p><Emphasis text={explanation.remember} /></p></div>}
       <div className={styles.actions}>
-        <div className={styles.actionRow}><button type="button" className={styles.primary} onClick={onContinue}>{isLast ? "Ho capito, completa →" : "Ho capito, avanti →"}</button>
+        <div className={styles.actionRow}><button type="button" className={styles.primary} disabled={pending} onClick={onContinue}>{pending ? "Verifica in corso…" : isLast ? "Ho capito, completa →" : "Ho capito, avanti →"}</button>
           {explanation && <a className={styles.source} href={explanation.sourceUrl} target="_blank" rel="noreferrer" aria-label={`Apri fonte: ${explanation.sourceLabel}`} title={explanation.sourceLabel}>↗</a>}</div>
         <div className={styles.meta}><span>Allenamento · {position}{total ? ` / ${total}` : " · senza limite"}</span>{explanation && <span>Fonte: {explanation.sourceLabel}</span>}</div>
       </div>
